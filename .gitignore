@@ -1,0 +1,5 @@
+node_modules/
+document.docx
+document.md
+.env
+.vscode
