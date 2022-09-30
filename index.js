@@ -29,11 +29,11 @@ async function main() {
         const content = await response.text();
 
         // Save to disk
-        const fileName = entry.split('/').pop().replace('md', 'docx');
+        const fileName = entry.split('/').pop().replace('.md', '.docx');
 
         const buffer = await md2docx(content);
         await fs.writeFile(fileName, buffer);
     }
 }
 
-main();
+await main();
