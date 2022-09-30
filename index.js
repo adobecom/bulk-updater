@@ -11,28 +11,29 @@
  */
 
 import fs from 'fs-extra';
-import fetch from 'node-fetch';
+import { fetch } from '@adobe/fetch';
+import { md2docx } from '@adobe/helix-md2docx';
+
+const entries = [
+    'https://main--bacom--adobecom.hlx.live/customer-success-stories/ben-and-jerrys-case-study.md',
+];
 
 const textToChange = ``;
-
 const textToChangeTo = ``;
 
 async function main() {
     console.log('Fetching entries and saving locally');
-    const entries = [];
     // fetch entries, make modifications, and save to disk
     for (const entry of entries) {
         const response = await fetch(entry);
         const content = await response.text();
 
-        // Make a few changes
-        const newContent = content.replace(textToChange, textToChangeTo);
-        
         // Save to disk
-        const fileName = entry.split('/').pop();
-        await fs.writeFile(fileName, newContent);
+        const fileName = entry.split('/').pop().replace('md', 'docx');
+
+        const buffer = await md2docx(content);
+        await fs.writeFile(fileName, buffer);
     }
-    console.log('Done');
 }
 
 main();
