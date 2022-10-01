@@ -10,12 +10,13 @@
  * governing permissions and limitations under the License.
  */
 
-import fs from 'fs-extra';
+import { writeFile } from 'fs/promises';
 import { fetch } from '@adobe/fetch';
-import { md2docx } from '@adobe/helix-md2docx';
+import { mdast2docx } from '@adobe/helix-md2docx';
+import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
 
 const entries = [
-    'https://main--bacom--adobecom.hlx.live/customer-success-stories/ben-and-jerrys-case-study.md',
+    'https://main--bacom--adobecom.hlx.page/drafts/cmillar/ben-and-jerrys-case-study',
 ];
 
 const textToChange = ``;
@@ -23,17 +24,41 @@ const textToChangeTo = ``;
 
 async function main() {
     console.log('Fetching entries and saving locally');
-    // fetch entries, make modifications, and save to disk
     for (const entry of entries) {
-        const response = await fetch(entry);
+        const response = await fetch(`${entry}.md`);
         const content = await response.text();
 
-        // Save to disk
-        const fileName = entry.split('/').pop().replace('.md', '.docx');
+        const state = { content: { data: content }, log: '' };
+        await parseMarkdown(state);
 
-        const buffer = await md2docx(content);
-        await fs.writeFile(fileName, buffer);
-    }
+        const { mdast } = state.content;
+
+        mdast.children.forEach(child => {
+            if (child.type === 'gridTable') {
+                child.children[0].children.forEach((gridChild) => {
+                    gridChild.children.forEach((gtCell, idx) => {
+                        if (gtCell.children[0]) {
+                            console.log(gtCell.children[0].children);
+                            if (gtCell.children[0].children[0].value === 'Tags') {
+                                console.log('TAG VALUES');
+                                console.log(gridChild.children[idx + 1].children[0].children[0].value);
+                            }
+                        } else {
+                            console.log(gtCell);
+                        }
+                    });
+                });
+            }
+        });
+
+        const fileName = `${entry.split('/').pop()}.docx`;
+
+        const buffer = await mdast2docx(mdast);
+        await writeFile(fileName, buffer);
+
+        console.log(`Saved ${fileName}`);
+    };
+    process.exit(0);
 }
 
 await main();
