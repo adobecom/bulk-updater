@@ -3,3 +3,5 @@ document.docx
 document.md
 .env
 .vscode
+output
+.DS_Store
