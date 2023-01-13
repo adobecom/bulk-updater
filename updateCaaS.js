@@ -1,5 +1,6 @@
 import { fetch } from '@adobe/fetch';
 import {
+  fetchText,
   getMdast,
   getTable,
   getKeyVals,
@@ -7,7 +8,7 @@ import {
   updateKeyName,
   updateKeyNameAndValue,
   updateKeyValue,
-} from './utils.js';
+} from './utils/mdast-utils.js';
 import convertTags from './convertTags.js';
 
 const TAGS_KEY = 'cq:tags';
@@ -19,21 +20,6 @@ const fetchExcelJson = async (url) => {
     return json.data;
   }
   return [];
-};
-
-const fetchText = async (url) => {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.log(`Page not loaded: ${res.status} ${url}`);
-      return null;
-    }
-    const text = await res.text();
-    return text;
-  } catch (err) {
-    console.log(`fetchText error: ${err.message}`);
-    return null;
-  }
 };
 
 let go = false;
@@ -50,7 +36,7 @@ async function main() {
   const commerceUrls = commerceData.map(d => d.Path);
 
 
-  for (const page of data) {
+  for (const page of pages) {
     if (!commerceUrls.includes(page.Path)) continue;
 
     const mdTxt = await fetchText(`${page.Path.replace('https://business.adobe.com', 'https://main--bacom--adobecom.hlx.page')}.md`);

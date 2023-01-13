@@ -14,7 +14,7 @@ import { writeFile } from 'fs/promises';
 import { fetch } from '@adobe/fetch';
 import { mdast2docx } from '@adobe/helix-md2docx';
 import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
-import { getMdast, saveDocx } from './utils.js';
+import { getMdast, saveDocx } from './utils/mdast-utils.js';
 
 const entries = [
   // 'https://main--bacom--adobecom.hlx.page/drafts/cmillar/ben-and-jerrys-case-study',
