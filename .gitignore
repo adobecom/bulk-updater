@@ -4,3 +4,5 @@ document.md
 .env
 .vscode
 output/
+bacom/docs/*
+bacom/path-files/*
