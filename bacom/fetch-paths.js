@@ -97,31 +97,26 @@ const locales = [
     "vn_vi",
     "vn_en",
     "za"
-]
+];
 
 const rootUrl = 'https://main--bacom--adobecom.hlx.page';
-const customerStoriesQIPath = 'customer-success-stories/query-index.json'
-
-function constructUrl(root, locale, qIPath) {
-    return `${root}/${locale}/${qIPath}`
-}
+const contentQIPath = 'customer-success-stories/query-index.json'
 
 async function main () {
     const pathKey = [];
 
     for (const locale in locales) {
         console.log(`Writing paths for locale: ${locales[locale]}`)
-        const url = constructUrl(rootUrl, locales[locale], customerStoriesQIPath);
-        const fileName = `${locales[locale]}-${customerStoriesQIPath.split('/').join('-')}`;
+        const url = `${rootUrl}/${locales[locale]}/${contentQIPath}`;
+        const fileName = `${locales[locale]}-${contentQIPath.split('/').join('-')}`;
 
         console.log(`Url: ${url} and file name: ${fileName}`);
 
         const queryIndex = await fetch(url);
-        let queryJson;
     
         if (queryIndex.ok) {
             console.log('Response is ok');
-            queryJson = await queryIndex.json();
+            const queryJson = await queryIndex.json();
     
             const paths = queryJson.data.reduce((pathObj, indexItem) => {
                 if (indexItem?.path) {

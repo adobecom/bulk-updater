@@ -16,10 +16,7 @@ import { mdast2docx } from '@adobe/helix-md2docx';
 import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
 
 const entries = [
-    'https://main--bacom-blog--adobecom.hlx.page/how-to/10-secrets-to-delivering-a-great-product-demo',
-    'https://main--bacom-blog--adobecom.hlx.page/how-to/10-easy-steps-to-connecting-over-the-top-ott-devices-to-a-proxy',
-    'https://main--bacom-blog--adobecom.hlx.page/how-to/12-social-media-tactics-drive-traffic-your-ecommerce-site',
-    'https://main--bacom-blog--adobecom.hlx.page/how-to/3-best-practices-to-transform-to-a-data-driven-operating-model',
+    'https://main--bacom--adobecom.hlx.page/drafts/cmillar/ben-and-jerrys-case-study',
 ];
 
 const textToChange = ``;
