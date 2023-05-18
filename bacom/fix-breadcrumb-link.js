@@ -35,7 +35,7 @@ function getLocaleFromEntry(entry) {
  * 
  * 
  * @param {object} node / mdast json object with children
- * @param {stirng} type / a type, like "link"
+ * @param {string} type / a type, like "link"
  * @returns 
  */
 const getLink = (node, type) => {
@@ -43,8 +43,8 @@ const getLink = (node, type) => {
   
     if (node.children) {
       for (let i = 0; i < node.children.length; i++) {
-        const leaf = getLink(node.children[i], type);
-        if (leaf) return leaf;
+        const item = getLink(node.children[i], type);
+        if (item) return item;
       }
     }
     return undefined;
@@ -60,7 +60,7 @@ async function generateFixedDocs(entry = '') {
     const entries = await setEntries(entry);
     const locale = getLocaleFromEntry(entry);
 
-    console.log(`Creating sub directory for locale: ${locale}`)
+    console.log(`Creating sub directory for locale: ${locale}`);
     await mkdir(`./docs/${locale}`, (err) => {
         if (err) {
             return console.error(err);
