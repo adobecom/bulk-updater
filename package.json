@@ -11,8 +11,9 @@
   "license": "ISC",
   "dependencies": {
     "@adobe/fetch": "^3.2.1",
+    "@adobe/helix-docx2md": "^1.4.3",
     "@adobe/helix-html-pipeline": "^3.4.4",
-    "@adobe/helix-md2docx":"2.0.11",
+    "@adobe/helix-md2docx": "2.0.11",
     "fs-extra": "^10.1.0"
   }
 }
