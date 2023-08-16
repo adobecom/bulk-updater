@@ -91,7 +91,7 @@ export const nodeContains = (node, type, param, val) => {
 const getHeaderInfo = (str) => {
   if (!str) return [];
   const [blockName, rawOptions] = str.split('(').map((t) => t.trim());
-  const options = rawOptions?.split(',');
+  const options = rawOptions?.split(',').map((t) => t.trim());
   if (options?.length) {
     const lastOption = options[options.length - 1];
     if (lastOption?.endsWith(')')) options[options.length - 1] = lastOption.replace(')', '');

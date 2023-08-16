@@ -1,6 +1,8 @@
+.DS_Store
 node_modules/
 document.docx
 document.md
 .env
 .vscode
 output/
+bacom-blog/

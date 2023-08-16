@@ -12,7 +12,8 @@
   "dependencies": {
     "@adobe/fetch": "^3.2.1",
     "@adobe/helix-html-pipeline": "^3.4.4",
-    "@adobe/helix-md2docx":"2.0.11",
-    "fs-extra": "^10.1.0"
+    "@adobe/helix-md2docx": "2.0.11",
+    "fs-extra": "^10.1.0",
+    "xlsx": "^0.18.5"
   }
 }
