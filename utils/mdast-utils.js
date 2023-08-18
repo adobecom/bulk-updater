@@ -40,6 +40,24 @@ export const getLeaf = (node, type) => {
 };
 
 /**
+* It takes a node and a type, and recursively walk the tree and return all nodes of a given type
+* @param node - the node we're currently on
+* @param type {string} - The type of nodes you want to get.
+* @returns An array of nodes of the given type
+*/
+export const getNodesByType = (node, type) => {
+  let children = [];
+  if (node.children) {
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i];
+      if (child.type === type) children.push(child);
+      children.push(...getNodesByType(child, type));
+    }
+  }
+  return children;
+};
+
+/**
  * It takes a node and a type, and returns an array of all the children of that node that match the
  * type
  * @param node - the node we're currently on
