@@ -14,6 +14,8 @@ import { readFile, writeFile, mkdir } from 'fs/promises';
 import { glob } from 'glob';
 import { fetchMarkdown } from './fetch-markdown.js';
 import { getMdast, getTableMap, getNodesByType } from './utils/mdast-utils.js';
+import { mdast2docx } from '@adobe/helix-md2docx';
+
 const PROJECT = 'bacom-blog';
 const SITE = 'https://main--business-website--adobe.hlx.page';
 const INDEX = '/blog/query-index.json?limit=3000';
@@ -21,19 +23,42 @@ const USE_CACHE = true;
 const FORCE_SAVE = false;
 
 const MD_DIR = 'md';
-const OUTPUT_DIR = 'docx';
+const OUTPUT_DIR = 'output';
 const REPORT_DIR = 'reports';
 
+// TODO: Optimize Save DOCX
+async function saveDocx(mdast, outputFolder, outputFile, force = false) {
+    const output = `${outputFolder}/${outputFile}`;
+    await mkdir(outputFolder, { recursive: true });
+
+    if (force) {
+        const buffer = await mdast2docx(mdast);
+        await writeFile(output, buffer);
+        return;
+    }
+
+    try {
+        await readFile(output);
+        console.log(`Skipping ${output} as docx already exists.`);
+        return;
+    } catch (err) {
+        const buffer = await mdast2docx(mdast);
+        await writeFile(output, buffer);
+    }
+}
+
 export async function main(index, cached, output, force) {
+    const reportDir = `${REPORT_DIR}/${PROJECT}`;
+    const mdDir = `${MD_DIR}/${PROJECT}`;
+    const outputDir = `${OUTPUT_DIR}/${PROJECT}`;
     const totals = { success: 0, failed: 0 };
     const failures = [];
 
     const indexUrl = `${SITE}${index}`;
     const mdReport = await fetchMarkdown(PROJECT, SITE, indexUrl, cached);
-    
+
     console.log('totals', mdReport.totals);
     console.log('failures', mdReport.failures);
-    const reportDir = `./${REPORT_DIR}/${PROJECT}`;
     const mdReportFile = `${reportDir}/markdown.json`;
     await mkdir(reportDir, { recursive: true });
     await writeFile(mdReportFile, JSON.stringify(mdReport, null, 2));
@@ -52,7 +77,11 @@ export async function main(index, cached, output, force) {
 
             // TODO: Migration Part 3 - Images
 
-            // TODO: Save DOCX
+            const outputFolder = `${entry.replace(mdDir, outputDir).split('/').slice(0, -1).join('/')}`;
+            const outputFile = `${entry.split('/').slice(-1)[0].split('.').slice(0, -1).join('.')}.docx`;
+
+            console.log(`Saving ${outputFile}`);
+            await saveDocx(mdast, outputFolder, outputFile, false);
 
             totals.success++;
             console.log(`${i}/${entries.length}`, entry);
@@ -73,12 +102,12 @@ export async function main(index, cached, output, force) {
 if (import.meta.url === `file://${process.argv[1]}`) {
     const args = process.argv.slice(2);
     const [
-        index = INDEX, 
-        cached = USE_CACHE, 
+        index = INDEX,
+        cached = USE_CACHE,
         output = OUTPUT_DIR,
         force = FORCE_SAVE
     ] = args;
 
-    await main( index, cached, output, force);
+    await main(index, cached, output, force);
     process.exit(0);
 }
