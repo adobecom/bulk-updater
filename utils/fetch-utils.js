@@ -6,6 +6,7 @@ const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, mil
 async function fetchIndex(url) {
     console.log('Fetching entries and saving locally');
     const index = await fetch(url);
+    if (!index.ok) throw new Error(`Error fetching index: ${index.status}`);
     const indexData = await index.json();
 
     return indexData.data;

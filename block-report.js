@@ -56,7 +56,7 @@ export async function runReport(project, site, indexUrl, cached = true) {
             totals.blocks[blockName] = (totals.blocks[blockName] || 0) + 1;
 
             const links = getNodesByType(table.table, 'link');
-            const name = entry + ',' + blockName + ',' + j;
+            const name = `${entry},${blockName},${j}`;
             blockLinks[name] = blockLinks[name] || [];
             links.forEach((link) => {
                 const { url } = link;
@@ -79,7 +79,7 @@ export async function runReport(project, site, indexUrl, cached = true) {
     return { blocks, variants, allLinks, blockLinks, totals };
 }
 
-export async function createReport(site, project, report) {
+export async function createReports(project, site, report) {
     const { blocks, variants, allLinks, blockLinks, totals } = report;
     const allBlocks = Object.keys(totals.blocks).sort();
     const ws_data = [['Path', 'URL', ...allBlocks]];
@@ -137,11 +137,10 @@ async function main(project, site, index, cached) {
     await mkdir(`./${project}`, { recursive: true });
 
     const indexUrl = `${site}${index}`;
-
     const report = await runReport(project, site, indexUrl, cached);
+    
     console.log('totals', report.totals);
-
-    await createReport(site, project, report);
+    await createReports(project, site, report);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

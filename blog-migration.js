@@ -14,7 +14,7 @@ import { readFile, writeFile, mkdir } from 'fs/promises';
 import { glob } from 'glob';
 import { fetchMarkdown } from './fetch-markdown.js';
 import { getMdast, getTableMap, getNodesByType } from './utils/mdast-utils.js';
-import { mdast2docx } from '@adobe/helix-md2docx';
+import { saveDocx } from './utils/docx-utils.js';
 
 const PROJECT = 'bacom-blog';
 const SITE = 'https://main--business-website--adobe.hlx.page';
@@ -26,31 +26,10 @@ const MD_DIR = 'md';
 const OUTPUT_DIR = 'output';
 const REPORT_DIR = 'reports';
 
-// TODO: Optimize Save DOCX
-async function saveDocx(mdast, outputFolder, outputFile, force = false) {
-    const output = `${outputFolder}/${outputFile}`;
-    await mkdir(outputFolder, { recursive: true });
-
-    if (force) {
-        const buffer = await mdast2docx(mdast);
-        await writeFile(output, buffer);
-        return;
-    }
-
-    try {
-        await readFile(output);
-        console.log(`Skipping ${output} as docx already exists.`);
-        return;
-    } catch (err) {
-        const buffer = await mdast2docx(mdast);
-        await writeFile(output, buffer);
-    }
-}
-
 export async function main(index, cached, output, force) {
     const reportDir = `${REPORT_DIR}/${PROJECT}`;
     const mdDir = `${MD_DIR}/${PROJECT}`;
-    const outputDir = `${OUTPUT_DIR}/${PROJECT}`;
+    const outputDir = `${output}/${PROJECT}`;
     const totals = { success: 0, failed: 0 };
     const failures = [];
 
@@ -77,11 +56,15 @@ export async function main(index, cached, output, force) {
 
             // TODO: Migration Part 3 - Images
 
-            const outputFolder = `${entry.replace(mdDir, outputDir).split('/').slice(0, -1).join('/')}`;
-            const outputFile = `${entry.split('/').slice(-1)[0].split('.').slice(0, -1).join('.')}.docx`;
+            const mdPath = entry.split('/').slice(0, -1).join('/');
+            const outputFolder = mdPath.replace(mdDir, outputDir);
+
+            const mdFile = entry.split('/').slice(-1)[0];
+            const outputFile = `${mdFile.split('.').slice(0, -1).join('.')}.docx`;
 
             console.log(`Saving ${outputFile}`);
-            await saveDocx(mdast, outputFolder, outputFile, false);
+            // TODO: Merge with existing docx instead of create new one
+            await saveDocx(mdast, outputFolder, outputFile, force);
 
             totals.success++;
             console.log(`${i}/${entries.length}`, entry);

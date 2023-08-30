@@ -19,10 +19,10 @@ const REPORT_DIR = 'reports';
 
 /**
  * Fetches markdown files from a given project, site, and indexUrl.
- * @param string project - The project to parse
- * @param string site - The site where the markdown files are hosted
- * @param string indexUrl - The index file that contains the list of markdown files to parse
- * @param boolean cached - If true, it will use the cached version of the markdown files
+ * @param {string} project - The project to parse
+ * @param {string} site - The site where the markdown files are hosted
+ * @param {string} indexUrl - The index file that contains the list of markdown files to parse
+ * @param {boolean} cached - If true, it will use the cached version of the markdown files
  * @returns - An object with the totals and the list of failures
  */
 export async function fetchMarkdown(project, site, indexUrl, cached = true) {
