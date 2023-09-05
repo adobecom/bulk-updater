@@ -59,9 +59,9 @@ export async function main(index, cached, output, force) {
 
             const mdast = await getMdast(markdown);
             const tableMap = getTableMap(mdast);
-            if (!tableMap.reduce((acc, block) => {
-                return acc || Object.keys(MIGRATION).includes(block.blockName);
-            }, false)) {
+            const hasMigrationBlock = tableMap.some((block) => Object.keys(MIGRATION).includes(block.blockName));
+
+            if(!hasMigrationBlock) {
                 console.log('Skipping', entry, tableMap.map(block => block.blockName));
                 totals.skipped++;
                 return;

@@ -30,7 +30,7 @@ export async function runReport(project, site, indexUrl, cached = true) {
             console.warn(`Skipping ${entry} as markdown could not be fetched.`);
             return;
         }
-        
+
         const entryReport = {
             blocks: [],
             links: [],
@@ -39,12 +39,13 @@ export async function runReport(project, site, indexUrl, cached = true) {
         const tableMap = getTableMap(mdast);
 
         for (let j = 0; j < tableMap.length; j++) {
-            const blockReport = { links: [] };
-
             const table = tableMap[j];
             const { blockName, options } = table;
-            blockReport.name = blockName;
-            blockReport.index = j;
+            const blockReport = {
+                name: blockName,
+                index: j,
+                links: [],
+            };
             if (options) {
                 const variant = blockName + ' (' + options.join(', ') + ')';
                 blockReport.variant = variant;
@@ -60,12 +61,10 @@ export async function runReport(project, site, indexUrl, cached = true) {
         };
 
         const links = getNodesByType(mdast, 'link');
-        if (links) {
-            links.forEach((link) => {
-                const { url } = link;
-                entryReport.links.push(url);
-            });
-        }
+        links?.forEach((link) => {
+            const { url } = link;
+            entryReport.links.push(url);
+        });
         report[entry] = entryReport;
         console.log(`${i}/${entries.length}`, entry, entryReport.blocks.map(block => block.name));
     });
@@ -121,7 +120,7 @@ export async function createReports(project, site, { report, totals }) {
     const blockLinksData = [['Path', 'URL', 'Block', 'Index', 'Links']];
     for (const entry in report) {
         report[entry].blocks.map((block) => {
-            if(block.links.length === 0) return;
+            if (block.links.length === 0) return;
             const row = [entry, `${site}${entry}`, block.name, block.index, ...block.links];
             blockLinksData.push(row);
         });
@@ -135,7 +134,7 @@ export async function createReports(project, site, { report, totals }) {
     xlsx.utils.book_append_sheet(wb, ws_totals, 'Totals');
 
     const dateStr = new Date().toLocaleString('en-US', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\/|,|:| /g, '-').replace('--', '_');
-    
+
     const reportDir = `./${REPORT_DIR}/${project}`;
     const reportFile = `${reportDir}/Report ${dateStr}.xlsx`
     await mkdir(reportDir, { recursive: true });
@@ -148,7 +147,7 @@ async function main(project, site, index, cached) {
 
     const indexUrl = `${site}${index}`;
     const report = await runReport(project, site, indexUrl, cached);
-    
+
     console.log('totals', report.totals);
     await createReports(project, site, report);
 }

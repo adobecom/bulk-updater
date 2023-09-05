@@ -72,7 +72,6 @@ export async function saveUpdatedDocx(mdast, sourceFile, outputFile, force = fal
     } catch (err) {
         const buffer = await updateDocx(mdast, sourceFile);
         await writeFile(outputFile, buffer);
-        return;
     }
 }
 
