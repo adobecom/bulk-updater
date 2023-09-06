@@ -5,7 +5,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha",
+    "test:watch": "mocha --watch --parallel"
+  },
+  "mocha": {
+    "recursive": "true"
   },
   "author": "",
   "license": "ISC",
@@ -13,8 +17,10 @@
     "@adobe/fetch": "^3.2.1",
     "@adobe/helix-html-pipeline": "^3.4.4",
     "@adobe/helix-md2docx": "2.0.11",
+    "@esm-bundle/chai": "^4.3.4-fix.0",
     "fs-extra": "^10.1.0",
     "glob": "^10.3.3",
+    "mocha": "^10.2.0",
     "xlsx": "^0.18.5"
   }
 }
