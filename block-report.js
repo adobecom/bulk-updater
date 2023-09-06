@@ -14,118 +14,127 @@ import xlsx from 'xlsx';
 import { mkdir } from 'fs/promises';
 import process from 'process';
 import { getMdast, getTableMap, getNodesByType } from './utils/mdast-utils.js';
-import { loadMarkdown, loadIndex } from './utils/fetch-utils.js';
+import { loadMarkdowns, loadIndex } from './utils/fetch-utils.js';
 
 const MD_DIR = 'md';
 const REPORT_DIR = 'reports';
 
 export async function runReport(project, site, indexUrl, cached = true) {
-    const blocks = {};
-    const variants = {};
-    const allLinks = {};
-    const blockLinks = {};
+    const report = {};
     const totals = { blocks: {}, variants: {} };
     const entries = await loadIndex(project, indexUrl, cached);
+    const mdFolder = `./${MD_DIR}/${project}`;
 
-    for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
-        blocks[entry] = {};
-        const folder = `./${MD_DIR}/${project}${entry.split('/').slice(0, -1).join('/')}`;
-        await mkdir(`./${folder}`, { recursive: true });
-
-        const markdown = await loadMarkdown(`${site}${entry}`, `./${MD_DIR}/${project}${entry}`, cached);
-
+    await loadMarkdowns(site, mdFolder, entries, cached, async (markdown, entry, i) => {
         if (markdown === null) {
             console.warn(`Skipping ${entry} as markdown could not be fetched.`);
-            continue;
+            return;
         }
 
+        const entryReport = {
+            blocks: [],
+            links: [],
+        };
         const mdast = await getMdast(markdown);
         const tableMap = getTableMap(mdast);
 
         for (let j = 0; j < tableMap.length; j++) {
             const table = tableMap[j];
             const { blockName, options } = table;
+            const blockReport = {
+                name: blockName,
+                index: j,
+                links: [],
+            };
             if (options) {
                 const variant = blockName + ' (' + options.join(', ') + ')';
-                variants[entry] = variants[entry] || {};
-                variants[entry][variant] = (variants[entry][variant] || 0) + 1;
+                blockReport.variant = variant;
                 totals.variants[variant] = (totals.variants[variant] || 0) + 1;
             }
-            blocks[entry][blockName] = (blocks[entry][blockName] || 0) + 1;
             totals.blocks[blockName] = (totals.blocks[blockName] || 0) + 1;
 
             const links = getNodesByType(table.table, 'link');
-            const name = `${entry},${blockName},${j}`;
-            blockLinks[name] = blockLinks[name] || [];
-            links.forEach((link) => {
-                const { url } = link;
-                blockLinks[name].push(url);
+            links.forEach(({ url }) => {
+                blockReport.links.push(url);
             });
+            entryReport.blocks.push(blockReport);
         };
 
         const links = getNodesByType(mdast, 'link');
-        if (links) {
-            links.forEach((link) => {
-                const { url } = link;
-                allLinks[entry] = allLinks[entry] || [];
-                allLinks[entry].push(url);
-            });
-        }
+        links?.forEach((link) => {
+            const { url } = link;
+            entryReport.links.push(url);
+        });
+        report[entry] = entryReport;
+        console.log(`${i}/${entries.length}`, entry, entryReport.blocks.map(block => block.name));
+    });
 
-        console.log(`${i}/${entries.length}`, entry, blocks[entry]);
-    }
-
-    return { blocks, variants, allLinks, blockLinks, totals };
+    return { report, totals };
 }
 
-export async function createReports(project, site, report) {
-    const { blocks, variants, allLinks, blockLinks, totals } = report;
+export async function createReports(project, site, { report, totals }) {
     const allBlocks = Object.keys(totals.blocks).sort();
     const ws_data = [['Path', 'URL', ...allBlocks]];
 
-    for (const entry in blocks) {
-        const blockValues = allBlocks.map((key) => blocks[entry][key] || 0);
-        const row = [entry, `${site}${entry}`, ...blockValues];
+    // Block Entries
+    console.log('creating block entries sheet');
+    for (const entry in report) {
+        const blocks = allBlocks.map((key) => report[entry].blocks.reduce((acc, block) => {
+            return acc + (block.name === key ? 1 : 0);
+        }, 0));
+        const row = [entry, `${site}${entry}`, ...blocks];
         ws_data.push(row);
     }
-
     const wb = xlsx.utils.book_new();
     const ws_entries = xlsx.utils.aoa_to_sheet(ws_data);
     xlsx.utils.book_append_sheet(wb, ws_entries, 'Entries');
 
+    // Variants
+    console.log('creating variants sheet');
     const allVariants = Object.keys(totals.variants).sort();
     const variantsData = [['Path', 'URL', ...allVariants]];
-    for (const entry in variants) {
-        const blocks = allVariants.map((key) => variants[entry][key] || 0);
-        const row = [entry, `${site}${entry}`, ...blocks];
-        variantsData.push(row);
+    for (const entry in report) {
+        const variants = allVariants.map((key) => report[entry].blocks.reduce((acc, block) => {
+            return acc + (block.variant === key ? 1 : 0);
+        }, 0));
+        if (variants.reduce((acc, val) => acc + val, 0) > 0) {
+            const row = [entry, `${site}${entry}`, ...variants];
+            variantsData.push(row);
+        }
     }
     const ws_variants = xlsx.utils.aoa_to_sheet(variantsData);
     xlsx.utils.book_append_sheet(wb, ws_variants, 'Variants');
 
+    // Links
+    console.log('creating links sheet');
     const linksData = [['Path', 'URL', 'Links']];
-    for (const entry in allLinks) {
-        const row = [entry, `${site}${entry}`, ...allLinks[entry]];
+    for (const entry in report) {
+        const row = [entry, `${site}${entry}`, ...report[entry].links];
         linksData.push(row);
     }
     const ws_links = xlsx.utils.aoa_to_sheet(linksData);
     xlsx.utils.book_append_sheet(wb, ws_links, 'All Links');
 
+    // Block Links
+    console.log('creating block links sheet');
     const blockLinksData = [['Path', 'URL', 'Block', 'Index', 'Links']];
-    for (const entry in blockLinks) {
-        const [entryName, blockName, index] = entry.split(',');
-        const row = [entryName, `${site}${entryName}`, blockName, index, ...blockLinks[entry]];
-        blockLinksData.push(row);
+    for (const entry in report) {
+        report[entry].blocks.map((block) => {
+            if (block.links.length === 0) return;
+            const row = [entry, `${site}${entry}`, block.name, block.index, ...block.links];
+            blockLinksData.push(row);
+        });
     }
     const ws_blocklinks = xlsx.utils.aoa_to_sheet(blockLinksData);
     xlsx.utils.book_append_sheet(wb, ws_blocklinks, 'Block Links');
 
+    // Totals
+    console.log('creating totals sheet');
     const ws_totals = xlsx.utils.aoa_to_sheet([['Block', 'Total'], ...Object.entries(totals.blocks)]);
     xlsx.utils.book_append_sheet(wb, ws_totals, 'Totals');
 
     const dateStr = new Date().toLocaleString('en-US', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\/|,|:| /g, '-').replace('--', '_');
-    
+
     const reportDir = `./${REPORT_DIR}/${project}`;
     const reportFile = `${reportDir}/Report ${dateStr}.xlsx`
     await mkdir(reportDir, { recursive: true });
@@ -138,11 +147,12 @@ async function main(project, site, index, cached) {
 
     const indexUrl = `${site}${index}`;
     const report = await runReport(project, site, indexUrl, cached);
-    
+
     console.log('totals', report.totals);
     await createReports(project, site, report);
 }
 
+// node block-report.js <project> <site> <index> <cached>
 if (import.meta.url === `file://${process.argv[1]}`) {
     const PROJECT = 'bacom-blog';
     const SITE = 'https://main--business-website--adobe.hlx.page';

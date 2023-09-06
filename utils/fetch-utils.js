@@ -95,3 +95,13 @@ export async function loadMarkdown(url, path, cached = true) {
         return fetchAndWriteMarkdown(markdownUrl, markdownPath);
     }
 }
+
+export async function loadMarkdowns(site, folder, entries, cached = true, callback = null) {
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        const markdown = await loadMarkdown(`${site}${entry}`, `${folder}/${entry}`, cached);
+        if (callback && typeof callback === 'function') {
+            await callback(markdown, entry, i);
+        }
+    }
+}

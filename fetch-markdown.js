@@ -12,7 +12,7 @@
 
 import { mkdir, writeFile } from 'fs/promises';
 import process from 'process';
-import { loadMarkdown, loadIndex } from './utils/fetch-utils.js';
+import { loadMarkdowns, loadIndex } from './utils/fetch-utils.js';
 
 const MD_DIR = 'md';
 const REPORT_DIR = 'reports';
@@ -26,25 +26,23 @@ const REPORT_DIR = 'reports';
  * @returns - An object with the totals and the list of failures
  */
 export async function fetchMarkdown(project, site, indexUrl, cached = true) {
-    const totals = { success: 0, failure: 0 };
-    const failures = [];
+    const totals = { succeed: 0, failed: 0 };
+    const failed = [];
     const entries = await loadIndex(project, indexUrl, cached);
+    const mdFolder = `./${MD_DIR}/${project}`;
 
-    for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
-        const markdown = await loadMarkdown(`${site}${entry}`, `./${MD_DIR}/${project}${entry}`, cached);
-
+    await loadMarkdowns(site, mdFolder, entries, cached, (markdown, entry, i) => {
         if (markdown === null) {
             console.warn(`Skipping ${entry} as markdown could not be fetched.`);
-            failures.push(entry);
-            totals.failure++;
-            continue;
+            failed.push(entry);
+            totals.failed++;
+        } else {
+            totals.succeed++;
+            console.log(`${i}/${entries.length}`, entry);
         }
-        totals.success++;
-        console.log(`${i}/${entries.length}`, entry);
-    }
+    });
 
-    return { totals, failures };
+    return { totals, failed };
 }
 
 async function main(project, site, index, cached) {
@@ -52,7 +50,7 @@ async function main(project, site, index, cached) {
     const indexUrl = `${site}${index}`;
     const report = await fetchMarkdown(project, site, indexUrl, cached);
     console.log('totals', report.totals);
-    console.log('failures', report.failures);
+    console.log('failed', report.failed);
 
     const reportDir = `./${REPORT_DIR}/${project}`;
     const reportFile = `${reportDir}/markdown.json`;
@@ -61,6 +59,7 @@ async function main(project, site, index, cached) {
     console.log(`Report written to ${reportFile}`);
 }
 
+// node featch-markdown.js <project> <site> <index> <cached>
 if (import.meta.url === `file://${process.argv[1]}`) {
     const PROJECT = 'bacom-blog';
     const SITE = 'https://main--business-website--adobe.hlx.page';

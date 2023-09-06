@@ -10,45 +10,72 @@
  * governing permissions and limitations under the License.
  */
 
-import { readFile, writeFile, mkdir } from 'fs/promises';
-import { glob } from 'glob';
-import { fetchMarkdown } from './fetch-markdown.js';
-import { getMdast, getTableMap, getNodesByType } from './utils/mdast-utils.js';
-import { saveDocx } from './utils/docx-utils.js';
+import { writeFile, access } from 'fs/promises';
+import { getMdast, getTableMap } from './utils/mdast-utils.js';
+import { saveDocx, saveUpdatedDocx } from './utils/docx-utils.js';
+import { loadMarkdowns, loadIndex } from './utils/fetch-utils.js';
 
 const PROJECT = 'bacom-blog';
 const SITE = 'https://main--business-website--adobe.hlx.page';
 const INDEX = '/blog/query-index.json?limit=3000';
 const USE_CACHE = true;
-const FORCE_SAVE = false;
+const FORCE_SAVE = true;
 
 const MD_DIR = 'md';
 const OUTPUT_DIR = 'output';
+const DOCX_DIR = 'docx';
 const REPORT_DIR = 'reports';
+const MIGRATION = {
+    'pull quote': 'quote',
+    'embed': 'embed',
+    'image': 'image',
+}
 
 export async function main(index, cached, output, force) {
     const reportDir = `${REPORT_DIR}/${PROJECT}`;
     const mdDir = `${MD_DIR}/${PROJECT}`;
+    const docxDir = `${DOCX_DIR}/${PROJECT}`;
     const outputDir = `${output}/${PROJECT}`;
-    const totals = { success: 0, failed: 0 };
-    const failures = [];
-
+    const totals = { succeed: 0, skipped: 0, failed: 0 };
+    const failed = [];
     const indexUrl = `${SITE}${index}`;
-    const mdReport = await fetchMarkdown(PROJECT, SITE, indexUrl, cached);
-
-    console.log('totals', mdReport.totals);
-    console.log('failures', mdReport.failures);
-    const mdReportFile = `${reportDir}/markdown.json`;
-    await mkdir(reportDir, { recursive: true });
-    await writeFile(mdReportFile, JSON.stringify(mdReport, null, 2));
-    console.log(`Report written to ${mdReportFile}`);
-
-    const entries = glob.sync(`./${MD_DIR}/${PROJECT}/**/*.md`);
-    for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
+    const entries = await loadIndex(PROJECT, indexUrl, cached);
+    
+    await loadMarkdowns(SITE, mdDir, entries, cached, async (markdown, entry, i) => {
+        if (markdown === null) {
+            console.warn(`Skipping ${entry} as markdown could not be fetched.`);
+            failed.push(entry);
+            totals.failed++;
+            return;
+        }
         try {
-            const markdown = await readFile(entry, 'utf8');
+            const file = entry.split('/').slice(-1)[0];
+            const docxFile = `${file}.docx`;
+            const path = entry.split('/').slice(0, -1).join('/');
+            const sourceFolder = `${docxDir}${path}`;
+            const outputFolder = `${outputDir}${path}`
+            const sourceDocxFile = `${sourceFolder}/${docxFile}`;
+            const outputDocxFile = `${outputFolder}/${docxFile}`;
+
             const mdast = await getMdast(markdown);
+            const tableMap = getTableMap(mdast);
+            const hasMigrationBlock = tableMap.some((block) => Object.keys(MIGRATION).includes(block.blockName));
+
+            if(!hasMigrationBlock) {
+                console.log('Skipping', entry, tableMap.map(block => block.blockName));
+                totals.skipped++;
+                return;
+            }
+
+            if (cached) {
+                try {
+                    await access(sourceDocxFile);
+                    console.log(`Found ${sourceDocxFile}`);
+                } catch (e) {
+                    console.log(`Creating ${sourceDocxFile}`);
+                    await saveDocx(mdast, sourceDocxFile, force);
+                }
+            }
 
             // TODO: Migration Part 1 - Pull Quote
 
@@ -56,32 +83,36 @@ export async function main(index, cached, output, force) {
 
             // TODO: Migration Part 3 - Images
 
-            const mdPath = entry.split('/').slice(0, -1).join('/');
-            const outputFolder = mdPath.replace(mdDir, outputDir);
+            console.log(`Saving ${outputDocxFile}`);
+            if (cached) {
+                try {
+                    await saveUpdatedDocx(mdast, sourceDocxFile, outputDocxFile, force);
+                } catch (e) {
+                    console.warn(`Error updating ${sourceDocxFile}`, e.message);
+                    await saveDocx(mdast, outputDocxFile, force);
+                }
+            } else {
+                await saveDocx(mdast, outputDocxFile, force);
+            }
 
-            const mdFile = entry.split('/').slice(-1)[0];
-            const outputFile = `${mdFile.split('.').slice(0, -1).join('.')}.docx`;
-
-            console.log(`Saving ${outputFile}`);
-            // TODO: Merge with existing docx instead of create new one
-            await saveDocx(mdast, outputFolder, outputFile, force);
-
-            totals.success++;
+            totals.succeed++;
             console.log(`${i}/${entries.length}`, entry);
         } catch (e) {
-            console.error(`Error migrating ${entry}`, e);
-            failures.push(entry);
+            console.error(`Error migrating ${entry}`, e.message);
+            failed.push(entry);
             totals.failed++;
         }
-    }
+    });
+
     console.log('totals', totals);
-    console.log('failures', failures);
+    console.log('failed', failed);
 
     const migrationReport = `${reportDir}/migration.json`;
-    await writeFile(migrationReport, JSON.stringify({ totals, failures }, null, 2));
+    await writeFile(migrationReport, JSON.stringify({ totals, failed }, null, 2));
     console.log(`Report written to ${migrationReport}`);
 }
 
+// node blog-migration.js <index> <cached> <output> <force>
 if (import.meta.url === `file://${process.argv[1]}`) {
     const args = process.argv.slice(2);
     const [
