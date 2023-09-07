@@ -1,6 +1,6 @@
-import { readFile, writeFile, mkdir } from 'fs/promises';
 import { getMdast, getTableMap, fetchText, getLeaf, getNodesByType } from '../utils/mdast-utils.js';
-import { table } from 'console';
+import { readFile, writeFile, mkdir } from 'fs/promises';
+import { mdast2docx } from '@adobe/helix-md2docx';
 
 
 /**
@@ -11,32 +11,45 @@ const entry = './md/bacom-blog/blog/basics/business-case.md';
 const urlEntry = 'https://main--bacom-blog--adobecom.hlx.page/drafts/bulk-update/MWPW-135375-pull-quote/document.md'
 const tester2 = 'https://main--bacom-blog--adobecom.hlx.page/drafts/bulk-update/MWPW-135375-pull-quote/business-case.md'
 
+///
+
+function noAuthorQuoteRow(quoteObj = '') {
+    const emptyNode = '{"type":"text","value":""}';
+
+    return `{"type":"gtRow","children":[{"type":"gtCell","children":[{"type":"heading","depth":3,"children":[${quoteObj || emptyNode}]}],"valign":"middle"}]}`;
+}
+
+function authorQuoteRow(quoteObj = '', authorObj = '', attributionObj = '') {
+    const emptyNode = '{"type":"text","value":""}';
+
+    return `{"type":"gtRow","children":[{"type":"gtCell","children":[{"type":"paragraph","children":[${quoteObj || emptyNode}]},{"type":"paragraph","children":[${authorObj || emptyNode}]},{"type":"paragraph","children":[${attributionObj || emptyNode}]}],"valign":"middle"}]}`
+}
+
+function splitQuoteAttribution(node, replacement) {
+    const attribution = node.value;
+    const splitAttr = attribution.split(',');
+
+    if (splitAttr.length === 1) {
+        replacement.author = JSON.stringify({type: 'text', value: splitAttr[0]});
+        return;
+    }
+
+    let [author, ...attr] = splitAttr;
+    attr = attr.join(',');
+
+    replacement.author = JSON.stringify({type: 'text', value: author});
+    replacement.company = JSON.stringify({type: 'text', value: attr});;
+}
+
 /**
- * Takes a gridTable node, parses it for a value, and returns the value found and the index of the grid table
  * 
- * @param {} mdast 
+ * @param {*} mdast
+ * 
+ * Takes the current mdast, finds all instances of pull quote, and changes them to quote. Likewise modifies content into formats expected by Milo. 
+ *  
  */
-function getByValue(node) {
-
-}
-
-function noAuthorQuoteRow(quoteObj) {
-    return `{"type":"gtRow","children":[{"type":"gtCell","children":[{"type":"heading","depth":2,"children":[${quoteObj}]}],"valign":"middle"}]}`;
-}
-
-function authorQuoteRow(quoteObj, authorObj, attributionObj) {
-    return `{"type":"gtRow","children":[{"type":"gtCell","children":[{"type":"paragraph","children":[${quoteObj}]},{"type":"paragraph","children":[{"type":"strong","children":[${authorObj}]}]},{"type":"paragraph","children":[${attributionObj}]}],"valign":"middle"}]}`
-}
-
-
 export async function pullQuote(mdast) {
     const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
-
-    // const tableMap = getTableMap(mdast)
-    // console.log(JSON.stringify(mdast))
-
-    // console.log(mdast.children);
-    
     const quoteMap = mdast.children.reduce((rdx, child, index) => {
         const header = getLeaf(child, 'text');
   
@@ -50,34 +63,31 @@ export async function pullQuote(mdast) {
         return rdx;
     }, [])
 
-    quoteMap.forEach((quoteBlock) => {
+    quoteMap.forEach(async (quoteBlock) => {
         const replacementContent = {};
-
         const currQuoteIdx = quoteBlock.index;
         const currentQuoteBlock = mdast.children[currQuoteIdx];
 
         // Change the block name 
-        // 1. Change name from pull quote to quote
-        // 2. add 'borders, align left'
         const heading = getLeaf(currentQuoteBlock, 'text');
         heading.value = QUOTE_BLOCK_NAME;
         
         // Determine if there is an author 
         const quoteBody = currentQuoteBlock.children[0];
-        const quoteContent = quoteBody.children[1]
-        const quoteCell = quoteContent.children[0];
+        const quoteRow = quoteBody.children[1]
+        const quoteCell = quoteRow.children[0];
         if (quoteCell.type !== 'gtCell') {
             console.log(`In wrong part of tree. Working on quote index ${currQuoteIdx}`);
             return;
         }
         const textNodes = getNodesByType(quoteCell, 'text');
         const linkNodes = getNodesByType(quoteCell, 'link');
-        let quote = JSON.stringify(textNodes[0])
+        let quote = JSON.stringify(textNodes[0]);
 
-        // Doing the first link now, it is possible some quotes contain multiple links though....
+        // Currently only grabs a single link in a quote. Will review with authoring
         if (linkNodes.length) {
             if (linkNodes.length > 1) {
-                console.log('Multiple Links per quote found!')
+                console.log('Multiple Links per quote found');
             }
             const linkNode = linkNodes[0];
             const linkedText = linkNode.children[0].value;
@@ -87,42 +97,29 @@ export async function pullQuote(mdast) {
             })
 
             textNodes[textReplacmentIndex] = linkNode;
-            quote = textNodes.reduce((rdx, node) =>  {
+            quote = textNodes.reduce((rdx, node, idx) =>  {
+                if (idx < textNodes.length - 1) {
+                    rdx += `${JSON.stringify(node)},`;
+                    return rdx;
+                }
                 rdx += JSON.stringify(node);
                 return rdx;
             }, '');
         }
 
+        // Set the quote 
         replacementContent.quote = quote;
+        let replacementRow = noAuthorQuoteRow(replacementContent.quote);
 
-        function splitQuoteAttribution(node) {
-            const attribution = node.value;
-            const splitAttr = attribution.split(',');
-
-            if (splitAttr.length === 1) {
-                return node;
-            }
-
-            let [author, ...attr] = splitAttr;
-            attr = attr.join(',');
-
-            replacementContent.author = JSON.stringify({type: 'text', value: author});
-            replacementContent.company = JSON.stringify({type: 'text', value: attr});;
-        }
-
+        // Check if it is an author node, then modify row
         if (textNodes.length === 2) {
-            splitQuoteAttribution(textNodes[1])
+            splitQuoteAttribution(textNodes[1], replacementContent);
+            replacementRow = authorQuoteRow(replacementContent?.quote, replacementContent?.author, replacementContent?.company);
         }
 
-        console.log(replacementContent)
-
-
+        // We need to access the actual mdast via properties. 
+        quoteBody.children[1] = JSON.parse(replacementRow);
     })
-
-    // 3. Cahnge text to be a heading or paragraph if one author 
-    // 4. heading if does not have an author 
-    // 5. if author, add spacing 
-    // 6. 
 }
 
 
@@ -138,7 +135,12 @@ async function main() {
     const markdown = await readFile(entry, 'utf8');
     const mdast = await getMdast(markdown);
 
-    pullQuote(mdast3);
+    await pullQuote(mdast3);
+
+    const output = `pullquote-test/pull-quote-file.docx`;
+    await mkdir('pullquote-test', { recursive: true });
+    const buffer = await mdast2docx(mdast3);
+    await writeFile(output, buffer);
     process.exit(0);
 }
 
