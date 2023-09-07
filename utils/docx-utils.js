@@ -2,20 +2,11 @@
 import { readFile, writeFile, mkdir } from 'fs/promises';
 import { mdast2docx } from '@adobe/helix-md2docx';
 import yauzl from 'yauzl';
-import docx from 'docx';
-
-import all from '@adobe/helix-md2docx/src/mdast2docx/all.js';
-import handlers from '@adobe/helix-md2docx/src/mdast2docx/handlers/index.js';
-import numbering from '@adobe/helix-md2docx/src/mdast2docx/default-numbering.js';
-import sanitizeHtml from '@adobe/helix-md2docx/src/mdast2docx/mdast-sanitize-html.js';
-import { findXMLComponent } from '@adobe/helix-md2docx/src/mdast2docx/utils.js';
 
 import crypto from 'crypto';
 import { visit } from 'unist-util-visit';
 import getDimensions from 'image-size';
 import mime from 'mime';
-
-const { Document, Packer } = docx;
 
 /**
  * Save a docx file to the file system.
@@ -145,6 +136,7 @@ function loadImages(mediaFiles, tree) {
                 throw new Error(`Error reading dimensions: ${e} ${node.url}`);
             }
 
+            node.url = '';
             node.data = {
                 ext,
                 key: `${ref}.${ext}`,
@@ -155,21 +147,6 @@ function loadImages(mediaFiles, tree) {
         }
         return visit.CONTINUE;
     });
-}
-
-async function documentSection(mdast) {
-    const ctx = {
-        handlers,
-        style: {},
-        paragraphStyle: '',
-        images: {},
-        listLevel: -1,
-        lists: [],
-        console,
-    };
-
-    mdast = sanitizeHtml(mdast);
-    return await all(ctx, mdast);
 }
 
 export async function updateDocx(mdast, sourceDocxPath) {
@@ -183,34 +160,5 @@ export async function updateDocx(mdast, sourceDocxPath) {
         return null;
     }
 
-    const children = await documentSection(mdast);
-    const doc = new Document({
-        numbering,
-        externalStyles: styles,
-        sections: [{
-            children,
-        }],
-    });
-
-    // temporary hack for problems with online word
-    const cn = doc.numbering.concreteNumberingMap.get('default-bullet-numbering');
-    cn.root[0].root.numId = 1;
-    cn.numId = 1;
-
-    // temporary hack for problems with lists in online word
-    for (const nb of doc.numbering.abstractNumberingMap.values()) {
-        nb.root.forEach((attr) => {
-            if (attr.rootKey !== 'w:lvl') {
-                return;
-            }
-            const jc = findXMLComponent(attr, 'w:lvlJc');
-            if (jc) {
-                const idx = attr.root.indexOf(jc);
-                attr.root.splice(idx, 1);
-                attr.root.push(jc);
-            }
-        });
-    }
-
-    return Packer.toBuffer(doc);
+    return await mdast2docx(mdast, {stylesXML: styles});
 }

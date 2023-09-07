@@ -14,7 +14,7 @@ import { writeFile, access } from 'fs/promises';
 import { getMdast, getTableMap } from './utils/mdast-utils.js';
 import { saveDocx, saveUpdatedDocx } from './utils/docx-utils.js';
 import { loadMarkdowns, loadIndex } from './utils/fetch-utils.js';
-import { imageToFigure } from './bacom-blog/figure/image-to-figure.js';
+import { imageToFigure } from './bacom-blog/figure/images-to-figure.js';
 
 const PROJECT = 'bacom-blog';
 const SITE = 'https://main--business-website--adobe.hlx.page';
@@ -108,7 +108,8 @@ export async function main(index, cached, output, force) {
     const totals = Object.entries(report).map(([key, value]) => [key, value.length]);
     console.log('totals', totals);
 
-    const migrationReport = `${reportDir}/migration.json`;
+    const dateStr = new Date().toLocaleString('en-US', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\/|,|:| /g, '-').replace('--', '_');
+    const migrationReport = `${reportDir}/migration ${dateStr}.json`;
     await writeFile(migrationReport, JSON.stringify(report, null, 2));
     console.log(`Report written to ${migrationReport}`);
 }
