@@ -1,17 +1,4 @@
-import { getMdast, getTableMap, fetchText, getLeaf, getNodesByType } from '../utils/mdast-utils.js';
-import { readFile, writeFile, mkdir } from 'fs/promises';
-import { mdast2docx } from '@adobe/helix-md2docx';
-
-
-/**
- * Code up here
- */
-
-const entry = './md/bacom-blog/blog/basics/business-case.md';
-const urlEntry = 'https://main--bacom-blog--adobecom.hlx.page/drafts/bulk-update/MWPW-135375-pull-quote/document.md'
-const tester2 = 'https://main--bacom-blog--adobecom.hlx.page/drafts/bulk-update/MWPW-135375-pull-quote/business-case.md'
-
-///
+import { getLeaf, getNodesByType } from '../utils/mdast-utils.js';
 
 function noAuthorQuoteRow(quoteObj = '') {
     const emptyNode = '{"type":"text","value":""}';
@@ -45,7 +32,8 @@ function splitQuoteAttribution(node, replacement) {
  * 
  * @param {*} mdast
  * 
- * Takes the current mdast, finds all instances of pull quote, and changes them to quote. Likewise modifies content into formats expected by Milo. 
+ * Takes the current mdast, finds all instances of pull quote, and changes them to quote. Likewise modifies
+ * content into formats expected by Milo. 
  *  
  */
 export async function pullQuote(mdast) {
@@ -63,6 +51,7 @@ export async function pullQuote(mdast) {
         return rdx;
     }, [])
 
+    // Go through each quote found, and process
     quoteMap.forEach(async (quoteBlock) => {
         const replacementContent = {};
         const currQuoteIdx = quoteBlock.index;
@@ -121,31 +110,3 @@ export async function pullQuote(mdast) {
         quoteBody.children[1] = JSON.parse(replacementRow);
     })
 }
-
-
-async function main() {
-    const entry = './md/bacom-blog/blog/basics/business-case.md';
-
-    const otherMd = await fetchText(urlEntry);
-    const mdast2 = await getMdast(otherMd);
-
-    const md3Entry = await fetchText(tester2);
-    const mdast3 = await getMdast(md3Entry);
-
-    const markdown = await readFile(entry, 'utf8');
-    const mdast = await getMdast(markdown);
-
-    await pullQuote(mdast3);
-
-    const output = `pullquote-test/pull-quote-file.docx`;
-    await mkdir('pullquote-test', { recursive: true });
-    const buffer = await mdast2docx(mdast3);
-    await writeFile(output, buffer);
-    process.exit(0);
-}
-
-
-
-
-/** Test cases here */
-main();
