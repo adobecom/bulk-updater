@@ -16,6 +16,7 @@
 
 import { mkdir, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
+import { select, selectAll } from 'unist-util-select'
 import { fetch } from '@adobe/fetch';
 import { mdast2docx } from '@adobe/helix-md2docx';
 import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
@@ -106,7 +107,7 @@ export const nodeContains = (node, type, param, val) => {
  * @param str - The string to parse.
  * @returns An array with the block name and options.
  */
-const getHeaderInfo = (str) => {
+export const getHeaderInfo = (str) => {
   if (!str) return [];
   const [blockName, rawOptions] = str.split('(').map((t) => t.trim());
   const options = rawOptions?.split(',').map((t) => t.trim());
@@ -116,6 +117,20 @@ const getHeaderInfo = (str) => {
   }
   return [blockName, options];
 };
+
+/**
+ * Select all grid tables with a specific block name
+ *
+ * @param {object} mdast - mdast tree
+ * @param {string} block - block name
+ * @returns {object} mdast tree reference
+ */
+export const selectAllBlocks = (mdast, block) => {
+  return selectAll('gridTable', mdast).filter((table) => {
+    const [blockName] = getHeaderInfo(select('text', table)?.value?.toLowerCase());
+    return blockName === block.toLowerCase();
+  });
+}
 
 // mdast Table Utils
 

@@ -14,6 +14,7 @@ import { writeFile, access } from 'fs/promises';
 import { getMdast, getTableMap } from './utils/mdast-utils.js';
 import { saveDocx, saveUpdatedDocx } from './utils/docx-utils.js';
 import { loadMarkdowns, loadIndex } from './utils/fetch-utils.js';
+import { imageToFigure } from './bacom-blog/figure/image-to-figure.js';
 
 const PROJECT = 'bacom-blog';
 const SITE = 'https://main--business-website--adobe.hlx.page';
@@ -28,7 +29,7 @@ const REPORT_DIR = 'reports';
 const MIGRATION = {
     'pull quote': 'quote',
     'embed': 'embed',
-    'image': 'image',
+    'images': 'figure',
 }
 
 export async function main(index, cached, output, force) {
@@ -36,16 +37,14 @@ export async function main(index, cached, output, force) {
     const mdDir = `${MD_DIR}/${PROJECT}`;
     const docxDir = `${DOCX_DIR}/${PROJECT}`;
     const outputDir = `${output}/${PROJECT}`;
-    const totals = { succeed: 0, skipped: 0, failed: 0 };
-    const failed = [];
+    const report = { succeed: [], skipped: [], failed: [], warned: [] };
     const indexUrl = `${SITE}${index}`;
     const entries = await loadIndex(PROJECT, indexUrl, cached);
-    
+
     await loadMarkdowns(SITE, mdDir, entries, cached, async (markdown, entry, i) => {
         if (markdown === null) {
             console.warn(`Skipping ${entry} as markdown could not be fetched.`);
-            failed.push(entry);
-            totals.failed++;
+            report.failed.push({entry, message: 'Markdown could not be fetched.'});
             return;
         }
         try {
@@ -59,11 +58,11 @@ export async function main(index, cached, output, force) {
 
             const mdast = await getMdast(markdown);
             const tableMap = getTableMap(mdast);
-            const hasMigrationBlock = tableMap.some((block) => Object.keys(MIGRATION).includes(block.blockName));
+            const migrationBlocks = tableMap.filter((block) => Object.keys(MIGRATION).includes(block.blockName));
 
-            if(!hasMigrationBlock) {
+            if (migrationBlocks.length === 0) {
                 console.log('Skipping', entry, tableMap.map(block => block.blockName));
-                totals.skipped++;
+                report.skipped.push(entry);
                 return;
             }
 
@@ -82,6 +81,7 @@ export async function main(index, cached, output, force) {
             // TODO: Migration Part 2 - Embed
 
             // TODO: Migration Part 3 - Images
+            imageToFigure(mdast);
 
             console.log(`Saving ${outputDocxFile}`);
             if (cached) {
@@ -89,26 +89,27 @@ export async function main(index, cached, output, force) {
                     await saveUpdatedDocx(mdast, sourceDocxFile, outputDocxFile, force);
                 } catch (e) {
                     console.warn(`Error updating ${sourceDocxFile}`, e.message);
+                    report.warned.push({entry, message: e.message});
                     await saveDocx(mdast, outputDocxFile, force);
                 }
             } else {
                 await saveDocx(mdast, outputDocxFile, force);
             }
 
-            totals.succeed++;
+            const migratedBlocks = migrationBlocks.map((block) => block.blockName);
+            report.succeed.push({ entry, migratedBlocks });
             console.log(`${i}/${entries.length}`, entry);
         } catch (e) {
             console.error(`Error migrating ${entry}`, e.message);
-            failed.push(entry);
-            totals.failed++;
+            report.failed.push({entry, message: e.message});
         }
     });
 
+    const totals = Object.entries(report).map(([key, value]) => [key, value.length]);
     console.log('totals', totals);
-    console.log('failed', failed);
 
     const migrationReport = `${reportDir}/migration.json`;
-    await writeFile(migrationReport, JSON.stringify({ totals, failed }, null, 2));
+    await writeFile(migrationReport, JSON.stringify(report, null, 2));
     console.log(`Report written to ${migrationReport}`);
 }
 
