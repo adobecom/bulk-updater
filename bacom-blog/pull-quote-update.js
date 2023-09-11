@@ -13,7 +13,11 @@ function authorQuoteRow(quoteObj = '', authorObj = '', attributionObj = '') {
 }
 
 function splitQuoteAttribution(node, replacement) {
-    const attribution = node.value;
+    const attribution = node?.value;
+    if (!attribution) {
+        console.log('Issue with quote attribution');
+        return;
+    }
     const splitAttr = attribution.split(',');
 
     if (splitAttr.length === 1) {
@@ -40,7 +44,8 @@ export async function pullQuote(mdast) {
     const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
     const quoteMap = mdast.children.reduce((rdx, child, index) => {
         const header = getLeaf(child, 'text');
-  
+
+        if (!header) return rdx;
         if (typeof header.value !== 'string') return rdx;
         if (!header?.value.toLowerCase().includes("quote")) return rdx;
 
@@ -52,19 +57,25 @@ export async function pullQuote(mdast) {
     }, [])
 
     // Go through each quote found, and process
-    quoteMap.forEach(async (quoteBlock) => {
+    quoteMap.forEach((quoteBlock) => {
         const replacementContent = {};
         const currQuoteIdx = quoteBlock.index;
         const currentQuoteBlock = mdast.children[currQuoteIdx];
 
         // Change the block name 
         const heading = getLeaf(currentQuoteBlock, 'text');
-        heading.value = QUOTE_BLOCK_NAME;
+        if (heading?.value) heading.value = QUOTE_BLOCK_NAME;
         
         // Determine if there is an author 
-        const quoteBody = currentQuoteBlock.children[0];
-        const quoteRow = quoteBody.children[1]
-        const quoteCell = quoteRow.children[0];
+        const quoteBody = currentQuoteBlock?.children ? currentQuoteBlock?.children[0] : false;
+        const quoteRow = quoteBody?.children ? quoteBody?.children[1] : false;
+        const quoteCell = quoteRow?.children ? quoteRow?.children[0] : false;
+
+        if (!quoteBody || !quoteRow || !quoteCell ) {
+            console.log('Failed to find expected mdast structure');
+            return;
+        }
+
         if (quoteCell.type !== 'gtCell') {
             console.log(`In wrong part of tree. Working on quote index ${currQuoteIdx}`);
             return;
