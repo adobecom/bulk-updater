@@ -27,33 +27,35 @@ const REPORT_DIR = 'reports';
  */
 export async function fetchMarkdown(project, site, indexUrl, cached = true) {
     const totals = { succeed: 0, failed: 0 };
-    const failed = [];
+    const report = { failed: [], succeed: [] };
     const entries = await loadIndex(project, indexUrl, cached);
     const mdFolder = `./${MD_DIR}/${project}`;
 
     await loadMarkdowns(site, mdFolder, entries, cached, (markdown, entry, i) => {
         if (markdown === null) {
             console.warn(`Skipping ${entry} as markdown could not be fetched.`);
-            failed.push(entry);
+            report.failed.push(entry);
             totals.failed++;
         } else {
+            report.succeed.push(entry);
             totals.succeed++;
             console.log(`${i}/${entries.length}`, entry);
         }
     });
 
-    return { totals, failed };
+    return { totals, report };
 }
 
 async function main(project, site, index, cached) {
     await mkdir(`./${project}`, { recursive: true });
     const indexUrl = `${site}${index}`;
-    const report = await fetchMarkdown(project, site, indexUrl, cached);
-    console.log('totals', report.totals);
+    const { totals, report } = await fetchMarkdown(project, site, indexUrl, cached);
+    console.log('totals', totals);
     console.log('failed', report.failed);
 
+    const dateStr = new Date().toLocaleString('en-US', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\/|,|:| /g, '-').replace('--', '_');
     const reportDir = `./${REPORT_DIR}/${project}`;
-    const reportFile = `${reportDir}/markdown.json`;
+    const reportFile = `${reportDir}/markdown ${dateStr}.json`;
     await mkdir(reportDir, { recursive: true });
     await writeFile(reportFile, JSON.stringify(report, null, 2));
     console.log(`Report written to ${reportFile}`);
