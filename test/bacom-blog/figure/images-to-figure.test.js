@@ -13,7 +13,7 @@ describe('imageToFigure', () => {
     const imagesMdast = await getMdast(imagesMd.toString());
     const figureMdast = await getMdast(figureMd.toString());
 
-    const mdast = await imageToFigure(imagesMdast);
-    expect(mdast).to.deep.equal(figureMdast);
+    await imageToFigure(imagesMdast);
+    expect(imagesMdast).to.deep.equal(figureMdast);
   });
 });

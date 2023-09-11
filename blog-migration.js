@@ -15,6 +15,7 @@ import { getMdast, getTableMap } from './utils/mdast-utils.js';
 import { saveDocx, saveUpdatedDocx } from './utils/docx-utils.js';
 import { loadMarkdowns, loadIndex } from './utils/fetch-utils.js';
 import { imageToFigure } from './bacom-blog/figure/images-to-figure.js';
+import { convertEmbed } from './bacom-blog/embed/embed.js';
 
 const PROJECT = 'bacom-blog';
 const SITE = 'https://main--business-website--adobe.hlx.page';
@@ -78,9 +79,10 @@ export async function main(index, cached, output, force) {
 
             // TODO: Migration Part 1 - Pull Quote
 
-            // TODO: Migration Part 2 - Embed
+            // Migration Part 2 - Embed
+            convertEmbed(mdast);
 
-            // TODO: Migration Part 3 - Images
+            // Migration Part 3 - Images
             imageToFigure(mdast);
 
             console.log(`Saving ${outputDocxFile}`);
