@@ -31,7 +31,7 @@ function splitQuoteAttribution(node, replacement) {
     replacement.author = JSON.stringify({type: 'text', value: author});
     replacement.company = JSON.stringify({type: 'text', value: attr});;
 }
-
+export const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
 /**
  * 
  * @param {*} mdast
@@ -40,8 +40,7 @@ function splitQuoteAttribution(node, replacement) {
  * content into formats expected by Milo. 
  *  
  */
-export async function pullQuote(mdast) {
-    const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
+export async function convertPullQuote(mdast) {
     const quoteMap = mdast.children.reduce((rdx, child, index) => {
         const header = getLeaf(child, 'text');
 
