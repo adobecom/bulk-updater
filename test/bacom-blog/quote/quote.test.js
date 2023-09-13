@@ -2,6 +2,7 @@ import { convertPullQuote, QUOTE_BLOCK_NAME } from '../../../bacom-blog/pull-quo
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
 import { getMdast } from '../../../utils/mdast-utils.js';
+import { select } from 'unist-util-select'
 
 describe('convertPullQuote', () => {
   it('adds the correct heading', async () => {
@@ -11,9 +12,9 @@ describe('convertPullQuote', () => {
 
     await convertPullQuote(pullQuoteMdast);
 
-    const mdastBody  = pullQuoteMdast.children[0].children[0];
+    const mdastBody  = select('gtBody', pullQuoteMdast);
     const headerRow = mdastBody.children[0];
-    const textNode = headerRow.children[0].children[0].children[0];
+    const textNode = select('gtCell paragraph text', headerRow);
 
     expect(textNode.type).to.equal('text');
     expect(textNode.value).to.equal(QUOTE_BLOCK_NAME);
@@ -27,14 +28,13 @@ describe('convertPullQuote', () => {
 
     await convertPullQuote(pullQuoteMdast);
 
-    const mdastBody  = pullQuoteMdast.children[0].children[0];
+    const mdastBody  = select('gtBody', pullQuoteMdast);
     const contentRow = mdastBody.children[1];
-    const headingNode = contentRow.children[0].children[0];
+    const headingNode = select('gtCell heading', contentRow);
 
     expect(headingNode.type).to.equal('heading');
     expect(headingNode.depth).to.equal(3);
     expect(headingNode.children[0].type).to.equal('text');
-
   });
 
   it('converts link pull quotes to a single line quote', async () => {
@@ -44,9 +44,9 @@ describe('convertPullQuote', () => {
 
     await convertPullQuote(pullQuoteMdast);
 
-    const mdastBody  = pullQuoteMdast.children[0].children[0];
+    const mdastBody  = select('gtBody', pullQuoteMdast);
     const contentRow = mdastBody.children[1];
-    const headingNode = contentRow.children[0].children[0];
+    const headingNode = select('gtCell heading', contentRow);
 
     expect(headingNode.type).to.equal('heading');
     expect(headingNode.depth).to.equal(3);
@@ -61,7 +61,7 @@ describe('convertPullQuote', () => {
 
     await convertPullQuote(pullQuoteMdast);
 
-    const mdastBody  = pullQuoteMdast.children[0].children[0];
+    const mdastBody  = select('gtBody', pullQuoteMdast);
     const contentRow = mdastBody.children[1];
     const contentCell = contentRow.children[0];
 

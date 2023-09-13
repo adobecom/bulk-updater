@@ -1,15 +1,22 @@
 import { getLeaf, getNodesByType } from '../utils/mdast-utils.js';
+import { selectAll } from 'unist-util-select'
+
+export const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
 
 function noAuthorQuoteRow(quoteObj = '') {
     const emptyNode = '{"type":"text","value":""}';
 
-    return `{"type":"gtRow","children":[{"type":"gtCell","children":[{"type":"heading","depth":3,"children":[${quoteObj || emptyNode}]}],"valign":"middle"}]}`;
+    return `{"type":"gtRow","children":[{"type":"gtCell","children":
+    [{"type":"heading","depth":3,"children":[${quoteObj || emptyNode}]}],"valign":"middle"}]}`;
 }
 
 function authorQuoteRow(quoteObj = '', authorObj = '', attributionObj = '') {
     const emptyNode = '{"type":"text","value":""}';
 
-    return `{"type":"gtRow","children":[{"type":"gtCell","children":[{"type":"paragraph","children":[${quoteObj || emptyNode}]},{"type":"paragraph","children":[${authorObj || emptyNode}]},{"type":"paragraph","children":[${attributionObj || emptyNode}]}],"valign":"middle"}]}`
+    return `{"type":"gtRow","children":[{"type":"gtCell","children":
+    [{"type":"paragraph","children":[${quoteObj || emptyNode}]},
+    {"type":"paragraph","children":[${authorObj || emptyNode}]},
+    {"type":"paragraph","children":[${attributionObj || emptyNode}]}],"valign":"middle"}]}`
 }
 
 function splitQuoteAttribution(node, replacement) {
@@ -31,7 +38,7 @@ function splitQuoteAttribution(node, replacement) {
     replacement.author = JSON.stringify({type: 'text', value: author});
     replacement.company = JSON.stringify({type: 'text', value: attr});;
 }
-export const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
+
 /**
  * 
  * @param {*} mdast
@@ -47,19 +54,16 @@ export async function convertPullQuote(mdast) {
         if (!header) return rdx;
         if (typeof header.value !== 'string') return rdx;
         if (!header?.value.toLowerCase().includes("quote")) return rdx;
-
-        rdx.push({
-            headText: header.value,
-            index: index
-        });
+      
+        rdx.push(index)
+   
         return rdx;
     }, [])
 
     // Go through each quote found, and process
-    quoteMap.forEach((quoteBlock) => {
+    quoteMap.forEach((quoteBlockIdx) => {
         const replacementContent = {};
-        const currQuoteIdx = quoteBlock.index;
-        const currentQuoteBlock = mdast.children[currQuoteIdx];
+        const currentQuoteBlock = mdast.children[quoteBlockIdx];
 
         // Change the block name 
         const heading = getLeaf(currentQuoteBlock, 'text');
@@ -79,8 +83,9 @@ export async function convertPullQuote(mdast) {
             console.log(`In wrong part of tree. Working on quote index ${currQuoteIdx}`);
             return;
         }
-        const textNodes = getNodesByType(quoteCell, 'text');
-        const linkNodes = getNodesByType(quoteCell, 'link');
+
+        const textNodes = selectAll('text', quoteCell);
+        const linkNodes = selectAll('link', quoteCell);
         let quote = JSON.stringify(textNodes[0]);
 
         // Currently only grabs a single link in a quote. Will review with authoring
@@ -92,7 +97,7 @@ export async function convertPullQuote(mdast) {
             const linkedText = linkNode.children[0].value;
 
             const textReplacmentIndex = textNodes.findIndex((node) => {
-                return node.value === linkedText
+                return node.value === linkedText;
             })
 
             textNodes[textReplacmentIndex] = linkNode;
@@ -118,5 +123,5 @@ export async function convertPullQuote(mdast) {
 
         // We need to access the actual mdast via properties. 
         quoteBody.children[1] = JSON.parse(replacementRow);
-    })
+    });
 }
