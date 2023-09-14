@@ -14,6 +14,7 @@ import { writeFile, access } from 'fs/promises';
 import { getMdast, getTableMap } from './utils/mdast-utils.js';
 import { saveDocx, saveUpdatedDocx } from './utils/docx-utils.js';
 import { loadMarkdowns, loadIndex } from './utils/fetch-utils.js';
+import { convertPullQuote } from './bacom-blog/pull-quote-update.js';
 import { imageToFigure } from './bacom-blog/figure/images-to-figure.js';
 import { convertEmbed } from './bacom-blog/embed/embed.js';
 
@@ -78,7 +79,7 @@ export async function main(index, cached, output, force) {
             }
 
             // TODO: Migration Part 1 - Pull Quote
-
+            convertPullQuote(mdast);
             // Migration Part 2 - Embed
             convertEmbed(mdast);
 
