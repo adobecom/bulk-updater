@@ -17,6 +17,7 @@ import { loadMarkdowns, loadIndex } from './utils/fetch-utils.js';
 import { convertPullQuote } from './bacom-blog/pull-quote-update.js';
 import { imageToFigure } from './bacom-blog/figure/images-to-figure.js';
 import { convertEmbed } from './bacom-blog/embed/embed.js';
+import convertBanner from './bacom-blog/banner/banner.js';
 
 const PROJECT = 'bacom-blog';
 const SITE = 'https://main--business-website--adobe.hlx.page';
@@ -32,6 +33,7 @@ const MIGRATION = {
     'pull quote': 'quote',
     'embed': 'embed',
     'images': 'figure',
+    'banner': 'banner',
 }
 
 export async function main(index, cached, output, force) {
@@ -85,6 +87,9 @@ export async function main(index, cached, output, force) {
 
             // Migration Part 3 - Images
             imageToFigure(mdast);
+
+            // Migration Part 4 - Banner
+            convertBanner(mdast);
 
             console.log(`Saving ${outputDocxFile}`);
             if (cached) {
