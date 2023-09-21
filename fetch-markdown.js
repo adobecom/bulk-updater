@@ -47,7 +47,6 @@ export async function fetchMarkdown(project, site, indexUrl, cached = true) {
 }
 
 async function main(project, site, index, cached) {
-    await mkdir(`./${project}`, { recursive: true });
     const indexUrl = `${site}${index}`;
     const { totals, report } = await fetchMarkdown(project, site, indexUrl, cached);
     console.log('totals', totals);
@@ -61,7 +60,7 @@ async function main(project, site, index, cached) {
     console.log(`Report written to ${reportFile}`);
 }
 
-// node featch-markdown.js <project> <site> <index> <cached>
+// node fetch-markdown.js <project> <site> <index> <cached>
 if (import.meta.url === `file://${process.argv[1]}`) {
     const PROJECT = 'bacom-blog';
     const SITE = 'https://main--business-website--adobe.hlx.page';

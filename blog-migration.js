@@ -13,11 +13,12 @@
 import { writeFile, access } from 'fs/promises';
 import { getMdast, getTableMap } from './utils/mdast-utils.js';
 import { saveDocx, saveUpdatedDocx } from './utils/docx-utils.js';
-import { loadMarkdowns, loadIndex } from './utils/fetch-utils.js';
+import { loadMarkdowns, readIndex } from './utils/fetch-utils.js';
 import { convertPullQuote } from './bacom-blog/pull-quote-update.js';
 import { imageToFigure } from './bacom-blog/figure/images-to-figure.js';
 import { convertEmbed } from './bacom-blog/embed/embed.js';
-import convertBanner from './bacom-blog/banner/banner.js';
+import convertBanner, { BANNERS_PATH, FRAGMENTS_PATH } from './bacom-blog/banner/banner.js';
+import { bannerToAside } from './bacom-blog/aside/aside.js';
 
 const PROJECT = 'bacom-blog';
 const SITE = 'https://main--business-website--adobe.hlx.page';
@@ -36,14 +37,31 @@ const MIGRATION = {
     'banner': 'banner',
 }
 
+async function updateSave(outputDocxFile, cached, mdast, sourceDocxFile, force, report, entry) {
+    console.log(`Saving ${outputDocxFile}`);
+    if (cached) {
+        try {
+            await saveUpdatedDocx(mdast, sourceDocxFile, outputDocxFile, force);
+        } catch (e) {
+            console.warn(`Error updating ${sourceDocxFile}`, e.message);
+            report.warned.push({ entry, message: e.message });
+            await saveDocx(mdast, outputDocxFile, force);
+        }
+    } else {
+        await saveDocx(mdast, outputDocxFile, force);
+    }
+}
+
 export async function main(index, cached, output, force) {
     const reportDir = `${REPORT_DIR}/${PROJECT}`;
     const mdDir = `${MD_DIR}/${PROJECT}`;
     const docxDir = `${DOCX_DIR}/${PROJECT}`;
     const outputDir = `${output}/${PROJECT}`;
     const report = { succeed: [], skipped: [], failed: [], warned: [] };
-    const indexUrl = `${SITE}${index}`;
-    const entries = await loadIndex(PROJECT, indexUrl, cached);
+    // const entries = await loadIndex(PROJECT, `${SITE}${index}`, cached);
+    const top100 = await readIndex('bacom-blog/top-100.json');
+    const banners = await readIndex('bacom-blog/banner.json');
+    const entries = [...top100, ...banners];
 
     await loadMarkdowns(SITE, mdDir, entries, cached, async (markdown, entry, i) => {
         if (markdown === null) {
@@ -64,7 +82,7 @@ export async function main(index, cached, output, force) {
             const tableMap = getTableMap(mdast);
             const migrationBlocks = tableMap.filter((block) => Object.keys(MIGRATION).includes(block.blockName));
 
-            if (migrationBlocks.length === 0) {
+            if (migrationBlocks.length === 0 && !entry.includes(BANNERS_PATH)) {
                 console.log('Skipping', entry, tableMap.map(block => block.blockName));
                 report.skipped.push(entry);
                 return;
@@ -73,12 +91,13 @@ export async function main(index, cached, output, force) {
             if (cached) {
                 try {
                     await access(sourceDocxFile);
-                    console.log(`Found ${sourceDocxFile}`);
                 } catch (e) {
                     console.log(`Creating ${sourceDocxFile}`);
                     await saveDocx(mdast, sourceDocxFile, force);
                 }
             }
+
+            console.log('Migrating', entry, tableMap.map(block => block.blockName));
 
             // TODO: Migration Part 1 - Pull Quote
             convertPullQuote(mdast);
@@ -91,25 +110,24 @@ export async function main(index, cached, output, force) {
             // Migration Part 4 - Banner
             convertBanner(mdast);
 
-            console.log(`Saving ${outputDocxFile}`);
-            if (cached) {
-                try {
-                    await saveUpdatedDocx(mdast, sourceDocxFile, outputDocxFile, force);
-                } catch (e) {
-                    console.warn(`Error updating ${sourceDocxFile}`, e.message);
-                    report.warned.push({entry, message: e.message});
-                    await saveDocx(mdast, outputDocxFile, force);
-                }
-            } else {
-                await saveDocx(mdast, outputDocxFile, force);
+            // Migration Part 5 - Banner content
+            if (path.includes(BANNERS_PATH)) {
+                await bannerToAside(mdast);
+                const fragmentPath = path.replace(BANNERS_PATH, FRAGMENTS_PATH);
+                const fragmentDocxFile = `${outputDir}${fragmentPath}/${docxFile}`;
+                await updateSave(fragmentDocxFile, cached, mdast, sourceDocxFile, force, report, entry);
+                report.succeed.push({ entry, migratedBlocks: ['banner-content'] });
+                return;
             }
+
+            await updateSave(outputDocxFile, cached, mdast, sourceDocxFile, force, report, entry);
 
             const migratedBlocks = migrationBlocks.map((block) => block.blockName);
             report.succeed.push({ entry, migratedBlocks });
             console.log(`${i}/${entries.length}`, entry);
         } catch (e) {
             console.error(`Error migrating ${entry}`, e.message);
-            report.failed.push({entry, message: e.message});
+            report.failed.push({ entry, message: e.message });
         }
     });
 

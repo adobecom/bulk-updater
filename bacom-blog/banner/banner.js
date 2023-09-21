@@ -1,15 +1,15 @@
 import { selectAllBlocks } from '../../utils/mdast-utils.js';
 import { select } from 'unist-util-select'
 
+export const BANNERS_PATH = '/banners';
+export const FRAGMENTS_PATH = '/fragments';
+
 /**
  * Convert banner block to fragment link
  * 
  * @param {object} mdast
  */
 export default function convertBanner(mdast) {
-    const BANNERS_PATH = '/banners/';
-    const FRAGMENTS_PATH = '/fragments/';
-
     selectAllBlocks(mdast, 'Banner').forEach((block) => {
         const link = select('link', block);
         const { pathname, search, hash } = new URL(link.url);

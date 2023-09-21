@@ -17,10 +17,16 @@
 import { mkdir, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { select, selectAll } from 'unist-util-select'
+import { visitParents } from 'unist-util-visit-parents';
 import { fetch } from '@adobe/fetch';
 import { mdast2docx } from '@adobe/helix-md2docx';
 import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
 
+import { unified } from 'unified';
+import stringify from 'remark-stringify';
+import gfm from 'remark-gfm';
+import { remarkMatter } from '@adobe/helix-markdown-support/matter';
+import remarkGridTable from '@adobe/remark-gridtables';
 
 /**
  * It returns the first node of a given type that it finds in a tree
@@ -138,7 +144,8 @@ export const selectAllBlocks = (mdast, block) => {
  * It takes a markdown AST and returns an array of objects that contain the table, the block name, and
  * the options
  * @param mdast - The markdown AST
- * @returns An array of objects with the following properties:
+ * @returns {Array<{blockName: string, options: string[], table: {}}>}
+ * An array of objects with the following properties:
  *   blockName: The name of the block
  *   options: The options for the block
  *   table: The table object
@@ -227,6 +234,48 @@ export const updateKeyNameAndValue = (keyVals, originalName, newName, value) => 
 };
 
 /**
+ * Move a node from one parent to another.
+ * 
+ * @param {object} targetNode - The node to move.
+ * @param {object} fromParent - The current parent of the node.
+ * @param {object} toParent - The node to move the target node to.
+ */
+export function moveNode(targetNode, fromParent, toParent) {
+  const index = fromParent.children.indexOf(targetNode);
+  if (index > -1) {
+    fromParent.children.splice(index, 1);
+    toParent.children.push(targetNode);
+  }
+}
+
+/**
+ * Find a node's parent by type and movie it to another parent.
+ * Example: Moving a paragraph that contains an image to a table cell
+ *
+ * @param {object} mdast - The MDAST tree to operate on.
+ * @param {string} nodeType - The type of node to move.
+ * @param {string} targetType - Type to find the 'from' parent.
+ * @param {object} toParent - The node to move the target node to.
+*/
+export function moveNodeParent(mdast, nodeType, targetType, toParent) {
+  visitParents(mdast, nodeType, (node, parents) => {
+    const targetIndex = parents.findIndex(parent => parent.type === targetType);
+
+    if (targetIndex === -1 || targetIndex - 1 < 0) {
+      console.warn(`Could not find parent of type '${targetType}' to move node of type '${nodeType}'.`);
+      return;
+    }
+
+    const targetNode = parents[targetIndex];
+    const fromParent = parents[targetIndex - 1];
+
+    moveNode(targetNode, fromParent, toParent);
+
+    return false; // Stop traversing
+  });
+}
+
+/**
  * It takes a markdown AST and a block name, and returns an array of tables that match the block name
  * @param mdast - The markdown AST
  * @param blockName - The name of the table block.
@@ -239,8 +288,8 @@ export const getTable = (mdast, blockName) =>
 /**
  * It takes a string of Markdown text and returns a JavaScript object that represents the Markdown
  * Abstract Syntax Tree (mdast)
- * @param mdTxt - The markdown text to be parsed.
- * @returns The mdast is being returned.
+ * @param {string} mdTxt - The markdown text to be parsed.
+ * @returns {object} mdast - The mdast is being returned.
  */
 export const getMdast = async (mdTxt) => {
   const state = { content: { data: mdTxt }, log: '' };
@@ -252,10 +301,34 @@ export const getMdast = async (mdTxt) => {
 
 const errorLogger = {
   error: (s) => console.log(s),
-  info: () => {},
-  log: () => {},
+  info: () => { },
+  log: () => { },
   warn: (s) => console.log(s),
 };
+
+/**
+ * It takes a Markdown AST and returns a string of Markdown text
+ * @param {object} mdast - The Markdown AST to convert to Markdown text.
+ * @returns {string} mdTxt - The Markdown text.
+ */
+export const mdast2md = (mdast) => {
+  return unified()
+    .use(stringify, {
+      strong: '*',
+      emphasis: '_',
+      bullet: '-',
+      fence: '`',
+      fences: true,
+      incrementListMarker: true,
+      rule: '-',
+      ruleRepetition: 3,
+      ruleSpaces: false,
+    })
+    .use(gfm)
+    .use(remarkMatter)
+    .use(remarkGridTable)
+    .stringify(mdast);
+}
 
 /**
  * It takes a Markdown AST, a name, an output directory, and a logger, and saves a docx file to the
