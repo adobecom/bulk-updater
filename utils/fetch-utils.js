@@ -19,7 +19,13 @@ async function fetchAndWriteIndex(url, filePath) {
     return paths;
 }
 
-async function readIndex(filePath) {
+/**
+ * Read the index file and return the paths.
+ *
+ * @param {string} filePath 
+ * @returns {Promise<Array<string>>}
+ */
+export async function readIndex(filePath) {
     try {
         const entriesJson = await readFile(filePath, 'utf8');
         return JSON.parse(entriesJson);
@@ -28,6 +34,14 @@ async function readIndex(filePath) {
     }
 }
 
+/**
+ * Load the index file. If the cached flag is true, it will try to read the index file
+ * 
+ * @param {string} project 
+ * @param {string} url 
+ * @param {boolean} cached 
+ * @returns {Promise<Array<string>>}
+ */
 export async function loadIndex(project, url, cached = true) {
     const filePath = `./${project}.json`;
 
@@ -95,11 +109,18 @@ export async function loadMarkdown(url, path, cached = true) {
         return fetchAndWriteMarkdown(markdownUrl, markdownPath);
     }
 }
-
+/**
+ * 
+ * @param {string} site 
+ * @param {string} folder 
+ * @param {Array} entries 
+ * @param {boolean} cached 
+ * @param {function(string, string, number)} callback 
+ */
 export async function loadMarkdowns(site, folder, entries, cached = true, callback = null) {
     for (let i = 0; i < entries.length; i++) {
         const entry = entries[i];
-        const markdown = await loadMarkdown(`${site}${entry}`, `${folder}/${entry}`, cached);
+        const markdown = await loadMarkdown(`${site}${entry}`, `${folder}${entry}`, cached);
         if (callback && typeof callback === 'function') {
             await callback(markdown, entry, i);
         }
