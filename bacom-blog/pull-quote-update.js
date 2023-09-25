@@ -16,11 +16,7 @@ function noAuthorQuoteRow(quotes = [{}]) {
         type: "gtRow",
         children: [{
             type: "gtCell",
-            children: [{
-                type: "heading",
-                depth: 3,
-                children: [...quotes || emptyNode]
-            }],
+            children: [...quotes || emptyNode],
             valign: "middle"
         }]
     };
