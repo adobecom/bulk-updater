@@ -60,7 +60,7 @@ export async function main(index, cached, output, force) {
     const report = { succeed: [], skipped: [], failed: [], warned: [] };
     // const entries = await loadIndex(PROJECT, `${SITE}${index}`, cached);
     const top100 = await readIndex('bacom-blog/top-100.json');
-    const banners = await readIndex('bacom-blog/banner.json');
+    const banners = await readIndex('bacom-blog/banners.json');
     const entries = [...top100, ...banners];
 
     await loadMarkdowns(SITE, mdDir, entries, cached, async (markdown, entry, i) => {
@@ -99,8 +99,9 @@ export async function main(index, cached, output, force) {
 
             console.log('Migrating', entry, tableMap.map(block => block.blockName));
 
-            // TODO: Migration Part 1 - Pull Quote
+            // Migration Part 1 - Pull Quote
             convertPullQuote(mdast);
+
             // Migration Part 2 - Embed
             convertEmbed(mdast);
 

@@ -1,22 +1,57 @@
-import { getLeaf, getNodesByType } from '../utils/mdast-utils.js';
+import { getLeaf } from '../utils/mdast-utils.js';
 import { selectAll } from 'unist-util-select'
 
 export const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
 
-function noAuthorQuoteRow(quoteObj = '') {
-    const emptyNode = '{"type":"text","value":""}';
+/**
+ * Generates a row string without author information.
+ *
+ * @param {Array<object>} quotes - The quote object.
+ * @returns {object} - The generated row.
+ */
+function noAuthorQuoteRow(quotes = [{}]) {
+    const emptyNode = { type: "text", value: "" };
 
-    return `{"type":"gtRow","children":[{"type":"gtCell","children":
-    [{"type":"heading","depth":3,"children":[${quoteObj || emptyNode}]}],"valign":"middle"}]}`;
+    return {
+        type: "gtRow",
+        children: [{
+            type: "gtCell",
+            children: [...quotes || emptyNode],
+            valign: "middle"
+        }]
+    };
 }
 
-function authorQuoteRow(quoteObj = '', authorObj = '', attributionObj = '') {
-    const emptyNode = '{"type":"text","value":""}';
+/**
+ * Generates a row string with author and attribution information.
+ *
+ * @param {Array<object>} quotes - The quote object.
+ * @param {object} authorObj - The author object.
+ * @param {object} attributionObj - The attribution object.
+ * @returns {object} - The generated row.
+ */
+function authorQuoteRow(quotes, authorObj, attributionObj) {
+    const emptyNode = { type: "text", value: "" };
 
-    return `{"type":"gtRow","children":[{"type":"gtCell","children":
-    [{"type":"paragraph","children":[${quoteObj || emptyNode}]},
-    {"type":"paragraph","children":[${authorObj || emptyNode}]},
-    {"type":"paragraph","children":[${attributionObj || emptyNode}]}],"valign":"middle"}]}`
+    return {
+        type: "gtRow",
+        children: [{
+            type: "gtCell",
+            children: [{
+                type: "paragraph",
+                children: [...quotes || emptyNode]
+            },
+            {
+                type: "paragraph",
+                children: [authorObj || emptyNode]
+            },
+            {
+                type: "paragraph",
+                children: [attributionObj || emptyNode]
+            }],
+            valign: "middle"
+        }]
+    };
 }
 
 function splitQuoteAttribution(node, replacement) {
@@ -28,15 +63,15 @@ function splitQuoteAttribution(node, replacement) {
     const splitAttr = attribution.split(',');
 
     if (splitAttr.length === 1) {
-        replacement.author = JSON.stringify({type: 'text', value: splitAttr[0]});
+        replacement.author = ({ type: 'text', value: splitAttr[0] });
         return;
     }
 
     let [author, ...attr] = splitAttr;
     attr = attr.join(',');
 
-    replacement.author = JSON.stringify({type: 'text', value: author});
-    replacement.company = JSON.stringify({type: 'text', value: attr});;
+    replacement.author = ({ type: 'text', value: author });
+    replacement.company = ({ type: 'text', value: attr });
 }
 
 /**
@@ -54,9 +89,9 @@ export async function convertPullQuote(mdast) {
         if (!header) return rdx;
         if (typeof header.value !== 'string') return rdx;
         if (!header?.value.toLowerCase().includes("quote")) return rdx;
-      
+
         rdx.push(index)
-   
+
         return rdx;
     }, [])
 
@@ -68,13 +103,13 @@ export async function convertPullQuote(mdast) {
         // Change the block name 
         const heading = getLeaf(currentQuoteBlock, 'text');
         if (heading?.value) heading.value = QUOTE_BLOCK_NAME;
-        
+
         // Determine if there is an author 
         const quoteBody = currentQuoteBlock?.children ? currentQuoteBlock?.children[0] : false;
         const quoteRow = quoteBody?.children ? quoteBody?.children[1] : false;
         const quoteCell = quoteRow?.children ? quoteRow?.children[0] : false;
 
-        if (!quoteBody || !quoteRow || !quoteCell ) {
+        if (!quoteBody || !quoteRow || !quoteCell) {
             console.log('Failed to find expected mdast structure');
             return;
         }
@@ -86,7 +121,7 @@ export async function convertPullQuote(mdast) {
 
         const textNodes = selectAll('text', quoteCell);
         const linkNodes = selectAll('link', quoteCell);
-        let quote = JSON.stringify(textNodes[0]);
+        let quote = [textNodes[0]];
 
         // Currently only grabs a single link in a quote. Will review with authoring
         if (linkNodes.length) {
@@ -101,14 +136,7 @@ export async function convertPullQuote(mdast) {
             })
 
             textNodes[textReplacmentIndex] = linkNode;
-            quote = textNodes.reduce((rdx, node, idx) =>  {
-                if (idx < textNodes.length - 1) {
-                    rdx += `${JSON.stringify(node)},`;
-                    return rdx;
-                }
-                rdx += JSON.stringify(node);
-                return rdx;
-            }, '');
+            quote = textNodes;
         }
 
         // Set the quote 
@@ -122,6 +150,6 @@ export async function convertPullQuote(mdast) {
         }
 
         // We need to access the actual mdast via properties. 
-        quoteBody.children[1] = JSON.parse(replacementRow);
+        quoteBody.children[1] = replacementRow;
     });
 }

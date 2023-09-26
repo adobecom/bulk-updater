@@ -30,11 +30,9 @@ describe('convertPullQuote', () => {
 
     const mdastBody  = select('gtBody', pullQuoteMdast);
     const contentRow = mdastBody.children[1];
-    const headingNode = select('gtCell heading', contentRow);
+    const contentCell = select('gtCell', contentRow);
 
-    expect(headingNode.type).to.equal('heading');
-    expect(headingNode.depth).to.equal(3);
-    expect(headingNode.children[0].type).to.equal('text');
+    expect(contentCell.children[0].type).to.equal('text');
   });
 
   it('converts link pull quotes to a single line quote', async () => {
@@ -46,12 +44,10 @@ describe('convertPullQuote', () => {
 
     const mdastBody  = select('gtBody', pullQuoteMdast);
     const contentRow = mdastBody.children[1];
-    const headingNode = select('gtCell heading', contentRow);
+    const contentCell = select('gtCell', contentRow);
 
-    expect(headingNode.type).to.equal('heading');
-    expect(headingNode.depth).to.equal(3);
-    expect(headingNode.children.length).to.equal(3);
-    expect(headingNode.children[0].type).to.equal('text');
+    expect(contentCell.children.length).to.equal(3);
+    expect(contentCell.children[0].type).to.equal('text');
   });
 
   it('converts attributed pull quotes to multi line quote', async () => {
