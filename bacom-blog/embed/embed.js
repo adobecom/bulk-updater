@@ -1,5 +1,5 @@
 import { selectAllBlocks } from '../../utils/mdast-utils.js';
-import { select } from 'unist-util-select'
+import { select, selectAll } from 'unist-util-select'
 
 const EMBED_URLS = [
   'https://video.tv.adobe.com',
@@ -18,13 +18,32 @@ const EMBED_URLS = [
  * Convert all embeds to links or iframes by renaming or removing the embed table and replacing it with a link
  * 
  * @param {object} mdast - markdown tree
- * @returns {number} number of embeds converted to links
+ * @returns {Array}
  */
 export async function convertEmbed(mdast) {
   let embedCount = 0;
 
-  selectAllBlocks(mdast, 'Embed').forEach((embedBlock) => {
-    const link = select('link', embedBlock);
+  const createLink = (textUrl) => {
+    return {
+      type: 'link',
+      url: textUrl.value,
+      children: [textUrl]
+    };
+  }
+
+  const findUrl = (embedBlock) => {
+    const texts = selectAll('paragraph text', embedBlock);
+    const textUrl = texts.find(text => text?.value.includes('http'));
+    return textUrl ? createLink(textUrl) : null;
+  }
+
+  return selectAllBlocks(mdast, 'Embed').map((embedBlock) => {
+    const link = select('link', embedBlock) ? select('link', embedBlock) : findUrl(embedBlock);
+    if (!link) {
+      embedCount++;
+      return `No link found in embed block ${embedCount}`;
+    }
+
     const { hostname } = new URL(link.url);
 
     if (EMBED_URLS.includes(`https://${hostname}`)) {
@@ -34,7 +53,6 @@ export async function convertEmbed(mdast) {
     } else {
       select('text', embedBlock).value = 'Iframe';
     }
+    return `embed ${embedCount} converted`;
   });
-
-  return embedCount;
 }

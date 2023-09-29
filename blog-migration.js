@@ -10,7 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
-import { writeFile, access } from 'fs/promises';
+import { writeFile, mkdir, access } from 'fs/promises';
+import xlsx from 'xlsx';
 import { getMdast, getTableMap } from './utils/mdast-utils.js';
 import { saveDocx, saveUpdatedDocx } from './utils/docx-utils.js';
 import { loadMarkdowns, readIndex } from './utils/fetch-utils.js';
@@ -22,7 +23,7 @@ import { bannerToAside } from './bacom-blog/aside/aside.js';
 
 const PROJECT = 'bacom-blog';
 const SITE = 'https://main--business-website--adobe.hlx.page';
-const INDEX = '/blog/query-index.json?limit=3000';
+const INDEX = 'bacom-blog/bacom-blog-all.json';
 const USE_CACHE = true;
 const FORCE_SAVE = true;
 
@@ -31,10 +32,10 @@ const OUTPUT_DIR = 'output';
 const DOCX_DIR = 'docx';
 const REPORT_DIR = 'reports';
 const MIGRATION = {
-    'pull quote': 'quote',
-    'embed': 'embed',
-    'images': 'figure',
-    'banner': 'banner',
+    'pull quote': convertPullQuote,
+    'embed': convertEmbed,
+    'images': imageToFigure,
+    'banner': convertBanner,
 }
 
 async function updateSave(outputDocxFile, cached, mdast, sourceDocxFile, force, report, entry) {
@@ -43,13 +44,59 @@ async function updateSave(outputDocxFile, cached, mdast, sourceDocxFile, force, 
         try {
             await saveUpdatedDocx(mdast, sourceDocxFile, outputDocxFile, force);
         } catch (e) {
-            console.warn(`Error updating ${sourceDocxFile}`, e.message);
-            report.warned.push({ entry, message: e.message });
+            console.warn(`Error updating ${sourceDocxFile} ${e.message}`);
+            report.warned.push({ entry, message: `Error updating ${sourceDocxFile} ${e.message}` });
             await saveDocx(mdast, outputDocxFile, force);
         }
     } else {
         await saveDocx(mdast, outputDocxFile, force);
     }
+}
+
+function getDateString() {
+    return new Date().toLocaleString('en-US', {
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).replace(/\/|,|:| /g, '-').replace('--', '_');
+}
+
+function reportData({ entry, ...data }, site) {
+    const destinationUrl = `${site}${entry}`;
+    const importUrl = `${SITE}${entry}`;
+    const flattened = {};
+
+    Object.entries(data).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+            value.flat(Infinity).forEach((val, index) => {
+                flattened[`${key}${index + 1}`] = val;
+            });
+        } else {
+            flattened[key] = value;
+        }
+    });
+
+    return { entry, importUrl, destinationUrl, ...flattened };
+}
+
+async function createReport(project, site, { report, totals }) {
+    const reportFile = `${REPORT_DIR}/${project}/Migration ${getDateString()}.xlsx`;
+    const workbook = xlsx.utils.book_new();
+
+    Object.entries(report).forEach(([key, data]) => {
+        const flattenedData = data.map(item => reportData(item, site));
+        xlsx.utils.book_append_sheet(workbook, xlsx.utils.json_to_sheet(flattenedData), key);
+    });
+
+    xlsx.utils.book_append_sheet(workbook, xlsx.utils.json_to_sheet(totals), 'totals');
+
+    const reportDir = reportFile.substring(0, reportFile.lastIndexOf('/'));
+    await mkdir(reportDir, { recursive: true });
+    await xlsx.writeFile(workbook, reportFile);
+    console.log(`Report written to ${reportFile}`)
 }
 
 export async function main(index, cached, output, force) {
@@ -58,15 +105,13 @@ export async function main(index, cached, output, force) {
     const docxDir = `${DOCX_DIR}/${PROJECT}`;
     const outputDir = `${output}/${PROJECT}`;
     const report = { succeed: [], skipped: [], failed: [], warned: [] };
-    // const entries = await loadIndex(PROJECT, `${SITE}${index}`, cached);
-    const top100 = await readIndex('bacom-blog/top-100.json');
-    const banners = await readIndex('bacom-blog/banners.json');
-    const entries = [...top100, ...banners];
+    const entries = (await readIndex(index));
+    Object.keys(MIGRATION).map((key) => report[key] = []);
 
     await loadMarkdowns(SITE, mdDir, entries, cached, async (markdown, entry, i) => {
         if (markdown === null) {
-            console.warn(`Skipping ${entry} as markdown could not be fetched.`);
-            report.failed.push({entry, message: 'Markdown could not be fetched.'});
+            console.warn(`${i}/${entries.length} Skipping ${entry} as markdown could not be fetched.`);
+            report.failed.push({ entry, message: 'Markdown could not be fetched.' });
             return;
         }
         try {
@@ -80,11 +125,13 @@ export async function main(index, cached, output, force) {
 
             const mdast = await getMdast(markdown);
             const tableMap = getTableMap(mdast);
-            const migrationBlocks = tableMap.filter((block) => Object.keys(MIGRATION).includes(block.blockName));
+            const tableBlocks = tableMap.map((block) => block.blockName)
+            const migrationMap = tableMap.filter((block) => Object.keys(MIGRATION).includes(block.blockName));
+            const migrationBlocks = migrationMap.map((block) => block.blockName);
 
-            if (migrationBlocks.length === 0 && !entry.includes(BANNERS_PATH)) {
-                console.log('Skipping', entry, tableMap.map(block => block.blockName));
-                report.skipped.push(entry);
+            if (migrationMap.length === 0 && !entry.includes(BANNERS_PATH)) {
+                console.log(`${i}/${entries.length} Skipping ${entry}`, tableMap.map(block => block.blockName));
+                report.skipped.push({ entry, message: 'No blocks to migrate', tableBlocks });
                 return;
             }
 
@@ -97,35 +144,39 @@ export async function main(index, cached, output, force) {
                 }
             }
 
-            console.log('Migrating', entry, tableMap.map(block => block.blockName));
+            console.log(`${i}/${entries.length} Migrating ${entry}`);
 
-            // Migration Part 1 - Pull Quote
-            convertPullQuote(mdast);
+            // Migrate blocks
+            for (const [block, migrate] of Object.entries(MIGRATION)) {
+                if (migrationBlocks.includes(block)) {
+                    try {
+                        const blockReport = await migrate(mdast);
+                        console.log(block, blockReport);
+                        report[block].push({ entry, blockReport });
+                    } catch (e) {
+                        console.error(`Error migrating ${block} in ${entry}`, e.message);
+                        report.failed.push({ entry, message: `${block}: ${e.message}` });
+                        report[block].push({ entry, message: e.message });
+                        return;
+                    }
+                }
+            }
 
-            // Migration Part 2 - Embed
-            convertEmbed(mdast);
-
-            // Migration Part 3 - Images
-            imageToFigure(mdast);
-
-            // Migration Part 4 - Banner
-            convertBanner(mdast);
-
-            // Migration Part 5 - Banner content
+            // Migrate banner content
             if (path.includes(BANNERS_PATH)) {
-                await bannerToAside(mdast);
+                const asideReport = await bannerToAside(mdast);
+                console.log('banner-content', asideReport);
+                report['aside'] = report['aside'] ? report['aside'].concat({ entry, asideReport }) : [{ entry, asideReport }];
                 const fragmentPath = path.replace(BANNERS_PATH, FRAGMENTS_PATH);
                 const fragmentDocxFile = `${outputDir}${fragmentPath}/${docxFile}`;
                 await updateSave(fragmentDocxFile, cached, mdast, sourceDocxFile, force, report, entry);
-                report.succeed.push({ entry, migratedBlocks: ['banner-content'] });
+                report.succeed.push({ entry, migratedBlocks: ['banner-content', ...migrationBlocks] });
                 return;
             }
 
             await updateSave(outputDocxFile, cached, mdast, sourceDocxFile, force, report, entry);
 
-            const migratedBlocks = migrationBlocks.map((block) => block.blockName);
-            report.succeed.push({ entry, migratedBlocks });
-            console.log(`${i}/${entries.length}`, entry);
+            report.succeed.push({ entry, migratedBlocks: migrationBlocks });
         } catch (e) {
             console.error(`Error migrating ${entry}`, e.message);
             report.failed.push({ entry, message: e.message });
@@ -135,10 +186,11 @@ export async function main(index, cached, output, force) {
     const totals = Object.entries(report).map(([key, value]) => [key, value.length]);
     console.log('totals', totals);
 
-    const dateStr = new Date().toLocaleString('en-US', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\/|,|:| /g, '-').replace('--', '_');
-    const migrationReport = `${reportDir}/migration ${dateStr}.json`;
-    await writeFile(migrationReport, JSON.stringify(report, null, 2));
+    const dateStr = getDateString();
+    const migrationReport = `${reportDir}/Migration ${dateStr}.json`;
+    await writeFile(migrationReport, JSON.stringify({ report, totals }, null, 2));
     console.log(`Report written to ${migrationReport}`);
+    await createReport(PROJECT, 'https://main--bacom-blog--adobecom.hlx.page', { report, totals });
 }
 
 // node blog-migration.js <index> <cached> <output> <force>
