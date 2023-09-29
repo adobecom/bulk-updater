@@ -38,7 +38,8 @@ export async function convertEmbed(mdast) {
   }
 
   return selectAllBlocks(mdast, 'Embed').map((embedBlock) => {
-    const link = select('link', embedBlock) ? select('link', embedBlock) : findUrl(embedBlock);
+    const embedLink = select('link', embedBlock);
+    const link = embedLink ? embedLink : findUrl(embedBlock);
     if (!link) {
       embedCount++;
       return `No link found in embed block ${embedCount}`;

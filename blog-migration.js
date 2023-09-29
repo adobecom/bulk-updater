@@ -105,7 +105,7 @@ export async function main(index, cached, output, force) {
     const docxDir = `${DOCX_DIR}/${PROJECT}`;
     const outputDir = `${output}/${PROJECT}`;
     const report = { succeed: [], skipped: [], failed: [], warned: [] };
-    const entries = (await readIndex(index));
+    const entries = await readIndex(index);
     Object.keys(MIGRATION).map((key) => report[key] = []);
 
     await loadMarkdowns(SITE, mdDir, entries, cached, async (markdown, entry, i) => {
@@ -130,7 +130,7 @@ export async function main(index, cached, output, force) {
             const migrationBlocks = migrationMap.map((block) => block.blockName);
 
             if (migrationMap.length === 0 && !entry.includes(BANNERS_PATH)) {
-                console.log(`${i}/${entries.length} Skipping ${entry}`, tableMap.map(block => block.blockName));
+                console.log(`${i}/${entries.length} Skipping ${entry}`, tableBlocks);
                 report.skipped.push({ entry, message: 'No blocks to migrate', tableBlocks });
                 return;
             }
