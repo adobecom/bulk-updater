@@ -4,7 +4,7 @@ import { fetch } from '@adobe/fetch';
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 async function fetchIndex(url) {
-    console.log('Fetching entries and saving locally');
+    console.log(`Fetching index from ${url}`);
     const index = await fetch(url);
     if (!index.ok) throw new Error(`Error fetching index: ${index.status}`);
     const indexData = await index.json();

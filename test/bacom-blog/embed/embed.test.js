@@ -29,4 +29,17 @@ describe('embedToLink', () => {
     await convertEmbed(embedMdast);
     expect(embedMdast).to.deep.equal(linkMdast);
   });
+
+  it('should convert embeds with text links', async () => {
+    const embedMdPath = new URL('./mocks/embed-block-adobe-text.md', import.meta.url);
+    const iframeMdPath = new URL('./mocks/iframe-block.md', import.meta.url);
+    const embedMd = await readFile(embedMdPath);
+    const iframeMd = await readFile(iframeMdPath);
+
+    const embedMdast = await getMdast(embedMd.toString());
+    const linkMdast = await getMdast(iframeMd.toString());
+
+    await convertEmbed(embedMdast);
+    expect(embedMdast).to.deep.equal(linkMdast);
+  });
 });

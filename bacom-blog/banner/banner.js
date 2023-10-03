@@ -1,5 +1,5 @@
 import { selectAllBlocks } from '../../utils/mdast-utils.js';
-import { select } from 'unist-util-select'
+import { extractLink } from '../../utils/mdast-utils.js';
 
 export const BANNERS_PATH = '/banners';
 export const FRAGMENTS_PATH = '/fragments';
@@ -14,7 +14,7 @@ const SITE = 'https://main--bacom-blog--adobecom.hlx.page';
  */
 export default function convertBanner(mdast) {
     return selectAllBlocks(mdast, 'Banner').map((block) => {
-        const link = select('link', block);
+        const link = extractLink(block);
         if (!link) {
             return 'No link found in banner block';
         }

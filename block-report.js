@@ -14,15 +14,15 @@ import xlsx from 'xlsx';
 import { mkdir } from 'fs/promises';
 import process from 'process';
 import { getMdast, getTableMap, getNodesByType } from './utils/mdast-utils.js';
-import { loadMarkdowns, loadIndex } from './utils/fetch-utils.js';
+import { loadMarkdowns, readIndex } from './utils/fetch-utils.js';
 
 const MD_DIR = 'md';
 const REPORT_DIR = 'reports';
 
-export async function runReport(project, site, indexUrl, cached = true) {
+export async function runReport(project, site, index, cached = true) {
     const report = {};
     const totals = { blocks: {}, variants: {} };
-    const entries = await loadIndex(project, indexUrl, cached);
+    const entries = await readIndex(`./${index}`);
     const mdFolder = `./${MD_DIR}/${project}`;
 
     await loadMarkdowns(site, mdFolder, entries, cached, async (markdown, entry, i) => {
@@ -145,8 +145,7 @@ export async function createReports(project, site, { report, totals }) {
 async function main(project, site, index, cached) {
     await mkdir(`./${project}`, { recursive: true });
 
-    const indexUrl = `${site}${index}`;
-    const report = await runReport(project, site, indexUrl, cached);
+    const report = await runReport(project, site, index, cached);
 
     console.log('totals', report.totals);
     await createReports(project, site, report);
@@ -156,7 +155,7 @@ async function main(project, site, index, cached) {
 if (import.meta.url === `file://${process.argv[1]}`) {
     const PROJECT = 'bacom-blog';
     const SITE = 'https://main--business-website--adobe.hlx.page';
-    const INDEX = '/blog/query-index.json?limit=3000';
+    const INDEX = 'bacom-blog/bacom-blog-all.json';
     const USE_CACHE = true;
     const args = process.argv.slice(2);
     const [project = PROJECT, site = SITE, index = INDEX, cached = USE_CACHE] = args;

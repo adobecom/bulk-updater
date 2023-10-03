@@ -1,5 +1,6 @@
 import { selectAllBlocks } from '../../utils/mdast-utils.js';
-import { select, selectAll } from 'unist-util-select'
+import { select } from 'unist-util-select'
+import { extractLink } from '../../utils/mdast-utils.js';
 
 const EMBED_URLS = [
   'https://video.tv.adobe.com',
@@ -23,29 +24,14 @@ const EMBED_URLS = [
 export async function convertEmbed(mdast) {
   let embedCount = 0;
 
-  const createLink = (textUrl) => {
-    return {
-      type: 'link',
-      url: textUrl.value,
-      children: [textUrl]
-    };
-  }
-
-  const findUrl = (embedBlock) => {
-    const texts = selectAll('paragraph text', embedBlock);
-    const textUrl = texts.find(text => text?.value.includes('http'));
-    return textUrl ? createLink(textUrl) : null;
-  }
-
   return selectAllBlocks(mdast, 'Embed').map((embedBlock) => {
-    const embedLink = select('link', embedBlock);
-    const link = embedLink ? embedLink : findUrl(embedBlock);
+    const link = extractLink(embedBlock);
     if (!link) {
       embedCount++;
       return `No link found in embed block ${embedCount}`;
     }
 
-    const { hostname } = new URL(link.url);
+    const { hostname } = new URL(link?.url ? link.url : link.value);
 
     if (EMBED_URLS.includes(`https://${hostname}`)) {
       embedBlock.type = 'paragraph';
