@@ -234,6 +234,50 @@ export const updateKeyNameAndValue = (keyVals, originalName, newName, value) => 
 };
 
 /**
+ * Make sure the first url in a block is a link node
+ * 
+ * @param {object} block - mdast block
+ * @returns {object} link object
+ */
+export function extractLink(block) {
+  const link = findUrl(block);
+  if (!link) return null;
+  if (link?.type === 'link') return link;
+  return textToLink(link);
+}
+
+/**
+ * Find the first link in a block
+ *
+ * @param {object} block - mdast block
+ * @returns {object} link object
+ */
+function findUrl(block) {
+  const link = select('link', block) || selectAll('paragraph text', block);
+  if (!link) return null;
+  if (link?.type === 'link') return link;
+  return link.find(text => text?.value.includes('http'));
+}
+
+/**
+ * Convert a text node to a link node
+ * 
+ * @param {object} link - The link node to convert.
+ * @returns {object} link object
+ */
+function textToLink(link) {
+  if (link.type === 'text') {
+    link.children = [JSON.parse(JSON.stringify(link))];
+    link.title = null;
+    link.type = 'link';
+    link.url = link.value;
+    delete link.value;
+  };
+
+  return link;
+}
+
+/**
  * Move a node from one parent to another.
  * 
  * @param {object} targetNode - The node to move.

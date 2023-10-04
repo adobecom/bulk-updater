@@ -2,6 +2,12 @@ import { readFile } from 'fs/promises';
 import { getMdast, moveNodeParent } from '../../utils/mdast-utils.js';
 import { select, selectAll } from 'unist-util-select';
 
+/**
+ * Converts banner page to aside
+ *
+ * @param {object} mdast 
+ * @returns {Array}
+ */
 export async function bannerToAside(mdast) {
     const asideMdPath = new URL('./aside.md', import.meta.url);
     const asideMd = await readFile(asideMdPath, 'utf8');
@@ -20,4 +26,5 @@ export async function bannerToAside(mdast) {
 
     contentCell.children = mdast.children;
     mdast.children = asideMdast.children;
+    return image ? 'Banner converted to aside' : 'Banner converted to aside without image';
 }

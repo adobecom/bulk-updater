@@ -75,12 +75,11 @@ function splitQuoteAttribution(node, replacement) {
 }
 
 /**
- * 
- * @param {*} mdast
- * 
  * Takes the current mdast, finds all instances of pull quote, and changes them to quote. Likewise modifies
  * content into formats expected by Milo. 
- *  
+ * 
+ * @param {object} mdast - markdown tree
+ * @returns {Array} report
  */
 export async function convertPullQuote(mdast) {
     const quoteMap = mdast.children.reduce((rdx, child, index) => {
@@ -96,9 +95,10 @@ export async function convertPullQuote(mdast) {
     }, [])
 
     // Go through each quote found, and process
-    quoteMap.forEach((quoteBlockIdx) => {
+    return quoteMap.map((quoteBlockIdx) => {
         const replacementContent = {};
         const currentQuoteBlock = mdast.children[quoteBlockIdx];
+        let report = '';
 
         // Change the block name 
         const heading = getLeaf(currentQuoteBlock, 'text');
@@ -110,13 +110,13 @@ export async function convertPullQuote(mdast) {
         const quoteCell = quoteRow?.children ? quoteRow?.children[0] : false;
 
         if (!quoteBody || !quoteRow || !quoteCell) {
-            console.log('Failed to find expected mdast structure');
-            return;
+            report += 'Failed to find expected mdast structure'
+            return report;
         }
 
         if (quoteCell.type !== 'gtCell') {
-            console.log(`In wrong part of tree. Working on quote index ${currQuoteIdx}`);
-            return;
+            report += `In wrong part of tree. Working on quote index ${currQuoteIdx}`
+            return report;
         }
 
         const textNodes = selectAll('text', quoteCell);
@@ -126,7 +126,7 @@ export async function convertPullQuote(mdast) {
         // Currently only grabs a single link in a quote. Will review with authoring
         if (linkNodes.length) {
             if (linkNodes.length > 1) {
-                console.log('Multiple Links per quote found');
+                report += 'Multiple Links per quote found\n';
             }
             const linkNode = linkNodes[0];
             const linkedText = linkNode.children[0].value;
@@ -151,5 +151,8 @@ export async function convertPullQuote(mdast) {
 
         // We need to access the actual mdast via properties. 
         quoteBody.children[1] = replacementRow;
+        report += `Successfully converted quote at index ${quoteBlockIdx}`;
+
+        return report;
     });
 }

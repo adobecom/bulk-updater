@@ -5,16 +5,15 @@ import { select } from 'unist-util-select'
  * Convert all images to figures by change table name from "Images" to "Figure"
  *
  * @param {object} mdast - markdown tree
- * @returns {number} number of images converted to figures
+ * @returns {Array}
  */
 export async function imageToFigure(mdast) {
   let imageCount = 0;
 
-  selectAllBlocks(mdast, 'Images').forEach((imageBlock) => {
+  return selectAllBlocks(mdast, 'Images').map((imageBlock) => {
     select('text', imageBlock).value = 'Figure';
     imageCount++;
+    return `Image ${imageCount} converted to figure`;
   });
-
-  return imageCount;
 }
 
