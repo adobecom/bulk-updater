@@ -1,4 +1,4 @@
-import { convertPullQuote, QUOTE_BLOCK_NAME } from '../../../bacom-blog/pull-quote-update.js';
+import { convertPullQuote, QUOTE_BLOCK_NAME } from '../../../bacom-blog/pull-quote/pull-quote-update.js';
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
 import { getMdast } from '../../../utils/mdast-utils.js';

@@ -15,11 +15,12 @@ import xlsx from 'xlsx';
 import { getMdast, getTableMap } from './utils/mdast-utils.js';
 import { saveDocx, saveUpdatedDocx } from './utils/docx-utils.js';
 import { loadMarkdowns, readIndex } from './utils/fetch-utils.js';
-import { convertPullQuote } from './bacom-blog/pull-quote-update.js';
+import { convertPullQuote } from './bacom-blog/pull-quote/pull-quote-update.js';
 import { imageToFigure } from './bacom-blog/figure/images-to-figure.js';
 import { convertEmbed } from './bacom-blog/embed/embed.js';
 import convertBanner, { BANNERS_PATH, FRAGMENTS_PATH } from './bacom-blog/banner/banner.js';
 import { bannerToAside } from './bacom-blog/aside/aside.js';
+import { convertTagHeader, TAGS_PATH } from './bacom-blog/tag-header/tag-header.js';
 
 const PROJECT = 'bacom-blog';
 const SITE = 'https://main--business-website--adobe.hlx.page';
@@ -129,7 +130,7 @@ export async function main(index, cached, output, force) {
             const migrationMap = tableMap.filter((block) => Object.keys(MIGRATION).includes(block.blockName));
             const migrationBlocks = migrationMap.map((block) => block.blockName);
 
-            if (migrationMap.length === 0 && !entry.includes(BANNERS_PATH)) {
+            if (migrationMap.length === 0 && !entry.includes(BANNERS_PATH) && !entry.includes(TAGS_PATH)) {
                 console.log(`${i}/${entries.length} Skipping ${entry}`, tableBlocks);
                 report.skipped.push({ entry, message: 'No blocks to migrate', tableBlocks });
                 return;
@@ -171,6 +172,15 @@ export async function main(index, cached, output, force) {
                 const fragmentDocxFile = `${outputDir}${fragmentPath}/${docxFile}`;
                 await updateSave(fragmentDocxFile, cached, mdast, sourceDocxFile, force, report, entry);
                 report.succeed.push({ entry, migratedBlocks: ['banner-content', ...migrationBlocks] });
+                return;
+            }
+
+            if (path.includes(TAGS_PATH)) {
+                const tagReport = await(convertTagHeader(mdast));
+                console.log('tag-header', tagReport);
+                report['tagReport'] = report['tagReport'] ? report['tagReport'].concat({ entry, tagReport }) : [{ entry, tagReport }];
+                await updateSave(outputDocxFile, cached, mdast, sourceDocxFile, force, report, entry);
+                report.succeed.push({ entry, migratedBlocks: ['tag-headers', ...migrationBlocks] });
                 return;
             }
 

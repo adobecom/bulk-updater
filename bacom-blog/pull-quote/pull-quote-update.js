@@ -1,4 +1,4 @@
-import { getLeaf } from '../utils/mdast-utils.js';
+import { getLeaf } from '../../utils/mdast-utils.js';
 import { selectAll } from 'unist-util-select'
 
 export const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
