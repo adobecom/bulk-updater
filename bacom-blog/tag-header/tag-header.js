@@ -2,6 +2,8 @@ import { readFile } from 'fs/promises';
 import { getMdast } from '../../utils/mdast-utils.js';
 import { select, selectAll } from 'unist-util-select';
 
+export const TAGS_PATH = '/tags';
+
 export async function convertTagHeader(mdast) {
     const marqueeMdPath = new URL('./marquee.md', import.meta.url);
     const marqueeMd = await readFile(marqueeMdPath, 'utf8');
