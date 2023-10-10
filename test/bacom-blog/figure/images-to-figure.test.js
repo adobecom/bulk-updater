@@ -5,8 +5,8 @@ import { getMdast } from '../../../utils/mdast-utils.js';
 
 describe('imageToFigure', () => {
   it('should convert images to figures', async () => {
-    const imagesMdPath = new URL('./images-block.md', import.meta.url);
-    const figureMdPath = new URL('./figure-block.md', import.meta.url);
+    const imagesMdPath = new URL('./mocks/images-block.md', import.meta.url);
+    const figureMdPath = new URL('./mocks/figure-block.md', import.meta.url);
     const imagesMd = await readFile(imagesMdPath);
     const figureMd = await readFile(figureMdPath);
 
