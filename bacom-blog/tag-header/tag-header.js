@@ -1,9 +1,15 @@
 import { readFile } from 'fs/promises';
 import { getMdast } from '../../utils/mdast-utils.js';
 import { select, selectAll } from 'unist-util-select';
-
+import { STATUS_SUCCESS, STATUS_WARNING } from '../../utils/migration-utils.js';
 export const TAGS_PATH = '/tags';
 
+/**
+ * Convert tag header to marquee
+ * 
+ * @param {object} mdast - markdown tree
+ * @returns {object} - report
+ */
 export async function convertTagHeader(mdast) {
     const marqueeMdPath = new URL('./marquee.md', import.meta.url);
     const marqueeMd = await readFile(marqueeMdPath, 'utf8');
@@ -14,12 +20,12 @@ export async function convertTagHeader(mdast) {
 
     const image = select('paragraph', mdast);
     if (!image) {
-        return 'No image present in tag header'
+        return { status: STATUS_WARNING, message: 'No image present in tag header'}
     }
 
     const heading = select('heading', mdast);
     if (!heading) {
-        return 'No heading present in tag header'
+        return { status: STATUS_WARNING, message: 'No heading present in tag header'}
     }
 
     tableCells[0].children[0] = heading;
@@ -28,5 +34,5 @@ export async function convertTagHeader(mdast) {
     mdast.children.splice(mdast.children.indexOf(heading), 1)
     
     mdast.children.unshift(select('gridTable', marqueeMdast));
-    return 'tag header converted to marquee';
+    return { status: STATUS_SUCCESS, message: 'Tag header converted to marquee' };
 }
