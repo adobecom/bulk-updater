@@ -1,6 +1,6 @@
 import { getLeaf } from '../../utils/mdast-utils.js';
 import { selectAll } from 'unist-util-select'
-import { STATUS_SUCCESS, STATUS_WARNING, STATUS_ERROR, STATUS_INFO } from '../../utils/migration-utils.js';
+import { STATUS_SUCCESS, STATUS_WARNING, STATUS_ERROR } from '../../utils/migration-utils.js';
 
 export const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
 
@@ -83,7 +83,6 @@ function splitQuoteAttribution(node, replacement) {
  * @returns {Array} report
  */
 export async function convertPullQuote(mdast) {
-    const report = [];
     const quoteMap = mdast.children.reduce((rdx, child, index) => {
         const header = getLeaf(child, 'text');
 
@@ -98,6 +97,7 @@ export async function convertPullQuote(mdast) {
 
     // Go through each quote found, and process
     return quoteMap.map((quoteBlockIdx) => {
+        const report = {};
         const replacementContent = {};
         const currentQuoteBlock = mdast.children[quoteBlockIdx];
 
@@ -111,12 +111,14 @@ export async function convertPullQuote(mdast) {
         const quoteCell = quoteRow?.children ? quoteRow?.children[0] : false;
 
         if (!quoteBody || !quoteRow || !quoteCell) {
-            report.push({ status: STATUS_ERROR, message: `Quote ${quoteBlockIdx}: Failed to find expected mdast structure` });
+            report.status = STATUS_ERROR;
+            report.message = `Quote, index ${quoteBlockIdx}: Failed to find expected mdast structure`;
             return report;
         }
 
         if (quoteCell.type !== 'gtCell') {
-            report.push({ status: STATUS_ERROR, message: `Quote ${quoteBlockIdx}: Expected gtCell but found ${quoteCell.type}` })
+            report.status = STATUS_ERROR;
+            report.message = `Quote, index ${quoteBlockIdx}: Expected gtCell but found ${quoteCell.type}`;
             return report;
         }
 
@@ -127,7 +129,7 @@ export async function convertPullQuote(mdast) {
         // Currently only grabs a single link in a quote. Will review with authoring
         if (linkNodes.length) {
             if (linkNodes.length > 1) {
-                report.push({ status: STATUS_WARNING, message: `Quote ${quoteBlockIdx}: Multiple links found in quote: ${linkNodes.length}` });
+                report.links = `${linkNodes.length} links found`;
             }
             const linkNode = linkNodes[0];
             const linkedText = linkNode.children[0].value;
@@ -144,17 +146,18 @@ export async function convertPullQuote(mdast) {
         replacementContent.quote = quote;
         let replacementRow = noAuthorQuoteRow(replacementContent.quote);
 
-        let attributionStatus = null;
+        let attribution = null;
         // Check if it is an author node, then modify row
         if (textNodes.length === 2) {
-            attributionStatus = splitQuoteAttribution(textNodes[1], replacementContent);
-            report.push({ status: STATUS_INFO, message: `Quote ${quoteBlockIdx}: ${attributionStatus}` });
+            attribution = splitQuoteAttribution(textNodes[1], replacementContent);
             replacementRow = authorQuoteRow(replacementContent?.quote, replacementContent?.author, replacementContent?.company);
         }
 
         // We need to access the actual mdast via properties. 
         quoteBody.children[1] = replacementRow;
-        report.push({ status: STATUS_SUCCESS, message: `Quote ${quoteBlockIdx}: Converted quote` })
+        report.status = STATUS_SUCCESS;
+        report.message = `Quote, index ${quoteBlockIdx}: Converted quote`;
+
         return report;
     });
 }

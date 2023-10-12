@@ -14,7 +14,7 @@ import { saveDocx, updateDocx } from '../utils/docx-utils.js';
 
 export const STATUS_SUCCESS = 'success';
 export const STATUS_WARNING = 'warning';
-export const STATUS_FAILURE = 'failed';
+export const STATUS_FAILED = 'failed';
 export const STATUS_ERROR = 'error';
 export const STATUS_SKIPPED = 'skipped';
 
@@ -27,9 +27,9 @@ export const STATUS_SKIPPED = 'skipped';
  * @returns {Promise<Object>}
  */
 export async function updateSave(mdast, sourceDocxFile, outputDocxFile) {
-    if (!mdast) return { status: STATUS_FAILURE, message: `No mdast object` };
-    if (!sourceDocxFile) return { status: STATUS_FAILURE, message: `No source docx file` };
-    if (!outputDocxFile) return { status: STATUS_FAILURE, message: `No output docx file` };
+    if (!mdast) return { status: STATUS_FAILED, message: `No mdast object` };
+    if (!sourceDocxFile) return { status: STATUS_FAILED, message: `No source docx file` };
+    if (!outputDocxFile) return { status: STATUS_FAILED, message: `No output docx file` };
 
     try {
         const updated = await updateDocx(mdast, sourceDocxFile, outputDocxFile);
@@ -46,10 +46,10 @@ export async function updateSave(mdast, sourceDocxFile, outputDocxFile) {
         if (saved) {
             return { status: STATUS_SUCCESS, message: 'Saved docx file' };
         } else {
-            return { status: STATUS_FAILURE, message: `Error saving ${outputDocxFile}` };
+            return { status: STATUS_FAILED, message: `Error saving ${outputDocxFile}` };
         }
     } catch (e) {
-        return { status: STATUS_FAILURE, message: `Error updating and saving ${sourceDocxFile} ${e.message}` };
+        return { status: STATUS_FAILED, message: `Error updating and saving ${sourceDocxFile} ${e.message}` };
     }
 }
 
@@ -89,7 +89,7 @@ const migrateBlock = async (mdast, block, migrate) => {
             blockReport.status = blockReport.status ?? STATUS_SUCCESS;
             // Capture warning or failure
             if (blockReport.status !== STATUS_SUCCESS) {
-                baseReport.status = blockReport.status === STATUS_ERROR ? STATUS_FAILURE : blockReport.status;
+                baseReport.status = blockReport.status === STATUS_ERROR ? STATUS_FAILED : blockReport.status;
                 baseReport.message = blockReport.message;
             }
 
@@ -97,7 +97,7 @@ const migrateBlock = async (mdast, block, migrate) => {
         });
     } catch (e) {
         console.error(`Error migrating ${block}`, e.message);
-        baseReport.status = STATUS_FAILURE;
+        baseReport.status = STATUS_FAILED;
         baseReport.migrations.push({ status: STATUS_ERROR, message: e.message });
     }
 
@@ -152,12 +152,15 @@ export const migratePath = async (mdast, path, key, migrate, outputDocxFile) => 
         const pathReports = Array.isArray(migrationReport) ? migrationReport : [migrationReport];
 
         pathReports.forEach((pathReport) => {
-            baseReport.output ??= pathReport.output ?? outputDocxFile;
+            const outputFile = pathReport.output ?? outputDocxFile
+            delete pathReport.output;
+
+            baseReport.output ??= outputFile;
             Object.assign(pathReport, { path, key, output: baseReport.output });
             pathReport.status = pathReport.status ?? STATUS_SUCCESS;
             // Capture warning or failure
             if (pathReport.status !== STATUS_SUCCESS) {
-                baseReport.status = pathReport.status === STATUS_ERROR ? STATUS_FAILURE : pathReport.status;
+                baseReport.status = pathReport.status === STATUS_ERROR ? STATUS_FAILED : pathReport.status;
                 baseReport.message = pathReport.message;
             }
 
@@ -165,7 +168,7 @@ export const migratePath = async (mdast, path, key, migrate, outputDocxFile) => 
         });
     } catch (e) {
         console.error(`Error migrating path '${path}': `, e.message);
-        baseReport.status = STATUS_FAILURE;
+        baseReport.status = STATUS_FAILED;
         baseReport.migrations.push({ status: STATUS_ERROR, message: e.message });
     }
 
@@ -175,7 +178,7 @@ export const migratePath = async (mdast, path, key, migrate, outputDocxFile) => 
 /**
  * Migrate paths and collect reports
  * Each path creates a new docx file in the migrate function
- * Output: [ { status: { entry, status, save, message }, migrations: [ { status, message, path, key, outputDocxFile }, outputDocxFile ] }
+ * Output: [ { status: { entry, status, save, message, output }, migrations: [ { status, message, path, key, outputDocxFile } ] }
  * 
  * @param {object} mdast - mdast object
  * @param {Array<string, function>} migrationMap - paths to migrate
@@ -187,27 +190,29 @@ export const migratePaths = async (mdast, migrationMap, entry, sourceDocxFile, o
 
     for (const [path, migrate] of migrationMap) {
         // Migrate to a new page
-        const key = `path ${path.replaceAll('/', '')}`
-        const pageReport = { status: { entry, status: STATUS_SUCCESS, path: path.replace('/', '') }, migrations: [] };
+        const key = `path ${path.replaceAll('/', ' ').trim()}`
+        const pageReport = { status: { entry, status: STATUS_SUCCESS, path }, migrations: [] };
 
         // Deep copy mdast object
         const pathMdast = JSON.parse(JSON.stringify(mdast));
-        const pathReport = await migratePath(pathMdast, path, key, migrate, outputDocxFile);
+        const pathMigration = await migratePath(pathMdast, path, key, migrate, outputDocxFile);
 
-        pageReport.output ??= outputDocxFile;
-        pathReport.migrations.forEach((migration) => {
+        const outputFile = pathMigration.output || outputDocxFile;
+
+        pageReport.status.output = outputFile;
+        pathMigration.migrations.forEach((migration) => {
             migration.entry = entry;
             pageReport.migrations.push(migration);
         });
 
-        if (pathReport.status === STATUS_FAILURE) {
-            pageReport.status.status = pathReport.status;
-            pageReport.status.message = pathReport.message;
-            pageReport.status.save = STATUS_SKIPPED;
+        if (pathMigration.status === STATUS_FAILED) {
+            pageReport.status.status = pathMigration.status;
+            pageReport.status.message = pathMigration.message;
+            pageReport.status.save = STATUS_FAILED;
         } else {
-            const save = await updateSave(mdast, sourceDocxFile, pageReport.output);
+            const save = await updateSave(mdast, sourceDocxFile, outputFile);
             pageReport.status.save = save.status;
-            pageReport.status.message = save.message;
+            pageReport.status.saveMessage = save.message;
         }
 
         reports.push(pageReport);

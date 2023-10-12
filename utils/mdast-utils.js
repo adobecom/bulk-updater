@@ -234,29 +234,16 @@ export const updateKeyNameAndValue = (keyVals, originalName, newName, value) => 
 };
 
 /**
- * Make sure the first url in a block is a link node
+ * Get the first link or text that starts with http and converts it to a link
  * 
  * @param {object} block - mdast block
  * @returns {object} link object
  */
 export function extractLink(block) {
-  const link = findUrl(block);
+  const link = select('link, paragraph text[value^=http]', block);
   if (!link) return null;
   if (link?.type === 'link') return link;
   return textToLink(link);
-}
-
-/**
- * Find the first link in a block
- *
- * @param {object} block - mdast block
- * @returns {object} link object
- */
-function findUrl(block) {
-  const link = select('link', block) || selectAll('paragraph text', block);
-  if (!link) return null;
-  if (link?.type === 'link') return link;
-  return link.find(text => text?.value.includes('http'));
 }
 
 /**
