@@ -190,7 +190,7 @@ export const migratePaths = async (mdast, migrationMap, entry, sourceDocxFile, o
 
     for (const [path, migrate] of migrationMap) {
         // Migrate to a new page
-        const key = `path ${path.replaceAll('/', ' ').trim()}`
+        const key = `path ${path.replaceAll('/', ' ').trim()}`;
         const pageReport = { status: { entry, status: STATUS_SUCCESS, path }, migrations: [] };
 
         // Deep copy mdast object

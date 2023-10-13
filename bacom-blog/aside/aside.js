@@ -10,7 +10,7 @@ export const FRAGMENTS_PATH = '/fragments';
  * Converts banner page to aside fragment.
  *
  * @param {object} mdast 
- * @returns {Promise<object>}
+ * @returns {Promise<object>} - report { status, message, output }
  */
 export async function bannerToAside(mdast, outputDocxFile) {
     const report = {};
@@ -35,13 +35,8 @@ export async function bannerToAside(mdast, outputDocxFile) {
     const fragmentDocxFile = outputDocxFile.replace(BANNERS_PATH, FRAGMENTS_PATH);
     report.output = fragmentDocxFile;
 
-    if (image) {
-        report.status = STATUS_SUCCESS;
-        report.message = 'Banner converted to aside with image';
-    } else {
-        report.status = STATUS_SUCCESS;
-        report.message = 'Banner converted to aside without image';
-    }
+    report.status = STATUS_SUCCESS;
+    report.message = `Banner converted to aside ${image ? 'with' : 'without'} image`;
 
     return report;
 }

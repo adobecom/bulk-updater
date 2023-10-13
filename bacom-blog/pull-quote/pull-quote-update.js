@@ -80,7 +80,7 @@ function splitQuoteAttribution(node, replacement) {
  * content into formats expected by Milo. 
  * 
  * @param {object} mdast - markdown tree
- * @returns {Array} report
+ * @returns {Promise<Array>} - report [{ status, message}]
  */
 export async function convertPullQuote(mdast) {
     const quoteMap = mdast.children.reduce((rdx, child, index) => {

@@ -20,7 +20,7 @@ const EMBED_URLS = [
  * Convert all embeds to links or iframes by renaming or removing the embed table and replacing it with a link
  * 
  * @param {object} mdast - markdown tree
- * @returns {Array<object>} - report
+ * @returns {Promise<Array>} - report [{ status, message}]
  */
 export async function convertEmbed(mdast) {
   const embedBlocks = selectAllBlocks(mdast, 'Embed');

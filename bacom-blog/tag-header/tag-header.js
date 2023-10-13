@@ -20,12 +20,12 @@ export async function convertTagHeader(mdast) {
 
     const image = select('paragraph', mdast);
     if (!image) {
-        return { status: STATUS_WARNING, message: 'No image present in tag header'}
+        return { status: STATUS_WARNING, message: 'No image present in tag header'};
     }
 
     const heading = select('heading', mdast);
     if (!heading) {
-        return { status: STATUS_WARNING, message: 'No heading present in tag header'}
+        return { status: STATUS_WARNING, message: 'No heading present in tag header'};
     }
 
     tableCells[0].children[0] = heading;

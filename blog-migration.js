@@ -78,7 +78,6 @@ function flattenObject(obj, prefix = '') {
  */
 async function createReport(reports, reportFile) {
     const excelData = formatReportData(reports);
-    await writeFile('./report.json', JSON.stringify(excelData, null, 2));
     const workbook = xlsx.utils.book_new();
     Object.entries(excelData).forEach(([sheetName, data]) => {
         xlsx.utils.book_append_sheet(workbook, xlsx.utils.json_to_sheet(data), sheetName);
@@ -94,7 +93,7 @@ function formatReportData(reports) {
     const migrationReports = {};
     const PAGE_TOTAL = 'page total';
     const MIGRATION_TOTAL = 'migration total';
-    const totals = { [PAGE_TOTAL]: [], [MIGRATION_TOTAL]: [] }
+    const totals = { [PAGE_TOTAL]: [], [MIGRATION_TOTAL]: [] };
 
     reports.forEach(({ entry, status, migrations }) => {
         const reportKey = status.save;
@@ -190,7 +189,7 @@ async function handleMigration(markdown, entry, pageIndex, outputDir) {
             console.warn(`${pageIndex} migration ${index} ${STATUS_FAILED} '${entry}' - blocks: '${blocks}'`);
             console.warn(`${pageIndex} ${STATUS_FAILED}: '${blockReport.status.message}'`);
             blockReport.status.save = STATUS_FAILED;
-            blockReport.status.saveMessage = 'Migration failed, skipping save'
+            blockReport.status.saveMessage = 'Migration failed, skipping save';
         } else {
             console.log(`${pageIndex} migration ${index} ${blockReport.status.status} '${entry}' - blocks: '${blocks}'`);
             const save = await updateSave(mdast, sourceDocxFile, outputDocxFile);
@@ -281,7 +280,7 @@ export async function main(index = INDEX, source = SOURCE_CACHE, outputDir = OUT
 
     for (let i = 0; i < entries.length; i++) {
         const entry = entries[i].trim();
-        const url = `${FROM_SITE}${entry}`
+        const url = `${FROM_SITE}${entry}`;
         const path = `${MD_DIR}/${PROJECT}${entry}`;
         let markdown = '';
         if (source === SOURCE_CACHE) {

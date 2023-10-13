@@ -10,8 +10,8 @@ const SITE = 'https://main--bacom-blog--adobecom.hlx.page';
 /**
  * Convert banner block to fragment link
  * 
- * @param {object} mdast
- * @returns {Array<object>}
+ * @param {object} mdast - markdown tree
+ * @returns {Array<object>} - report [{ status, message}]
  */
 export default function convertBanner(mdast) {
     const bannerBlocks = selectAllBlocks(mdast, 'Banner');
