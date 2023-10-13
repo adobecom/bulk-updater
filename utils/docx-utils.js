@@ -9,61 +9,70 @@ import getDimensions from 'image-size';
 import mime from 'mime';
 
 /**
- * Save a docx file to the file system.
+ * Save a mdast as a docx file to the file system.
  *
- * @param {object} mdast 
- * @param {string} outputFolder 
- * @param {string} outputFile 
- * @param {boolean} force 
- * @returns
+ * @param {object} mdast
+ * @param {string} outputFile
+ * @returns {Promise<boolean>} - success
  */
-export async function saveDocx(mdast, outputFile, force = false) {
+export async function saveDocx(mdast, outputFile) {
     const outputFolder = outputFile.split('/').slice(0, -1).join('/');
     await mkdir(outputFolder, { recursive: true });
 
-    if (force) {
-        const buffer = await mdast2docx(mdast);
-        await writeFile(outputFile, buffer);
-        return;
-    }
-
     try {
-        await readFile(outputFile);
-        console.log(`Skipping ${outputFile} as docx already exists.`);
-        return;
-    } catch (err) {
         const buffer = await mdast2docx(mdast);
         await writeFile(outputFile, buffer);
+
+        return true;
+    } catch (e) {
+        console.warn(e.message);
+        return false;
     }
 }
 
 /**
- * Save an updated docx file to the file system.
+ * Save an updated mdast with source docx to the file system.
  *
  * @param {object} mdast 
  * @param {string} outputFolder 
  * @param {string} outputFile 
- * @param {boolean} force 
- * @returns
+ * @returns {Promise<boolean>} - success
  */
-export async function saveUpdatedDocx(mdast, sourceFile, outputFile, force = false) {
+export async function updateDocx(mdast, sourceFile, outputFile) {
     const outputFolder = outputFile.split('/').slice(0, -1).join('/');
     await mkdir(outputFolder, { recursive: true });
 
-    if (force) {
-        const buffer = await updateDocx(mdast, sourceFile);
+    try {
+        await readFile(sourceFile);
+        const buffer = await mergeDocx(mdast, sourceFile);
         await writeFile(outputFile, buffer);
-        return;
+        return true;
+    } catch (e) {
+        console.warn(e.message);
+        return false;
     }
+}
+
+/**
+ * Merge mdast with source docx file.
+ *
+ * @param {object} mdast 
+ * @param {string} sourceDocxPath 
+ * @returns {Promise<Buffer>}
+ */
+async function mergeDocx(mdast, sourceDocxPath) {
+    const mergeMdast = JSON.parse(JSON.stringify(mdast));
+    const sourceZip = await openZipFile(sourceDocxPath);
+    const { styles, mediaFiles } = await readDocxEntries(sourceZip);
 
     try {
-        await readFile(outputFile);
-        console.log(`Skipping ${outputFile} as docx already exists.`);
-        return;
-    } catch (err) {
-        const buffer = await updateDocx(mdast, sourceFile);
-        await writeFile(outputFile, buffer);
+        loadImages(mediaFiles, mergeMdast);
+    } catch (e) {
+        console.warn(e.message);
+        return null;
     }
+
+    return await mdast2docx(mergeMdast, { stylesXML: styles });
 }
 
 const openZipFile = (filePath) => new Promise((resolve, reject) => {
@@ -147,18 +156,4 @@ function loadImages(mediaFiles, tree) {
         }
         return visit.CONTINUE;
     });
-}
-
-export async function updateDocx(mdast, sourceDocxPath) {
-    const sourceZip = await openZipFile(sourceDocxPath);
-    const { styles, mediaFiles } = await readDocxEntries(sourceZip);
-
-    try {
-        loadImages(mediaFiles, mdast);
-    } catch (e) {
-        console.warn(e.message);
-        return null;
-    }
-
-    return await mdast2docx(mdast, {stylesXML: styles});
 }

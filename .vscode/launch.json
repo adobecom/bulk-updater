@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node-terminal",
+            "name": "Blog Migration",
+            "request": "launch",
+            "command": "npm run migration:blog",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node-terminal",
+            "name": "Test",
+            "request": "launch",
+            "command": "npm run test",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node-terminal",
+            "name": "Test Watch",
+            "request": "launch",
+            "command": "npm run test:watch",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

@@ -1,6 +1,7 @@
 import { selectAllBlocks } from '../../utils/mdast-utils.js';
-import { select } from 'unist-util-select'
+import { select } from 'unist-util-select';
 import { extractLink } from '../../utils/mdast-utils.js';
+import { STATUS_SUCCESS, STATUS_WARNING, STATUS_ERROR } from '../../utils/migration-utils.js';
 
 const EMBED_URLS = [
   'https://video.tv.adobe.com',
@@ -19,27 +20,35 @@ const EMBED_URLS = [
  * Convert all embeds to links or iframes by renaming or removing the embed table and replacing it with a link
  * 
  * @param {object} mdast - markdown tree
- * @returns {Array}
+ * @returns {Promise<Array>} - report [{ status, message}]
  */
 export async function convertEmbed(mdast) {
-  let embedCount = 0;
+  const embedBlocks = selectAllBlocks(mdast, 'Embed');
 
-  return selectAllBlocks(mdast, 'Embed').map((embedBlock) => {
+  return embedBlocks.map((embedBlock, index) => {
     const link = extractLink(embedBlock);
+
     if (!link) {
-      embedCount++;
-      return `No link found in embed block ${embedCount}`;
+      return { status: STATUS_WARNING, message: `No link found in embed block ${index}` };
     }
 
-    const { hostname } = new URL(link?.url ? link.url : link.value);
+    const linkURL = link.url || link.value;
+    let hostname;
+
+    try {
+      hostname = new URL(linkURL).hostname;
+    } catch (error) {
+      return { status: STATUS_ERROR, message: `Invalid URL in embed block ${linkURL}` };
+    }
 
     if (EMBED_URLS.includes(`https://${hostname}`)) {
       embedBlock.type = 'paragraph';
       embedBlock.children = [link];
-      embedCount++;
+      return { status: STATUS_SUCCESS, message: `Embed ${linkURL} converted to link` };
     } else {
-      select('text', embedBlock).value = 'Iframe';
+      const textNode = select('text', embedBlock);
+      textNode.value = 'Iframe';
+      return { status: STATUS_SUCCESS, message: `Embed ${linkURL} converted to iframe` };
     }
-    return `embed ${embedCount} converted`;
   });
 }

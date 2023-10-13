@@ -13,206 +13,301 @@
 import { writeFile, mkdir, access } from 'fs/promises';
 import xlsx from 'xlsx';
 import { getMdast, getTableMap } from './utils/mdast-utils.js';
-import { saveDocx, saveUpdatedDocx } from './utils/docx-utils.js';
-import { loadMarkdowns, readIndex } from './utils/fetch-utils.js';
+import { saveDocx } from './utils/docx-utils.js';
+import { loadMarkdown, loadOrFetchMarkdown, readIndex } from './utils/fetch-utils.js';
+import { getDateString, updateSave, migrateBlocks, migratePaths } from './utils/migration-utils.js';
+import { STATUS_SUCCESS, STATUS_FAILED, STATUS_SKIPPED } from './utils/migration-utils.js';
 import { convertPullQuote } from './bacom-blog/pull-quote/pull-quote-update.js';
 import { imageToFigure } from './bacom-blog/figure/images-to-figure.js';
 import { convertEmbed } from './bacom-blog/embed/embed.js';
-import convertBanner, { BANNERS_PATH, FRAGMENTS_PATH } from './bacom-blog/banner/banner.js';
+import convertBanner, { BANNERS_PATH } from './bacom-blog/banner/banner.js';
 import { bannerToAside } from './bacom-blog/aside/aside.js';
 import { convertTagHeader, TAGS_PATH } from './bacom-blog/tag-header/tag-header.js';
 
+const SOURCE_CACHE = 'cache';
+const SOURCE_FETCH = 'fetch';
 const PROJECT = 'bacom-blog';
-const SITE = 'https://main--business-website--adobe.hlx.page';
+const FROM_SITE = 'https://main--business-website--adobe.hlx.page';
+const TO_SITE = 'https://main--bacom-blog--adobecom.hlx.page';
 const INDEX = 'bacom-blog/bacom-blog-all.json';
-const USE_CACHE = true;
-const FORCE_SAVE = true;
-
 const MD_DIR = 'md';
 const OUTPUT_DIR = 'output';
 const DOCX_DIR = 'docx';
 const REPORT_DIR = 'reports';
-const MIGRATION = {
+const MIGRATION_BLOCKS = {
     'pull quote': convertPullQuote,
     'embed': convertEmbed,
     'images': imageToFigure,
     'banner': convertBanner,
-}
+};
+const MIGRATION_PATHS = {
+    [BANNERS_PATH]: bannerToAside,
+    [TAGS_PATH]: convertTagHeader,
+};
 
-async function updateSave(outputDocxFile, cached, mdast, sourceDocxFile, force, report, entry) {
-    console.log(`Saving ${outputDocxFile}`);
-    if (cached) {
-        try {
-            await saveUpdatedDocx(mdast, sourceDocxFile, outputDocxFile, force);
-        } catch (e) {
-            console.warn(`Error updating ${sourceDocxFile} ${e.message}`);
-            report.warned.push({ entry, message: `Error updating ${sourceDocxFile} ${e.message}` });
-            await saveDocx(mdast, outputDocxFile, force);
-        }
-    } else {
-        await saveDocx(mdast, outputDocxFile, force);
+/**
+ * Flatten object using key as prefix.
+ * Example: obj = { blocks: ["banner"] }, prefix = '' -> return = { "blocks-0": "banner" }
+ * 
+ * @param {object|array} obj - object or array to flatten
+ * @param {string} [prefix=''] - prefix for the keys
+ * @returns {object}
+ */
+function flattenObject(obj, prefix = '') {
+    if (typeof obj !== 'object' || obj === null) {
+        return {};
     }
-}
 
-function getDateString() {
-    return new Date().toLocaleString('en-US', {
-        hour12: false,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    }).replace(/\/|,|:| /g, '-').replace('--', '_');
-}
-
-function reportData({ entry, ...data }, site) {
-    const destinationUrl = `${site}${entry}`;
-    const importUrl = `${SITE}${entry}`;
-    const flattened = {};
-
-    Object.entries(data).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-            value.flat(Infinity).forEach((val, index) => {
-                flattened[`${key}${index + 1}`] = val;
-            });
+    return Object.entries(obj).reduce((acc, [key, value]) => {
+        const newKey = prefix ? `${prefix}-${key}` : key;
+        if (typeof value === 'object' && value !== null) {
+            Object.assign(acc, flattenObject(value, newKey));
         } else {
-            flattened[key] = value;
+            acc[newKey] = value;
         }
-    });
-
-    return { entry, importUrl, destinationUrl, ...flattened };
+        return acc;
+    }, {});
 }
 
-async function createReport(project, site, { report, totals }) {
-    const reportFile = `${REPORT_DIR}/${project}/Migration ${getDateString()}.xlsx`;
+/**
+ * Create Excel report
+ * 
+ * @param {string} project - project name
+ * @param {object} report - report data
+ * @returns {Promise}
+ */
+async function createReport(reports, reportFile) {
+    const excelData = formatReportData(reports);
     const workbook = xlsx.utils.book_new();
-
-    Object.entries(report).forEach(([key, data]) => {
-        const flattenedData = data.map(item => reportData(item, site));
-        xlsx.utils.book_append_sheet(workbook, xlsx.utils.json_to_sheet(flattenedData), key);
+    Object.entries(excelData).forEach(([sheetName, data]) => {
+        xlsx.utils.book_append_sheet(workbook, xlsx.utils.json_to_sheet(data), sheetName);
     });
-
-    xlsx.utils.book_append_sheet(workbook, xlsx.utils.json_to_sheet(totals), 'totals');
 
     const reportDir = reportFile.substring(0, reportFile.lastIndexOf('/'));
     await mkdir(reportDir, { recursive: true });
     await xlsx.writeFile(workbook, reportFile);
-    console.log(`Report written to ${reportFile}`)
 }
 
-export async function main(index, cached, output, force) {
-    const reportDir = `${REPORT_DIR}/${PROJECT}`;
-    const mdDir = `${MD_DIR}/${PROJECT}`;
-    const docxDir = `${DOCX_DIR}/${PROJECT}`;
-    const outputDir = `${output}/${PROJECT}`;
-    const report = { succeed: [], skipped: [], failed: [], warned: [] };
-    const entries = await readIndex(index);
-    Object.keys(MIGRATION).map((key) => report[key] = []);
+function formatReportData(reports) {
+    const statusReports = {};
+    const migrationReports = {};
+    const PAGE_TOTAL = 'page total';
+    const MIGRATION_TOTAL = 'migration total';
+    const totals = { [PAGE_TOTAL]: [], [MIGRATION_TOTAL]: [] };
 
-    await loadMarkdowns(SITE, mdDir, entries, cached, async (markdown, entry, i) => {
-        if (markdown === null) {
-            console.warn(`${i}/${entries.length} Skipping ${entry} as markdown could not be fetched.`);
-            report.failed.push({ entry, message: 'Markdown could not be fetched.' });
-            return;
-        }
-        try {
-            const file = entry.split('/').slice(-1)[0];
-            const docxFile = `${file}.docx`;
-            const path = entry.split('/').slice(0, -1).join('/');
-            const sourceFolder = `${docxDir}${path}`;
-            const outputFolder = `${outputDir}${path}`
-            const sourceDocxFile = `${sourceFolder}/${docxFile}`;
-            const outputDocxFile = `${outputFolder}/${docxFile}`;
+    reports.forEach(({ entry, status, migrations }) => {
+        const reportKey = status.save;
+        statusReports[reportKey] ??= [];
 
-            const mdast = await getMdast(markdown);
-            const tableMap = getTableMap(mdast);
-            const tableBlocks = tableMap.map((block) => block.blockName)
-            const migrationMap = tableMap.filter((block) => Object.keys(MIGRATION).includes(block.blockName));
-            const migrationBlocks = migrationMap.map((block) => block.blockName);
+        status.importUrl = `${FROM_SITE}${status.entry}`;
+        const flattenedStatus = flattenObject(status);
+        statusReports[reportKey].push({ entry, ...flattenedStatus });
 
-            if (migrationMap.length === 0 && !entry.includes(BANNERS_PATH) && !entry.includes(TAGS_PATH)) {
-                console.log(`${i}/${entries.length} Skipping ${entry}`, tableBlocks);
-                report.skipped.push({ entry, message: 'No blocks to migrate', tableBlocks });
-                return;
-            }
+        migrations.forEach((migration) => {
+            const reportKey = migration.key;
+            delete migration.key;
+            migration.importUrl = `${FROM_SITE}${migration.entry}`;
+            const flattenedMigration = flattenObject(migration);
 
-            if (cached) {
-                try {
-                    await access(sourceDocxFile);
-                } catch (e) {
-                    console.log(`Creating ${sourceDocxFile}`);
-                    await saveDocx(mdast, sourceDocxFile, force);
-                }
-            }
+            migrationReports[reportKey] ??= [];
+            migrationReports[reportKey].push(flattenedMigration);
+        });
+    });
+    let pageTotal = 0;
+    let migrationTotal = 0;
 
-            console.log(`${i}/${entries.length} Migrating ${entry}`);
-
-            // Migrate blocks
-            for (const [block, migrate] of Object.entries(MIGRATION)) {
-                if (migrationBlocks.includes(block)) {
-                    try {
-                        const blockReport = await migrate(mdast);
-                        console.log(block, blockReport);
-                        report[block].push({ entry, blockReport });
-                    } catch (e) {
-                        console.error(`Error migrating ${block} in ${entry}`, e.message);
-                        report.failed.push({ entry, message: `${block}: ${e.message}` });
-                        report[block].push({ entry, message: e.message });
-                        return;
-                    }
-                }
-            }
-
-            // Migrate banner content
-            if (path.includes(BANNERS_PATH)) {
-                const asideReport = await bannerToAside(mdast);
-                console.log('banner-content', asideReport);
-                report['aside'] = report['aside'] ? report['aside'].concat({ entry, asideReport }) : [{ entry, asideReport }];
-                const fragmentPath = path.replace(BANNERS_PATH, FRAGMENTS_PATH);
-                const fragmentDocxFile = `${outputDir}${fragmentPath}/${docxFile}`;
-                await updateSave(fragmentDocxFile, cached, mdast, sourceDocxFile, force, report, entry);
-                report.succeed.push({ entry, migratedBlocks: ['banner-content', ...migrationBlocks] });
-                return;
-            }
-
-            if (path.includes(TAGS_PATH)) {
-                const tagReport = await(convertTagHeader(mdast));
-                console.log('tag-header', tagReport);
-                report['tagReport'] = report['tagReport'] ? report['tagReport'].concat({ entry, tagReport }) : [{ entry, tagReport }];
-                await updateSave(outputDocxFile, cached, mdast, sourceDocxFile, force, report, entry);
-                report.succeed.push({ entry, migratedBlocks: ['tag-headers', ...migrationBlocks] });
-                return;
-            }
-
-            await updateSave(outputDocxFile, cached, mdast, sourceDocxFile, force, report, entry);
-
-            report.succeed.push({ entry, migratedBlocks: migrationBlocks });
-        } catch (e) {
-            console.error(`Error migrating ${entry}`, e.message);
-            report.failed.push({ entry, message: e.message });
-        }
+    Object.entries(statusReports).forEach(([key, value]) => {
+        pageTotal += value.length;
+        totals[PAGE_TOTAL].push({ status: key, count: value.length });
+    });
+    Object.entries(migrationReports).forEach(([key, value]) => {
+        migrationTotal += value.length;
+        totals[MIGRATION_TOTAL].push({ migration: key, count: value.length });
     });
 
-    const totals = Object.entries(report).map(([key, value]) => [key, value.length]);
-    console.log('totals', totals);
+    totals[PAGE_TOTAL].push({ status: PAGE_TOTAL, count: pageTotal });
+    totals[MIGRATION_TOTAL].push({ migration: MIGRATION_TOTAL, count: migrationTotal });
+    console.log('totals', JSON.stringify(totals, null, 2));
 
-    const dateStr = getDateString();
-    const migrationReport = `${reportDir}/Migration ${dateStr}.json`;
-    await writeFile(migrationReport, JSON.stringify({ report, totals }, null, 2));
-    console.log(`Report written to ${migrationReport}`);
-    await createReport(PROJECT, 'https://main--bacom-blog--adobecom.hlx.page', { report, totals });
+    return { ...statusReports, ...migrationReports, ...totals };
 }
 
-// node blog-migration.js <index> <cached> <output> <force>
+/**
+ * Handle migration of a page
+ * 
+ * @param {string} markdown - markdown content
+ * @param {string} entry - page entry
+ * @param {number} pageIndex - index
+ * @param {boolean} cached - use cached docx files
+ * @param {string} outputDir - output directory
+ * @returns {Promise<Array>}
+ */
+async function handleMigration(markdown, entry, pageIndex, outputDir) {
+    let index = 1;
+    const destinationUrl = `${TO_SITE}${entry}`;
+    if (!markdown) {
+        console.warn(`${pageIndex} failed '${entry}': 'Markdown could not be fetched.'`);
+        return [{
+            status: { status: STATUS_FAILED, save: STATUS_SKIPPED, entry, message: 'Markdown could not be fetched.', destinationUrl },
+            migrations: []
+        }];
+    }
+
+    const mdast = await getMdast(markdown);
+    const blockList = getTableMap(mdast).map(({ blockName }) => blockName);
+    const blockMigrations = Object.entries(MIGRATION_BLOCKS).filter(([block]) => blockList.includes(block));
+    const pathMigrations = Object.entries(MIGRATION_PATHS).filter(([path]) => entry.includes(path));
+
+    if (!blockMigrations.length && !pathMigrations.length) {
+        console.warn(`${pageIndex} skipped '${entry}': 'No blocks or paths to migrate.'`);
+        return [{
+            status: { status: STATUS_SKIPPED, save: STATUS_SKIPPED, entry, message: 'No blocks or paths to migrate.', destinationUrl },
+            migrations: []
+        }];
+    }
+
+    const file = entry.split('/').pop();
+    const path = entry.split('/').slice(0, -1).join('/');
+    const docxFile = `${file}.docx`;
+    const basePath = `${PROJECT}${path}`;
+    const sourceDocxFile = `${DOCX_DIR}/${basePath}/${docxFile}`;
+    const outputDocxFile = `${outputDir}/${basePath}/${docxFile}`;
+
+    // Crete source docx before modifying mdast
+    await ensureDocxFileExists(mdast, sourceDocxFile);
+
+    // One or more page reports
+    const pageReports = [];
+
+    // Handle block migrations
+    if (blockMigrations.length > 0) {
+        const blocks = blockMigrations.map(([block]) => block).join(', ');
+        const blockReport = await migrateBlocks(mdast, blockMigrations, entry);
+
+        // Save docx
+        if (blockReport.status.status === STATUS_FAILED) {
+            console.warn(`${pageIndex} migration ${index} ${STATUS_FAILED} '${entry}' - blocks: '${blocks}'`);
+            console.warn(`${pageIndex} ${STATUS_FAILED}: '${blockReport.status.message}'`);
+            blockReport.status.save = STATUS_FAILED;
+            blockReport.status.saveMessage = 'Migration failed, skipping save';
+        } else {
+            console.log(`${pageIndex} migration ${index} ${blockReport.status.status} '${entry}' - blocks: '${blocks}'`);
+            const save = await updateSave(mdast, sourceDocxFile, outputDocxFile);
+            blockReport.status.save = save.status;
+            blockReport.status.saveMessage = save.message;
+        }
+
+        // Add extra data to report
+        blockReport.status.destinationUrl = destinationUrl;
+        blockReport.status.index = pageIndex;
+        blockReport.migrations.forEach(blockMigration => {
+            blockMigration.destinationUrl = destinationUrl;
+            blockMigration.index = pageIndex;
+        });
+
+        if (blockReport.status.save !== STATUS_SUCCESS) {
+            console.warn(`${pageIndex} ${blockReport.status.save} save to '${outputDocxFile}'`);
+        }
+
+        pageReports.push(blockReport);
+        index++;
+    }
+
+    // Handle path migrations
+    if (pathMigrations.length > 0) {
+        const pathReports = await migratePaths(mdast, pathMigrations, entry, sourceDocxFile, outputDocxFile);
+        // Add extra data to report
+        pathReports.forEach(({ status, migrations }) => {
+            const outputEntry = status.output.replace(`${outputDir}/${PROJECT}`, '').replace('.docx', '');
+            const destinationUrl = `${TO_SITE}${outputEntry}`;
+            delete status.output;
+
+            if (outputEntry !== entry) status.updatedEntry = outputEntry;
+            status.destinationUrl = destinationUrl;
+            status.index = pageIndex;
+
+            migrations.forEach(migration => {
+                if (outputEntry !== entry) migration.updatedEntry = outputEntry;
+                migration.destinationUrl = destinationUrl;
+                migration.index = pageIndex;
+            });
+
+            console.log(`${pageIndex} migration ${index} ${status.status} '${entry}' - path: '${status.path}'`);
+
+            if (status.save !== STATUS_SUCCESS) {
+                console.warn(`${pageIndex} ${status.save} save to '${outputDocxFile}'`);
+            }
+            index++;
+        });
+        pageReports.push(...pathReports);
+    }
+
+    return pageReports;
+}
+
+async function ensureDocxFileExists(mdast, sourceDocxFile) {
+    try {
+        await access(sourceDocxFile);
+    } catch (e) {
+        await saveDocx(mdast, sourceDocxFile);
+    }
+}
+
+/**
+ * Main migration function
+ * 
+ * @param {string} index - index JSON file
+ * @param {boolean} source - use cached docx files instead of fetching
+ * @param {string} outputDir - output directory
+ */
+export async function main(index = INDEX, source = SOURCE_CACHE, outputDir = OUTPUT_DIR) {
+    const entries = await readIndex(index);
+
+    const reports = [];
+    if (entries.length === 0) {
+        console.error(`No entries found in ${index}`);
+        process.exit(1);
+    }
+    if (source === SOURCE_CACHE) {
+        console.log('Using cached markdown');
+    } else if (source === SOURCE_FETCH) {
+        console.log('Using cached or fetched markdown');
+    } else {
+        console.error(`Invalid source: ${source}`);
+        console.error(`Expected: ${SOURCE_CACHE} or ${SOURCE_FETCH}`);
+        process.exit(1);
+    }
+
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i].trim();
+        const url = `${FROM_SITE}${entry}`;
+        const path = `${MD_DIR}/${PROJECT}${entry}`;
+        let markdown = '';
+        if (source === SOURCE_CACHE) {
+            markdown = await loadMarkdown(path);
+        } else if (source === SOURCE_FETCH) {
+            markdown = await loadOrFetchMarkdown(url, path);
+        }
+
+        const pageReports = await handleMigration(markdown, entry, i, outputDir);
+        reports.push(...pageReports);
+    }
+
+    const dateStr = getDateString();
+    const migrationReportFile = `${REPORT_DIR}/${PROJECT}/Migration ${dateStr}`;
+    await writeFile(`${migrationReportFile}.json`, JSON.stringify({ reports }, null, 2));
+    console.log(`Report written to ${migrationReportFile}.json`);
+
+    await createReport(reports, `${migrationReportFile}.xlsx`);
+    console.log(`Report written to ${migrationReportFile}.xlsx`);
+}
+
+// node blog-migration.js "bacom-blog/bacom-blog-all.json" "cache" "output"
+// node blog-migration.js <index> <source> <output>
 if (import.meta.url === `file://${process.argv[1]}`) {
     const args = process.argv.slice(2);
-    const [
-        index = INDEX,
-        cached = USE_CACHE,
-        output = OUTPUT_DIR,
-        force = FORCE_SAVE
-    ] = args;
+    const [index, source, output] = args;
 
-    await main(index, cached, output, force);
+    await main(index, source, output);
     process.exit(0);
 }

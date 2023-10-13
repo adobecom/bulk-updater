@@ -1,5 +1,6 @@
 import { getLeaf } from '../../utils/mdast-utils.js';
 import { selectAll } from 'unist-util-select'
+import { STATUS_SUCCESS, STATUS_WARNING, STATUS_ERROR } from '../../utils/migration-utils.js';
 
 export const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
 
@@ -57,14 +58,13 @@ function authorQuoteRow(quotes, authorObj, attributionObj) {
 function splitQuoteAttribution(node, replacement) {
     const attribution = node?.value;
     if (!attribution) {
-        console.log('Issue with quote attribution');
-        return;
+        return 'No attribution found';
     }
     const splitAttr = attribution.split(',');
 
     if (splitAttr.length === 1) {
         replacement.author = ({ type: 'text', value: splitAttr[0] });
-        return;
+        return 'No company found';
     }
 
     let [author, ...attr] = splitAttr;
@@ -72,6 +72,7 @@ function splitQuoteAttribution(node, replacement) {
 
     replacement.author = ({ type: 'text', value: author });
     replacement.company = ({ type: 'text', value: attr });
+    return 'Author and company found';
 }
 
 /**
@@ -79,7 +80,7 @@ function splitQuoteAttribution(node, replacement) {
  * content into formats expected by Milo. 
  * 
  * @param {object} mdast - markdown tree
- * @returns {Array} report
+ * @returns {Promise<Array>} - report [{ status, message}]
  */
 export async function convertPullQuote(mdast) {
     const quoteMap = mdast.children.reduce((rdx, child, index) => {
@@ -96,9 +97,9 @@ export async function convertPullQuote(mdast) {
 
     // Go through each quote found, and process
     return quoteMap.map((quoteBlockIdx) => {
+        const report = {};
         const replacementContent = {};
         const currentQuoteBlock = mdast.children[quoteBlockIdx];
-        let report = '';
 
         // Change the block name 
         const heading = getLeaf(currentQuoteBlock, 'text');
@@ -110,12 +111,14 @@ export async function convertPullQuote(mdast) {
         const quoteCell = quoteRow?.children ? quoteRow?.children[0] : false;
 
         if (!quoteBody || !quoteRow || !quoteCell) {
-            report += 'Failed to find expected mdast structure'
+            report.status = STATUS_ERROR;
+            report.message = `Quote, index ${quoteBlockIdx}: Failed to find expected mdast structure`;
             return report;
         }
 
         if (quoteCell.type !== 'gtCell') {
-            report += `In wrong part of tree. Working on quote index ${currQuoteIdx}`
+            report.status = STATUS_ERROR;
+            report.message = `Quote, index ${quoteBlockIdx}: Expected gtCell but found ${quoteCell.type}`;
             return report;
         }
 
@@ -126,7 +129,7 @@ export async function convertPullQuote(mdast) {
         // Currently only grabs a single link in a quote. Will review with authoring
         if (linkNodes.length) {
             if (linkNodes.length > 1) {
-                report += 'Multiple Links per quote found\n';
+                report.links = `${linkNodes.length} links found`;
             }
             const linkNode = linkNodes[0];
             const linkedText = linkNode.children[0].value;
@@ -143,15 +146,17 @@ export async function convertPullQuote(mdast) {
         replacementContent.quote = quote;
         let replacementRow = noAuthorQuoteRow(replacementContent.quote);
 
+        let attribution = null;
         // Check if it is an author node, then modify row
         if (textNodes.length === 2) {
-            splitQuoteAttribution(textNodes[1], replacementContent);
+            attribution = splitQuoteAttribution(textNodes[1], replacementContent);
             replacementRow = authorQuoteRow(replacementContent?.quote, replacementContent?.author, replacementContent?.company);
         }
 
         // We need to access the actual mdast via properties. 
         quoteBody.children[1] = replacementRow;
-        report += `Successfully converted quote at index ${quoteBlockIdx}`;
+        report.status = STATUS_SUCCESS;
+        report.message = `Quote, index ${quoteBlockIdx}: Converted quote`;
 
         return report;
     });

@@ -4,13 +4,15 @@ import { expect } from '@esm-bundle/chai';
 import { getMdast, mdast2md } from '../../../utils/mdast-utils.js';
 import { select } from 'unist-util-select';
 
+const OUTPUT_FILE = 'test/bacom-blog/aside/aside.docx';
+
 describe('convertBannerToAside', () => {
     describe('Aside Structure', () => {
         it('should create table row and cells', async () => {
             const bannerMd = await readFile(new URL('./mocks/banner-with-image.md', import.meta.url), 'utf8');
             const bannerMdast = await getMdast(bannerMd);
 
-            await bannerToAside(bannerMdast);
+            await bannerToAside(bannerMdast, OUTPUT_FILE);
 
             const mdastBody = select('gtBody', bannerMdast);
             const headerRow = mdastBody.children[0];
@@ -29,7 +31,7 @@ describe('convertBannerToAside', () => {
             const bannerMd = await readFile(bannerMdPath, 'utf8');
             const bannerMdast = await getMdast(bannerMd);
 
-            await bannerToAside(bannerMdast);
+            await bannerToAside(bannerMdast, OUTPUT_FILE);
 
             const mdastBody = select('gtBody', bannerMdast);
             const contentRow = mdastBody.children[2];
@@ -51,7 +53,7 @@ describe('convertBannerToAside', () => {
             const bannerMdast = await getMdast(bannerMd);
             const asideMdast = await getMdast(asideMd);
 
-            await bannerToAside(bannerMdast);
+            await bannerToAside(bannerMdast, OUTPUT_FILE);
 
             expect(bannerMdast.type).to.equal('root');
 
@@ -70,7 +72,7 @@ describe('convertBannerToAside', () => {
             const bannerMdast = await getMdast(bannerMd);
             const asideMdast = await getMdast(asideMd);
 
-            await bannerToAside(bannerMdast);
+            await bannerToAside(bannerMdast, OUTPUT_FILE);
 
             expect(bannerMdast.type).to.equal('root');
 
