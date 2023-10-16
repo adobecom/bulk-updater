@@ -115,22 +115,23 @@ async function getMarkdown(options = {}) {
         try {
             await delay(500); // Wait 500ms to avoid rate limiting
             const urlObj = new URL(url);
-            const response = await fetch(urlObj.toString());
+            const response = await fetch(urlObj.href);
 
             if (!response.ok) {
-                console.error(`Failed to fetch markdown. '${response.status}' '${response.statusText}'`);
+                console.error(`Failed to fetch markdown. '${urlObj.href}' '${response.status}' '${response.statusText}'`);
                 return null;
             }
             markdown = await response.text();
             if (markdown && savePath) {
-                const folder = path.split('/').slice(0, -1).join('/');
+                const folder = savePath.split('/').slice(0, -1).join('/');
                 await mkdir(folder, { recursive: true });
                 await writeFile(savePath, markdown);
+                console.log(`Saved markdown to '${savePath}'`)
             }
 
             return markdown;
-        } catch {
-            console.warn(`Markdown not found at url '${url}'`);
+        } catch (e) {
+            console.warn(`Markdown not found at url '${url}' '${e.message}'`);
         } finally {
             return markdown || null;
         }
