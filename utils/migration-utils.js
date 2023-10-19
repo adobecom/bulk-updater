@@ -136,52 +136,54 @@ export const migrateBlocks = async (mdast, migrationMap, entry) => {
 }
 
 /**
- * Migrate path to a new page and create report
- * Output: { status, message, output, migrations: [ { status, message, block, key, outputDir } ] }
- * 
- * @param {object} mdast - mdast object
- * @param {string} key - path
- * @param {function} migrate - path migration function
- * @param {string} outputDocxFile - output docx file
- * @returns {Promise<object>} - page report
- */
-export const migratePath = async (mdast, path, key, migrate, outputDocxFile) => {
-    const baseReport = { status: STATUS_SUCCESS, migrations: [] };
-    try {
-        const migrationReport = await migrate(mdast, outputDocxFile);
-        const pathReports = Array.isArray(migrationReport) ? migrationReport : [migrationReport];
-
-        pathReports.forEach((pathReport) => {
-            const outputFile = pathReport.output ?? outputDocxFile
-            delete pathReport.output;
-
-            baseReport.output ??= outputFile;
-            Object.assign(pathReport, { path, key, output: baseReport.output });
-            pathReport.status = pathReport.status ?? STATUS_SUCCESS;
-            // Capture warning or failure
-            if (pathReport.status !== STATUS_SUCCESS) {
-                baseReport.status = pathReport.status === STATUS_ERROR ? STATUS_FAILED : pathReport.status;
-                baseReport.message = pathReport.message;
-            }
-
-            baseReport.migrations.push(pathReport);
-        });
-    } catch (e) {
-        console.error(`Error migrating path '${path}': `, e.message);
-        baseReport.status = STATUS_FAILED;
-        baseReport.migrations.push({ status: STATUS_ERROR, message: e.message });
-    }
-
-    return baseReport;
-};
-
-/**
- * Migrate paths and collect reports
+ * Migrate paths and collect reports for a single path
  * Each path creates a new docx file in the migrate function
  * Output: [ { status: { entry, status, save, message, output }, migrations: [ { status, message, path, key, outputDocxFile } ] }
  * 
  * @param {object} mdast - mdast object
- * @param {Array<string, function>} migrationMap - paths to migrate
+ * @param {string} entry - entry path
+ * @param {string} path - path to migrate
+ * @param {function} migrate - path migration function
+ * @returns {Promise<object>} - reports for each page
+ */
+export const migratePath = async (mdast, entry, path, migrate) => {
+    const key = `path ${path.replaceAll('/', ' ').trim()}`;
+    const pageReport = { status: { entry, status: STATUS_SUCCESS, path }, migrations: [] };
+
+    try {
+        const migrationReport = await migrate(mdast, entry);
+        const pathReports = Array.isArray(migrationReport) ? migrationReport : [migrationReport];
+
+        pathReports.forEach((pathReport) => {
+            if (pathReport.newEntry) pageReport.status.newEntry = pathReport.newEntry;
+            pageReport.status.entry = pathReport.newEntry ?? entry;
+            Object.assign(pathReport, { path, key, entry });
+            pathReport.status = pathReport.status ?? STATUS_SUCCESS;
+            
+            // Capture warning or failure
+            if (pathReport.status !== STATUS_SUCCESS) {
+                pageReport.status.status = pathReport.status === STATUS_ERROR ? STATUS_FAILED : pathReport.status;
+                pageReport.status.message = pathReport.message;
+            }
+
+            pageReport.migrations.push(pathReport);
+        });
+    } catch (e) {
+        console.error(`Error migrating path '${path}': `, e.message);
+        pageReport.status.status = STATUS_FAILED;
+        pageReport.migrations.push({ status: STATUS_ERROR, message: e.message });
+    }
+
+    return pageReport;
+};
+
+/**
+ * Migrate multiple paths and collect reports
+ * Each path creates a new docx file in the migrate function
+ * Output: [ { status: { entry, status, save, message, output }, migrations: [ { status, message, path, key, outputDocxFile } ] }
+ * 
+ * @param {object} mdast - mdast object
+ * @param {Array<[string, function]>} migrationMap - paths to migrate
  * @param {string} entry - entry path
  * @returns {Promise<Array>} - reports for each page
  */
@@ -189,28 +191,18 @@ export const migratePaths = async (mdast, migrationMap, entry, sourceDocxFile, o
     const reports = [];
 
     for (const [path, migrate] of migrationMap) {
-        // Migrate to a new page
-        const key = `path ${path.replaceAll('/', ' ').trim()}`;
-        const pageReport = { status: { entry, status: STATUS_SUCCESS, path }, migrations: [] };
-
         // Deep copy mdast object
         const pathMdast = JSON.parse(JSON.stringify(mdast));
-        const pathMigration = await migratePath(pathMdast, path, key, migrate, outputDocxFile);
+        const pageReport = await migratePath(pathMdast, entry, path, migrate);
 
-        const outputFile = pathMigration.output || outputDocxFile;
+        const newEntry = pageReport.status.newEntry ?? entry;
+        const newOutputDocxFile = outputDocxFile.replace(entry, newEntry);
 
-        pageReport.status.output = outputFile;
-        pathMigration.migrations.forEach((migration) => {
-            migration.entry = entry;
-            pageReport.migrations.push(migration);
-        });
-
-        if (pathMigration.status === STATUS_FAILED) {
-            pageReport.status.status = pathMigration.status;
-            pageReport.status.message = pathMigration.message;
+        if (pageReport.status === STATUS_FAILED) {
             pageReport.status.save = STATUS_FAILED;
+            pageReport.status.saveMessage = 'Migration failed, skipping save';
         } else {
-            const save = await updateSave(mdast, sourceDocxFile, outputFile);
+            const save = await updateSave(pathMdast, sourceDocxFile, newOutputDocxFile);
             pageReport.status.save = save.status;
             pageReport.status.saveMessage = save.message;
         }

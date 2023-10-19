@@ -27,7 +27,7 @@ import { convertTagHeader, TAGS_PATH } from './bacom-blog/tag-header/tag-header.
 const SOURCE_CACHE = 'cache';
 const SOURCE_FETCH = 'fetch';
 const PROJECT = 'bacom-blog';
-const FROM_SITE = 'https://main--business-website--adobe.hlx.page';
+const FROM_SITE = 'https://main--business-website--adobe.hlx.live';
 const TO_SITE = 'https://main--bacom-blog--adobecom.hlx.page';
 const INDEX = 'bacom-blog/bacom-blog-all.json';
 const MD_DIR = 'md';
@@ -218,16 +218,13 @@ async function handleMigration(markdown, entry, pageIndex, outputDir) {
         const pathReports = await migratePaths(mdast, pathMigrations, entry, sourceDocxFile, outputDocxFile);
         // Add extra data to report
         pathReports.forEach(({ status, migrations }) => {
-            const outputEntry = status.output.replace(`${outputDir}/${PROJECT}`, '').replace('.docx', '');
+            const outputEntry = status.newEntry ?? entry;
             const destinationUrl = `${TO_SITE}${outputEntry}`;
-            delete status.output;
 
-            if (outputEntry !== entry) status.updatedEntry = outputEntry;
             status.destinationUrl = destinationUrl;
             status.index = pageIndex;
 
             migrations.forEach(migration => {
-                if (outputEntry !== entry) migration.updatedEntry = outputEntry;
                 migration.destinationUrl = destinationUrl;
                 migration.index = pageIndex;
             });
@@ -269,9 +266,9 @@ export async function main(index = INDEX, source = SOURCE_CACHE, outputDir = OUT
         process.exit(1);
     }
     if (source === SOURCE_CACHE) {
-        console.log('Using cached markdown');
+        console.log('Using cached markdown only!');
     } else if (source === SOURCE_FETCH) {
-        console.log('Using cached or fetched markdown');
+        console.log('Using cached or fetched markdown!');
     } else {
         console.error(`Invalid source: ${source}`);
         console.error(`Expected: ${SOURCE_CACHE} or ${SOURCE_FETCH}`);
@@ -279,7 +276,7 @@ export async function main(index = INDEX, source = SOURCE_CACHE, outputDir = OUT
     }
 
     for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i].trim();
+        const entry = entries[i].trim().toLowerCase();
         const url = `${FROM_SITE}${entry}`;
         const path = `${MD_DIR}/${PROJECT}${entry}`;
         let markdown = '';

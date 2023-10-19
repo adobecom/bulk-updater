@@ -9,10 +9,11 @@ export const FRAGMENTS_PATH = '/fragments';
 /**
  * Converts banner page to aside fragment.
  *
- * @param {object} mdast 
+ * @param {object} mdast
+ * @param {string} entry
  * @returns {Promise<object>} - report { status, message, output }
  */
-export async function bannerToAside(mdast, outputDocxFile) {
+export async function bannerToAside(mdast, entry) {
     const report = {};
     const asideMdPath = new URL('./aside.md', import.meta.url);
     const asideMd = await readFile(asideMdPath, 'utf8');
@@ -32,9 +33,7 @@ export async function bannerToAside(mdast, outputDocxFile) {
     contentCell.children = mdast.children;
     mdast.children = asideMdast.children;
 
-    const fragmentDocxFile = outputDocxFile.replace(BANNERS_PATH, FRAGMENTS_PATH);
-    report.output = fragmentDocxFile;
-
+    report.newEntry = entry.replace(BANNERS_PATH, FRAGMENTS_PATH);
     report.status = STATUS_SUCCESS;
     report.message = `Banner converted to aside ${image ? 'with' : 'without'} image`;
 
