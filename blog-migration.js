@@ -141,11 +141,15 @@ function formatReportData(reports) {
  * @param {number} pageIndex - index
  * @param {boolean} cached - use cached docx files
  * @param {string} outputDir - output directory
+ * @param {array} entries - a list of all page entries
  * @returns {Promise<Array>}
  */
-async function handleMigration(markdown, entry, pageIndex, outputDir) {
+async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
     let index = 1;
     const destinationUrl = `${TO_SITE}${entry}`;
+    // One or more page reports
+    const pageReports = [];
+
     if (!markdown) {
         console.warn(`${pageIndex} failed '${entry}': 'Markdown could not be fetched.'`);
         return [{
@@ -155,7 +159,9 @@ async function handleMigration(markdown, entry, pageIndex, outputDir) {
     }
 
     const mdast = await getMdast(markdown);
-    links_dnt(mdast, entry);
+    console.log(`Transforming links for ${entry}`);
+    const linksReport = links_dnt(mdast, entry, entries);
+    pageReports.push(linksReport);
     const blockList = getTableMap(mdast).map(({ blockName }) => blockName);
     const blockMigrations = Object.entries(MIGRATION_BLOCKS).filter(([block]) => blockList.includes(block));
     const pathMigrations = Object.entries(MIGRATION_PATHS).filter(([path]) => entry.includes(path));
@@ -177,9 +183,6 @@ async function handleMigration(markdown, entry, pageIndex, outputDir) {
 
     // Crete source docx before modifying mdast
     await ensureDocxFileExists(mdast, sourceDocxFile);
-
-    // One or more page reports
-    const pageReports = [];
 
     // Handle block migrations
     if (blockMigrations.length > 0) {
@@ -288,7 +291,7 @@ export async function main(index = INDEX, source = SOURCE_CACHE, outputDir = OUT
             markdown = await loadOrFetchMarkdown(url, path);
         }
 
-        const pageReports = await handleMigration(markdown, entry, i, outputDir);
+        const pageReports = await handleMigration(markdown, entry, i, outputDir, entries);
         reports.push(...pageReports);
     }
 
