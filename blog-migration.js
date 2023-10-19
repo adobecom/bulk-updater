@@ -23,6 +23,7 @@ import { convertEmbed } from './bacom-blog/embed/embed.js';
 import convertBanner, { BANNERS_PATH } from './bacom-blog/banner/banner.js';
 import { bannerToAside } from './bacom-blog/aside/aside.js';
 import { convertTagHeader, TAGS_PATH } from './bacom-blog/tag-header/tag-header.js';
+import { links_dnt } from './bacom-blog/links/links_dnt.js';
 
 const SOURCE_CACHE = 'cache';
 const SOURCE_FETCH = 'fetch';
@@ -154,6 +155,7 @@ async function handleMigration(markdown, entry, pageIndex, outputDir) {
     }
 
     const mdast = await getMdast(markdown);
+    links_dnt(mdast, entry);
     const blockList = getTableMap(mdast).map(({ blockName }) => blockName);
     const blockMigrations = Object.entries(MIGRATION_BLOCKS).filter(([block]) => blockList.includes(block));
     const pathMigrations = Object.entries(MIGRATION_PATHS).filter(([path]) => entry.includes(path));

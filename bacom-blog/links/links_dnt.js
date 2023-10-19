@@ -1,13 +1,23 @@
+import { readFile } from 'fs/promises';
+import { select, selectAll } from 'unist-util-select';
+import { getMdast, moveNodeParent } from '../../utils/mdast-utils.js';
+import { STATUS_SUCCESS } from '../../utils/migration-utils.js';
+
+
 export const LOCALE_STRINGS = [
-    '/au/',
-    '/de/',
-    '/fr/',
-    '/jp/',
-    '/kr/',
-    '/uk/',
+    '/au',
+    '/de',
+    '/fr',
+    '/jp',
+    '/kr',
+    '/uk',
 ];
 
-export function links_dnt() {
+export function links_dnt(mdast, entry) {
+    if (!LOCALE_STRINGS.includes(entry.substring(0, 3))) return "Error message object, in us content";
+    const links = selectAll('link', mdast);
+    console.log(links, links.length);
+
     return false;
 }
 
