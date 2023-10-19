@@ -35,7 +35,8 @@ import remarkGridTable from '@adobe/remark-gridtables';
  * @returns The first node that matches the type or undefined if no node matches the type.
  */
 export const getLeaf = (node, type) => {
-  if (node?.type === type || !node.children) return node;
+  // if (node?.type === type || !node.children) return node;
+  if (node?.type === type) return node;
 
   if (node.children) {
     for (let i = 0; i < node.children.length; i++) {
@@ -187,7 +188,7 @@ export const getKeyVals = (table) => {
  * @param key - The key to look for in the key-value pairs.
  * @returns The value of the key-value pair that matches the key.
  */
-const getKeyVal = (keyVals, key) => {
+export const getKeyVal = (keyVals, key) => {
   const lcKey = key.toLowerCase();
   return keyVals.find((keyVal) => keyVal.key?.value?.toLowerCase() === lcKey);
 };
@@ -376,7 +377,7 @@ export const saveDocx = async (mdast, name, outputDir = 'output', logger = error
     await mkdir(outputDir, { recursive: true });
   }
   await writeFile(`${outputDir}${outputDir && '/'}${fileName}`, buffer);
-  console.log(`Saved ${fileName}`);
+  // console.log(`Saved ${fileName}`);
 };
 
 /**
