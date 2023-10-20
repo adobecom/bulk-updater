@@ -1,13 +1,13 @@
 import { selectAll } from 'unist-util-select';
 import { STATUS_SUCCESS, STATUS_SKIPPED } from '../../utils/migration-utils.js';
 
-export const BLOG_ORIGINS = [
+const BLOG_ORIGINS = [
     'https://business.adobe.com',
     'https://main--business-website--adobe.hlx.page',
     'https://main--business-website--adobe.hlx.live',
 ]
 
-export const LOCALE_STRINGS = [
+const LOCALE_STRINGS = [
     '/au',
     '/de',
     '/fr',
@@ -17,6 +17,7 @@ export const LOCALE_STRINGS = [
 ];
 
 export function shouldAddDnt(link, locale, urlList) {
+    console.log(link);
     const url = new URL(link);
 
     // External links do not need dnt
@@ -41,12 +42,28 @@ export function links_dnt(mdast, entry, entries) {
         pageLinkReports: []
     }
     const locale = entry.substring(0, 3);
-    if (!LOCALE_STRINGS.includes(locale)) return {status: STATUS_SKIPPED, message: "US content", entry: entry};
+    if (!LOCALE_STRINGS.includes(locale)) linksReport.pageLinkReports.push({status: STATUS_SKIPPED, message: "US content"});
 
     const links = selectAll('link', mdast);
+
+    if (!links?.length) {
+        linksReport.pageLinkReports.push({
+            status: STATUS_SKIPPED,
+            message: `No links in entry: ${entry}`,
+        });
+    }
     
     for (const link in links) {
-        const url = links[link].url;
+        const url = links[link].url
+        
+        if (typeof url !== 'string' || url?.length === 0 ) {
+            linksReport.pageLinkReports.push({
+                status: STATUS_SKIPPED,
+                message: `Link did not have url property. See ${links[link]} on ${entry}`,
+            });
+            continue;
+        }
+
         if (shouldAddDnt(url, locale, entries)) {
             links[link].url = `${links[link].url}#_dnt`;
             linksReport.pageLinkReports.push({

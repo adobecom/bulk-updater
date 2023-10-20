@@ -147,21 +147,24 @@ function formatReportData(reports) {
 async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
     let index = 1;
     const destinationUrl = `${TO_SITE}${entry}`;
-    // One or more page reports
-    const pageReports = [];
+    const totalLinksReport = [];
 
     if (!markdown) {
         console.warn(`${pageIndex} failed '${entry}': 'Markdown could not be fetched.'`);
         return [{
             status: { status: STATUS_FAILED, save: STATUS_SKIPPED, entry, message: 'Markdown could not be fetched.', destinationUrl },
             migrations: []
+        },
+        {
+            status: STATUS_FAILED,
+            message: `Did not transform links, failed to fetch markedown`
         }];
     }
 
     const mdast = await getMdast(markdown);
-    console.log(`Transforming links for ${entry}`);
-    const linksReport = links_dnt(mdast, entry, entries);
-    pageReports.push(linksReport);
+    console.log(`Transforming links for ${entry}`)
+    const linkReport = await links_dnt(mdast, entry, entries);
+    totalLinksReport.push(linkReport);
     const blockList = getTableMap(mdast).map(({ blockName }) => blockName);
     const blockMigrations = Object.entries(MIGRATION_BLOCKS).filter(([block]) => blockList.includes(block));
     const pathMigrations = Object.entries(MIGRATION_PATHS).filter(([path]) => entry.includes(path));
@@ -171,7 +174,7 @@ async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
         return [{
             status: { status: STATUS_SKIPPED, save: STATUS_SKIPPED, entry, message: 'No blocks or paths to migrate.', destinationUrl },
             migrations: []
-        }];
+        }, totalLinksReport];
     }
 
     const file = entry.split('/').pop();
@@ -183,6 +186,9 @@ async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
 
     // Crete source docx before modifying mdast
     await ensureDocxFileExists(mdast, sourceDocxFile);
+
+    // One or more page reports
+    const pageReports = [];
 
     // Handle block migrations
     if (blockMigrations.length > 0) {
@@ -244,7 +250,7 @@ async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
         pageReports.push(...pathReports);
     }
 
-    return pageReports;
+    return [ ...pageReports, totalLinksReport ];
 }
 
 async function ensureDocxFileExists(mdast, sourceDocxFile) {
@@ -266,6 +272,7 @@ export async function main(index = INDEX, source = SOURCE_CACHE, outputDir = OUT
     const entries = await readIndex(index);
 
     const reports = [];
+    const linkReport = [];
     if (entries.length === 0) {
         console.error(`No entries found in ${index}`);
         process.exit(1);
@@ -291,14 +298,19 @@ export async function main(index = INDEX, source = SOURCE_CACHE, outputDir = OUT
             markdown = await loadOrFetchMarkdown(url, path);
         }
 
-        const pageReports = await handleMigration(markdown, entry, i, outputDir, entries);
-        reports.push(...pageReports);
+        const [ pageReports, totalLinksReport ] = await handleMigration(markdown, entry, i, outputDir, entries);
+        reports.push(pageReports);
+        linkReport.push(totalLinksReport);
     }
 
     const dateStr = getDateString();
     const migrationReportFile = `${REPORT_DIR}/${PROJECT}/Migration ${dateStr}`;
     await writeFile(`${migrationReportFile}.json`, JSON.stringify({ reports }, null, 2));
     console.log(`Report written to ${migrationReportFile}.json`);
+
+    const linkReportFile = `${REPORT_DIR}/${PROJECT}/Links ${dateStr}`;
+    await writeFile(`${linkReportFile}.json`, JSON.stringify({ linkReport }, null, 2));
+    console.log(`Report written to ${linkReportFile}.json`);
 
     await createReport(reports, `${migrationReportFile}.xlsx`);
     console.log(`Report written to ${migrationReportFile}.xlsx`);
