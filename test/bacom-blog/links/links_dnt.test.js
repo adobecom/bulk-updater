@@ -35,9 +35,7 @@ describe('shouldAddDnt', () => {
 
         expect(shouldAddDnt(link, locale, urlList)).to.be.true;
     })
-
-})
-
+});
 
 describe('links', () => {
     it('adds #_dnt correctly to the link node', async () => {
