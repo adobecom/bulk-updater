@@ -20,6 +20,16 @@ describe('shouldAddDnt', () => {
         expect(shouldAddDnt(link, locale, urlList)).to.be.false;
     })
 
+    it('returns false if the link is to a banner or fragment', () => {
+        const fragLink = "https://business.adobe.com/fragments/real-time-customer-data-platform/rtcdp.html";
+        const bannerLink = "https://business.adobe.com/banners/real-time-customer-data-platform/rtcdp.html";
+        const locale = '/de';
+        const urlList = ["/blog/basics/b2c-ecommerce-guide"];
+
+        expect(shouldAddDnt(fragLink, locale, urlList)).to.be.false;
+        expect(shouldAddDnt(bannerLink, locale, urlList)).to.be.false;
+    })
+
     it('returns true if the link points to the us and does not have a locale equivelant', () => {
         const link = "https://business.adobe.com/blog/basics/b2c-ecommerce-guide";
         const locale = '/de';

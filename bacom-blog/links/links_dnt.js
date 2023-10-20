@@ -29,8 +29,8 @@ export function shouldAddDnt(link, locale, urlList) {
     const localizedPathname = `${locale}${url.pathname}`;
     if (urlList.includes(localizedPathname)) return false;
 
-    // If it does not link to blog
-    if (!url.pathname.includes('/blog')) return true;
+    // exclude banners or fragments
+    if (url.pathname.includes('/banners') || url.pathname.includes('/fragments')) return false;
 
     return true;
 }
