@@ -162,9 +162,12 @@ async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
     }
 
     const mdast = await getMdast(markdown);
-    console.log(`Transforming links for ${entry}`)
-    const linkReport = await links_dnt(mdast, entry, entries);
+    // Check and transform links
+    console.log(`Transforming links for ${entry}`);
+    const linkReport = links_dnt(mdast, entry, entries);
     totalLinksReport.push(linkReport);
+
+    // Migrate blocks if there are block migrations
     const blockList = getTableMap(mdast).map(({ blockName }) => blockName);
     const blockMigrations = Object.entries(MIGRATION_BLOCKS).filter(([block]) => blockList.includes(block));
     const pathMigrations = Object.entries(MIGRATION_PATHS).filter(([path]) => entry.includes(path));

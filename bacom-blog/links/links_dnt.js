@@ -5,7 +5,7 @@ const BLOG_ORIGINS = [
     'https://business.adobe.com',
     'https://main--business-website--adobe.hlx.page',
     'https://main--business-website--adobe.hlx.live',
-]
+];
 
 const LOCALE_STRINGS = [
     '/au',
@@ -17,7 +17,6 @@ const LOCALE_STRINGS = [
 ];
 
 export function shouldAddDnt(link, locale, urlList) {
-    console.log(link);
     const url = new URL(link);
 
     // External links do not need dnt
@@ -49,17 +48,17 @@ export function links_dnt(mdast, entry, entries) {
     if (!links?.length) {
         linksReport.pageLinkReports.push({
             status: STATUS_SKIPPED,
-            message: `No links in entry: ${entry}`,
+            message: `No links in entry: ${entry}`
         });
     }
     
     for (const link in links) {
-        const url = links[link].url
+        const url = links[link].url;
         
         if (typeof url !== 'string' || url?.length === 0 ) {
             linksReport.pageLinkReports.push({
                 status: STATUS_SKIPPED,
-                message: `Link did not have url property. See ${links[link]} on ${entry}`,
+                message: `Link did not have url property. See ${links[link]} on ${entry}`
             });
             continue;
         }
@@ -68,7 +67,7 @@ export function links_dnt(mdast, entry, entries) {
             links[link].url = `${links[link].url}#_dnt`;
             linksReport.pageLinkReports.push({
                 status: STATUS_SUCCESS,
-                message: `Added #_dnt to link: ${links[link].url}}`
+                message: `Added #_dnt to link: ${links[link].url}`
             });
         } else {
             linksReport.pageLinkReports.push({
