@@ -212,7 +212,6 @@ async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
             console.warn(`${pageIndex} ${STATUS_FAILED}: '${blockReport.status.message}'`);
             blockReport.status.save = STATUS_FAILED;
             blockReport.status.saveMessage = 'Migration failed, skipping save';
-            console.log(linkReport, linkReportSuccess(linkReport), 'hellloo')
             if (linkReportSuccess(linkReport)) {
                 const save = await updateSave(mdast, sourceDocxFile, outputDocxFile);
                 blockReport.status.save = save.status;
