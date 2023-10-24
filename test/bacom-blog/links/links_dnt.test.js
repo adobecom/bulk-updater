@@ -1,4 +1,5 @@
-import { links_dnt, shouldAddDnt } from '../../../bacom-blog/links/links_dnt.js'
+import { links_dnt, shouldAddDnt, linkReportSuccess } from '../../../bacom-blog/links/links_dnt.js'
+import { skippedReport, successReport } from './mocks/reports-mocks.js';
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
 import { getMdast } from '../../../utils/mdast-utils.js';
@@ -46,6 +47,35 @@ describe('shouldAddDnt', () => {
         expect(shouldAddDnt(link, locale, urlList)).to.be.true;
     })
 });
+
+describe('linksReportSuccess', () => {
+    it('returns false when the link report is an object that has failed', () => {
+        const report = {
+            "status": "failed",
+            "message": "Did not transform links, failed to fetch markedown"
+          };
+
+        expect(linkReportSuccess(report)).to.be.false;
+    })
+
+    it('should return false if the report entry is empty', () => {
+        const report = {};
+        
+        expect(linkReportSuccess(report)).to.be.false;
+    })
+
+    it('should return false if there are no successes in the report', () => {
+        const report = skippedReport;
+
+        expect(linkReportSuccess(report)).to.be.false;
+    })
+
+    it('should return true if there is at least one success in the report', () => {
+        const report = successReport;
+
+        expect(linkReportSuccess(report)).to.be.true;
+    })
+})
 
 describe('links', () => {
     it('adds #_dnt correctly to the link node', async () => {

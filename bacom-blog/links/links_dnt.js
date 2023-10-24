@@ -1,5 +1,5 @@
 import { selectAll } from 'unist-util-select';
-import { STATUS_SUCCESS, STATUS_SKIPPED } from '../../utils/migration-utils.js';
+import { STATUS_SUCCESS, STATUS_SKIPPED, STATUS_FAILED } from '../../utils/migration-utils.js';
 
 const BLOG_ORIGINS = [
     'https://business.adobe.com',
@@ -15,6 +15,21 @@ const LOCALE_STRINGS = [
     '/kr',
     '/uk',
 ];
+
+export function linkReportSuccess(report) {
+    if (typeof report === 'object' && report?.status) {
+        if (report.status === STATUS_FAILED) return false;
+    }
+
+    if (!report?.pageLinkReports) return false;
+
+    const pageLinkReport = report.pageLinkReports.length > 0 ? report.pageLinkReports : [{status: STATUS_FAILED, message: 'no entries'}];
+    const success = pageLinkReport.filter((entry) => {
+        return entry.status === STATUS_SUCCESS;
+    })
+
+    return success.length > 0;
+}
 
 export function shouldAddDnt(link, locale, urlList) {
     const url = new URL(link);

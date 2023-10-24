@@ -23,7 +23,7 @@ import { convertEmbed } from './bacom-blog/embed/embed.js';
 import convertBanner, { BANNERS_PATH } from './bacom-blog/banner/banner.js';
 import { bannerToAside } from './bacom-blog/aside/aside.js';
 import { convertTagHeader, TAGS_PATH } from './bacom-blog/tag-header/tag-header.js';
-import { links_dnt } from './bacom-blog/links/links_dnt.js';
+import { links_dnt, linkReportSuccess } from './bacom-blog/links/links_dnt.js';
 
 const SOURCE_CACHE = 'cache';
 const SOURCE_FETCH = 'fetch';
@@ -172,20 +172,28 @@ async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
     const blockMigrations = Object.entries(MIGRATION_BLOCKS).filter(([block]) => blockList.includes(block));
     const pathMigrations = Object.entries(MIGRATION_PATHS).filter(([path]) => entry.includes(path));
 
-    if (!blockMigrations.length && !pathMigrations.length) {
-        console.warn(`${pageIndex} skipped '${entry}': 'No blocks or paths to migrate.'`);
-        return [{
-            status: { status: STATUS_SKIPPED, save: STATUS_SKIPPED, entry, message: 'No blocks or paths to migrate.', destinationUrl },
-            migrations: []
-        }, totalLinksReport];
-    }
-
+    //File Consts
     const file = entry.split('/').pop();
     const path = entry.split('/').slice(0, -1).join('/');
     const docxFile = `${file}.docx`;
     const basePath = `${PROJECT}${path}`;
     const sourceDocxFile = `${DOCX_DIR}/${basePath}/${docxFile}`;
     const outputDocxFile = `${outputDir}/${basePath}/${docxFile}`;
+
+    if (!blockMigrations.length && !pathMigrations.length) {
+        let message = 'No blocks or paths to migrate.';
+        console.warn(`${pageIndex} skipped '${entry}': 'No blocks or paths to migrate.'`);
+
+        if (linkReportSuccess(linkReport)) {
+            console.log('Links to change and migrate');
+            message = `Docx saved, links to migrate. ${message}`;
+            const save = await updateSave(mdast, sourceDocxFile, outputDocxFile);
+        }
+        return [{
+            status: { status: STATUS_SKIPPED, save: STATUS_SKIPPED, entry, message: 'No blocks or paths to migrate.', destinationUrl },
+            migrations: []
+        }, totalLinksReport];
+    }
 
     // Crete source docx before modifying mdast
     await ensureDocxFileExists(mdast, sourceDocxFile);
@@ -204,6 +212,12 @@ async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
             console.warn(`${pageIndex} ${STATUS_FAILED}: '${blockReport.status.message}'`);
             blockReport.status.save = STATUS_FAILED;
             blockReport.status.saveMessage = 'Migration failed, skipping save';
+            console.log(linkReport, linkReportSuccess(linkReport), 'hellloo')
+            if (linkReportSuccess(linkReport)) {
+                const save = await updateSave(mdast, sourceDocxFile, outputDocxFile);
+                blockReport.status.save = save.status;
+                blockReport.status.saveMessage = `${save.message} saved due to links`;
+            }
         } else {
             console.log(`${pageIndex} migration ${index} ${blockReport.status.status} '${entry}' - blocks: '${blocks}'`);
             const save = await updateSave(mdast, sourceDocxFile, outputDocxFile);
