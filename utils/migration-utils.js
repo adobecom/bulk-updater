@@ -201,6 +201,11 @@ export const migratePaths = async (mdast, migrationMap, entry, sourceDocxFile, o
         if (pageReport.status === STATUS_FAILED) {
             pageReport.status.save = STATUS_FAILED;
             pageReport.status.saveMessage = 'Migration failed, skipping save';
+            if (linkReportSuccess(linkReport)) {
+                const save = await updateSave(mdast, sourceDocxFile, outputDocxFile);
+                pageReport.status.save = save.status;
+                pageReport.status.saveMessage = `${save.message} saved due to links`;
+            }
         } else {
             const save = await updateSave(pathMdast, sourceDocxFile, newOutputDocxFile);
             pageReport.status.save = save.status;
