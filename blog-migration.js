@@ -24,6 +24,7 @@ import convertBanner, { BANNERS_PATH } from './bacom-blog/banner/banner.js';
 import { bannerToAside } from './bacom-blog/aside/aside.js';
 import { convertTagHeader, TAGS_PATH } from './bacom-blog/tag-header/tag-header.js';
 import { links_dnt, linkReportSuccess } from './bacom-blog/links/links_dnt.js';
+import updateArticleFeed from './bacom-blog/article-feed/article-feed.js';
 
 const SOURCE_CACHE = 'cache';
 const SOURCE_FETCH = 'fetch';
@@ -40,6 +41,7 @@ const MIGRATION_BLOCKS = {
     'embed': convertEmbed,
     'images': imageToFigure,
     'banner': convertBanner,
+    'article feed': updateArticleFeed,
 };
 const MIGRATION_PATHS = {
     [BANNERS_PATH]: bannerToAside,
@@ -204,11 +206,12 @@ async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
         const blockReport = await migrateBlocks(mdast, blockMigrations, entry);
 
         // Save docx
-        if (blockReport.status.status === STATUS_FAILED) {
-            console.warn(`${pageIndex} migration ${index} ${STATUS_FAILED} '${entry}' - blocks: '${blocks}'`);
-            console.warn(`${pageIndex} ${STATUS_FAILED}: '${blockReport.status.message}'`);
-            blockReport.status.save = STATUS_FAILED;
-            blockReport.status.saveMessage = 'Migration failed, skipping save';
+        const { status } = blockReport.status;
+        if (status === STATUS_FAILED || status === STATUS_SKIPPED) {
+            console.warn(`${pageIndex} migration ${index} ${status} '${entry}' - blocks: '${blocks}'`);
+            console.warn(`${pageIndex} ${status}: '${blockReport.status.message}'`);
+            blockReport.status.save = status;
+            blockReport.status.saveMessage = `Migration ${status === STATUS_FAILED ? 'failed' : 'skipped'}, skipping save`;
             if (linkReportSuccess(linkReport)) {
                 const save = await updateSave(mdast, sourceDocxFile, outputDocxFile);
                 blockReport.status.save = save.status;
