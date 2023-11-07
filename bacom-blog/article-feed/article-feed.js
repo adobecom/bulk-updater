@@ -49,8 +49,6 @@ export default function updateArticleFeed(mdast, entry) {
     const UK_PATH = '/uk/blog/';
     let feedURL;
 
-    console.log(entry);
-
     if (entry.includes(AU_PATH)) feedURL = 'https://main--bacom-blog--adobecom.hlx.page/au/us-au-query-index.json';
     if (entry.includes(UK_PATH)) feedURL = 'https://main--bacom-blog--adobecom.hlx.page/uk/us-uk-query-index.json';
     if (!feedURL) {
