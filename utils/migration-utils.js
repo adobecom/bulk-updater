@@ -76,13 +76,14 @@ export function getDateString() {
  * @param {object} mdast - mdast object
  * @param {string} block - block name
  * @param {function} migrate - block migration function
+ * @param {string} entry - entry path
  * @returns {Promise<object>} - block report
 */
-const migrateBlock = async (mdast, block, migrate) => {
+const migrateBlock = async (mdast, block, migrate, entry) => {
     const baseReport = { status: STATUS_SUCCESS, migrations: [] };
 
     try {
-        const migrationReport = await migrate(mdast);
+        const migrationReport = await migrate(mdast, entry);
         const blockReports = Array.isArray(migrationReport) ? migrationReport : [migrationReport];
         
         blockReports.forEach((blockReport) => {
@@ -119,7 +120,7 @@ export const migrateBlocks = async (mdast, migrationMap, entry) => {
 
     for (const [block, migrate] of migrationMap) {
         const key = `block ${block}`;
-        const blockReport = await migrateBlock(mdast, block, migrate);
+        const blockReport = await migrateBlock(mdast, block, migrate, entry);
 
         if (blockReport.status !== STATUS_SUCCESS) {
             pageReport.status.status = blockReport.status;
