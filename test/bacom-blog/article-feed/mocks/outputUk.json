@@ -1,0 +1,130 @@
+{
+          "type": "root",
+          "children": [
+                    {
+                              "type": "paragraph",
+                              "children": [
+                                        {
+                                                  "type": "image",
+                                                  "alt": "",
+                                                  "label": "image0",
+                                                  "url": "https://main--business-website--adobe.hlx.page/media_1236bd3778386da644305fd5bb953b47df7a45b36.jpeg#width=1600&height=520"
+                                        }
+                              ]
+                    },
+                    {
+                              "type": "heading",
+                              "depth": 1,
+                              "children": [
+                                        {
+                                                  "type": "text",
+                                                  "value": "Adobe Advertising Analytics"
+                                        }
+                              ]
+                    },
+                    {
+                              "type": "gridTable",
+                              "children": [
+                                        {
+                                                  "type": "gtHeader",
+                                                  "children": [
+                                                            {
+                                                                      "type": "gtRow",
+                                                                      "children": [
+                                                                                {
+                                                                                          "type": "gtCell",
+                                                                                          "children": [
+                                                                                                    {
+                                                                                                              "type": "paragraph",
+                                                                                                              "children": [
+                                                                                                                        {
+                                                                                                                                  "type": "text",
+                                                                                                                                  "value": "Article Feed"
+                                                                                                                        }
+                                                                                                              ]
+                                                                                                    }
+                                                                                          ]
+                                                                                },
+                                                                                {
+                                                                                          "type": "gtCell",
+                                                                                          "children": []
+                                                                                }
+                                                                      ]
+                                                            }
+                                                  ]
+                                        },
+                                        {
+                                                  "type": "gtBody",
+                                                  "children": [
+                                                            {
+                                                                      "type": "gtRow",
+                                                                      "children": [
+                                                                                {
+                                                                                          "type": "gtCell",
+                                                                                          "children": [
+                                                                                                    {
+                                                                                                              "type": "paragraph",
+                                                                                                              "children": [
+                                                                                                                        {
+                                                                                                                                  "type": "text",
+                                                                                                                                  "value": "Tags"
+                                                                                                                        }
+                                                                                                              ]
+                                                                                                    }
+                                                                                          ]
+                                                                                },
+                                                                                {
+                                                                                          "type": "gtCell",
+                                                                                          "children": [
+                                                                                                    {
+                                                                                                              "type": "paragraph",
+                                                                                                              "children": [
+                                                                                                                        {
+                                                                                                                                  "type": "text",
+                                                                                                                                  "value": "Adobe Advertising Analytics"
+                                                                                                                        }
+                                                                                                              ]
+                                                                                                    }
+                                                                                          ]
+                                                                                }
+                                                                      ]
+                                                            },
+                                                            {
+                                                                      "type": "gtRow",
+                                                                      "children": [
+                                                                                {
+                                                                                          "type": "gtCell",
+                                                                                          "children": [
+                                                                                                    {
+                                                                                                              "type": "paragraph",
+                                                                                                              "children": [
+                                                                                                                        {
+                                                                                                                                  "type": "text",
+                                                                                                                                  "value": "Feed"
+                                                                                                                        }
+                                                                                                              ]
+                                                                                                    }
+                                                                                          ]
+                                                                                },
+                                                                                {
+                                                                                          "type": "gtCell",
+                                                                                          "children": [
+                                                                                                    {
+                                                                                                              "type": "paragraph",
+                                                                                                              "children": [
+                                                                                                                        {
+                                                                                                                                  "type": "text",
+                                                                                                                                  "value": "https://main--bacom-blog--adobecom.hlx.page/uk/us-uk-query-index.json"
+                                                                                                                        }
+                                                                                                              ]
+                                                                                                    }
+                                                                                          ]
+                                                                                }
+                                                                      ]
+                                                            }
+                                                  ]
+                                        }
+                              ]
+                    }
+          ]
+}
