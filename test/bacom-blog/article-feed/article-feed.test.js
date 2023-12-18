@@ -1,7 +1,7 @@
-import updateArticleFeed from '../../../bacom-blog/article-feed/article-feed.js';
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
 import { getMdast } from '../../../utils/mdast-utils.js';
+import updateArticleFeed from '../../../bacom-blog/article-feed/article-feed.js';
 
 describe('Article Feed', () => {
   it('adds feed url to au pages', async () => {

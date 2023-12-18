@@ -1,7 +1,7 @@
-import { imageToFigure } from '../../../bacom-blog/figure/images-to-figure.js';
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
 import { getMdast } from '../../../utils/mdast-utils.js';
+import { imageToFigure } from '../../../bacom-blog/figure/images-to-figure.js';
 
 describe('imageToFigure', () => {
   it('should convert images to figures', async () => {

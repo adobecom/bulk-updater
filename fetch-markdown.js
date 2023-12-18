@@ -25,7 +25,7 @@ const REPORT_DIR = 'reports';
  * @param {boolean} cached - If true, it will use the cached version of the markdown files
  * @returns - An object with the totals and the list of failures
  */
-export async function fetchMarkdown(project, site, indexUrl, cached = true) {
+export default async function fetchMarkdown(project, site, indexUrl, cached = true) {
   const totals = { succeed: 0, failed: 0 };
   const report = { failed: [], succeed: [] };
   const entries = await loadIndex(project, indexUrl, cached);
@@ -35,10 +35,10 @@ export async function fetchMarkdown(project, site, indexUrl, cached = true) {
     if (markdown === null) {
       console.warn(`Skipping ${entry} as markdown could not be fetched.`);
       report.failed.push(entry);
-      totals.failed++;
+      totals.failed += 1;
     } else {
       report.succeed.push(entry);
-      totals.succeed++;
+      totals.succeed += 1;
       console.log(`${i}/${entries.length}`, entry);
     }
   });

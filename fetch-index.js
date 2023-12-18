@@ -20,7 +20,7 @@ import { loadIndex } from './utils/fetch-utils.js';
  * @param {string} indexUrl - The index file that contains the list of markdown files to parse
  * @returns - An object with the totals and the list of failures
  */
-export async function fetchIndex(project, indexUrl) {
+export default async function fetchIndex(project, indexUrl) {
   const entries = await loadIndex(project, indexUrl, false);
 
   return entries.length;

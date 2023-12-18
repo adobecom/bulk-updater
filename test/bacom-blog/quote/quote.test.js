@@ -1,5 +1,6 @@
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
+/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { select } from 'unist-util-select';
 import {
   convertPullQuote,
