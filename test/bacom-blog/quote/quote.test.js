@@ -1,8 +1,11 @@
-import { convertPullQuote, QUOTE_BLOCK_NAME } from '../../../bacom-blog/pull-quote/pull-quote-update.js';
+import {
+  convertPullQuote,
+  QUOTE_BLOCK_NAME,
+} from '../../../bacom-blog/pull-quote/pull-quote-update.js';
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
 import { getMdast } from '../../../utils/mdast-utils.js';
-import { select } from 'unist-util-select'
+import { select } from 'unist-util-select';
 
 describe('convertPullQuote', () => {
   it('adds the correct heading', async () => {
@@ -12,14 +15,13 @@ describe('convertPullQuote', () => {
 
     await convertPullQuote(pullQuoteMdast);
 
-    const mdastBody  = select('gtBody', pullQuoteMdast);
+    const mdastBody = select('gtBody', pullQuoteMdast);
     const headerRow = mdastBody.children[0];
     const textNode = select('gtCell paragraph text', headerRow);
 
     expect(textNode.type).to.equal('text');
     expect(textNode.value).to.equal(QUOTE_BLOCK_NAME);
-  })
-
+  });
 
   it('converts a single line pull quotes to a single line quote', async () => {
     const pullQuotePath = new URL('./mocks/single-quote.md', import.meta.url);
@@ -28,7 +30,7 @@ describe('convertPullQuote', () => {
 
     await convertPullQuote(pullQuoteMdast);
 
-    const mdastBody  = select('gtBody', pullQuoteMdast);
+    const mdastBody = select('gtBody', pullQuoteMdast);
     const contentRow = mdastBody.children[1];
     const contentCell = select('gtCell', contentRow);
 
@@ -42,7 +44,7 @@ describe('convertPullQuote', () => {
 
     await convertPullQuote(pullQuoteMdast);
 
-    const mdastBody  = select('gtBody', pullQuoteMdast);
+    const mdastBody = select('gtBody', pullQuoteMdast);
     const contentRow = mdastBody.children[1];
     const contentCell = select('gtCell', contentRow);
 
@@ -51,13 +53,16 @@ describe('convertPullQuote', () => {
   });
 
   it('converts attributed pull quotes to multi line quote', async () => {
-    const pullQuotePath = new URL('./mocks/attributed-quote.md', import.meta.url);
+    const pullQuotePath = new URL(
+      './mocks/attributed-quote.md',
+      import.meta.url
+    );
     const pullQuoteMd = await readFile(pullQuotePath, 'utf-8');
     const pullQuoteMdast = await getMdast(pullQuoteMd);
 
     await convertPullQuote(pullQuoteMdast);
 
-    const mdastBody  = select('gtBody', pullQuoteMdast);
+    const mdastBody = select('gtBody', pullQuoteMdast);
     const contentRow = mdastBody.children[1];
     const contentCell = contentRow.children[0];
 

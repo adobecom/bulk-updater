@@ -26,50 +26,52 @@ const REPORT_DIR = 'reports';
  * @returns - An object with the totals and the list of failures
  */
 export async function fetchMarkdown(project, site, indexUrl, cached = true) {
-    const totals = { succeed: 0, failed: 0 };
-    const report = { failed: [], succeed: [] };
-    const entries = await loadIndex(project, indexUrl, cached);
-    const mdFolder = `./${MD_DIR}/${project}`;
+  const totals = { succeed: 0, failed: 0 };
+  const report = { failed: [], succeed: [] };
+  const entries = await loadIndex(project, indexUrl, cached);
+  const mdFolder = `./${MD_DIR}/${project}`;
 
-    await loadMarkdowns(site, mdFolder, entries, cached, (markdown, entry, i) => {
-        if (markdown === null) {
-            console.warn(`Skipping ${entry} as markdown could not be fetched.`);
-            report.failed.push(entry);
-            totals.failed++;
-        } else {
-            report.succeed.push(entry);
-            totals.succeed++;
-            console.log(`${i}/${entries.length}`, entry);
-        }
-    });
+  await loadMarkdowns(site, mdFolder, entries, cached, (markdown, entry, i) => {
+    if (markdown === null) {
+      console.warn(`Skipping ${entry} as markdown could not be fetched.`);
+      report.failed.push(entry);
+      totals.failed++;
+    } else {
+      report.succeed.push(entry);
+      totals.succeed++;
+      console.log(`${i}/${entries.length}`, entry);
+    }
+  });
 
-    return { totals, report };
+  return { totals, report };
 }
 
 async function main(project, site, index, cached) {
-    const indexUrl = `${site}${index}`;
-    const { totals, report } = await fetchMarkdown(project, site, indexUrl, cached);
-    console.log('totals', totals);
-    console.log('failed', report.failed);
+  const indexUrl = `${site}${index}`;
+  const { totals, report } = await fetchMarkdown(project, site, indexUrl, cached);
+  console.log('totals', totals);
+  console.log('failed', report.failed);
 
-    const dateStr = new Date().toLocaleString('en-US', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\/|,|:| /g, '-').replace('--', '_');
-    const reportDir = `./${REPORT_DIR}/${project}`;
-    const reportFile = `${reportDir}/markdown ${dateStr}.json`;
-    await mkdir(reportDir, { recursive: true });
-    await writeFile(reportFile, JSON.stringify(report, null, 2));
-    console.log(`Report written to ${reportFile}`);
+  const dateStr = new Date().toLocaleString('en-US', {
+    hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  }).replace(/\/|,|:| /g, '-').replace('--', '_');
+  const reportDir = `./${REPORT_DIR}/${project}`;
+  const reportFile = `${reportDir}/markdown ${dateStr}.json`;
+  await mkdir(reportDir, { recursive: true });
+  await writeFile(reportFile, JSON.stringify(report, null, 2));
+  console.log(`Report written to ${reportFile}`);
 }
 
 // node fetch-markdown.js <project> <site> <index> <cached>
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const PROJECT = 'bacom-blog';
-    const SITE = 'https://main--business-website--adobe.hlx.page';
-    const INDEX = '/blog/query-index.json?limit=3000';
-    const USE_CACHE = true;
+  const PROJECT = 'bacom-blog';
+  const SITE = 'https://main--business-website--adobe.hlx.page';
+  const INDEX = '/blog/query-index.json?limit=3000';
+  const USE_CACHE = true;
 
-    const args = process.argv.slice(2);
-    const [project = PROJECT, site = SITE, index = INDEX, cached = USE_CACHE] = args;
+  const args = process.argv.slice(2);
+  const [project = PROJECT, site = SITE, index = INDEX, cached = USE_CACHE] = args;
 
-    await main(project, site, index, cached);
-    process.exit(0);
+  await main(project, site, index, cached);
+  process.exit(0);
 }

@@ -1,7 +1,11 @@
 import { selectAllBlocks } from '../../utils/mdast-utils.js';
 import { select } from 'unist-util-select';
 import { extractLink } from '../../utils/mdast-utils.js';
-import { STATUS_SUCCESS, STATUS_WARNING, STATUS_ERROR } from '../../utils/migration-utils.js';
+import {
+  STATUS_SUCCESS,
+  STATUS_WARNING,
+  STATUS_ERROR,
+} from '../../utils/migration-utils.js';
 
 const EMBED_URLS = [
   'https://video.tv.adobe.com',
@@ -13,12 +17,12 @@ const EMBED_URLS = [
   'https://vimeo.com',
   'https://player.vimeo.com',
   'https://www.youtube.com',
-  'https://youtu.be'
+  'https://youtu.be',
 ];
 
 /**
  * Convert all embeds to links or iframes by renaming or removing the embed table and replacing it with a link
- * 
+ *
  * @param {object} mdast - markdown tree
  * @returns {Promise<Array>} - report [{ status, message}]
  */
@@ -29,7 +33,10 @@ export async function convertEmbed(mdast) {
     const link = extractLink(embedBlock);
 
     if (!link) {
-      return { status: STATUS_WARNING, message: `No link found in embed block ${index}` };
+      return {
+        status: STATUS_WARNING,
+        message: `No link found in embed block ${index}`,
+      };
     }
 
     const linkURL = link.url || link.value;
@@ -38,17 +45,26 @@ export async function convertEmbed(mdast) {
     try {
       hostname = new URL(linkURL).hostname;
     } catch (error) {
-      return { status: STATUS_ERROR, message: `Invalid URL in embed block ${linkURL}` };
+      return {
+        status: STATUS_ERROR,
+        message: `Invalid URL in embed block ${linkURL}`,
+      };
     }
 
     if (EMBED_URLS.includes(`https://${hostname}`)) {
       embedBlock.type = 'paragraph';
       embedBlock.children = [link];
-      return { status: STATUS_SUCCESS, message: `Embed ${linkURL} converted to link` };
+      return {
+        status: STATUS_SUCCESS,
+        message: `Embed ${linkURL} converted to link`,
+      };
     } else {
       const textNode = select('text', embedBlock);
       textNode.value = 'Iframe';
-      return { status: STATUS_SUCCESS, message: `Embed ${linkURL} converted to iframe` };
+      return {
+        status: STATUS_SUCCESS,
+        message: `Embed ${linkURL} converted to iframe`,
+      };
     }
   });
 }

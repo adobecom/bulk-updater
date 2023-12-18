@@ -1,5 +1,5 @@
 import { selectAllBlocks } from '../../utils/mdast-utils.js';
-import { select } from 'unist-util-select'
+import { select } from 'unist-util-select';
 import { STATUS_SUCCESS, STATUS_WARNING } from '../../utils/migration-utils.js';
 
 /**
@@ -18,6 +18,9 @@ export async function imageToFigure(mdast) {
   return imageBlocks.map((imageBlock, index) => {
     const textNode = select('text', imageBlock);
     textNode.value = 'Figure';
-    return { status: STATUS_SUCCESS, message: `Image ${index} converted to figure` };
+    return {
+      status: STATUS_SUCCESS,
+      message: `Image ${index} converted to figure`,
+    };
   });
 }
