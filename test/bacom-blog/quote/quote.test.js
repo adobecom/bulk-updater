@@ -1,11 +1,11 @@
+import { readFile } from 'fs/promises';
+import { expect } from '@esm-bundle/chai';
+import { select } from 'unist-util-select';
 import {
   convertPullQuote,
   QUOTE_BLOCK_NAME,
 } from '../../../bacom-blog/pull-quote/pull-quote-update.js';
-import { readFile } from 'fs/promises';
-import { expect } from '@esm-bundle/chai';
 import { getMdast } from '../../../utils/mdast-utils.js';
-import { select } from 'unist-util-select';
 
 describe('convertPullQuote', () => {
   it('adds the correct heading', async () => {
@@ -55,7 +55,7 @@ describe('convertPullQuote', () => {
   it('converts attributed pull quotes to multi line quote', async () => {
     const pullQuotePath = new URL(
       './mocks/attributed-quote.md',
-      import.meta.url
+      import.meta.url,
     );
     const pullQuoteMd = await readFile(pullQuotePath, 'utf-8');
     const pullQuoteMdast = await getMdast(pullQuoteMd);

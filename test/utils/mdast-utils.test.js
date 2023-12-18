@@ -1,11 +1,11 @@
 import { expect } from '@esm-bundle/chai';
+import { select } from 'unist-util-select';
 import {
   getMdast,
   mdast2md,
   moveNode,
   moveNodeParent,
 } from '../../utils/mdast-utils.js';
-import { select } from 'unist-util-select';
 
 describe('mdast-utils', () => {
   describe('getMdast', () => {

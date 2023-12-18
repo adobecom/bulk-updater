@@ -51,7 +51,7 @@ export function shouldAddDnt(link, locale, urlList) {
   return true;
 }
 
-export function links_dnt(mdast, entry, entries) {
+export function linksDnt(mdast, entry, entries) {
   const linksReport = {
     entry: entry,
     pageLinkReports: [],
