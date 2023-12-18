@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises';
+/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { select, selectAll } from 'unist-util-select';
 import { getMdast, moveNodeParent } from '../../utils/mdast-utils.js';
 import { STATUS_SUCCESS } from '../../utils/migration-utils.js';

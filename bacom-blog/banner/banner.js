@@ -46,11 +46,13 @@ export default function convertBanner(mdast) {
       return {
         status: STATUS_ERROR,
         message: `${hostname} does not contain "${BANNERS_HOSTNAMES.join(
-          '" or "'
+          '" or "',
         )}"`,
         bannerLink: link.url,
       };
-    } else if (!pathname.includes(BANNERS_PATH)) {
+    }
+
+    if (!pathname.includes(BANNERS_PATH)) {
       return {
         status: STATUS_ERROR,
         message: `${pathname} does not contain "${BANNERS_PATH}"`,
@@ -60,7 +62,7 @@ export default function convertBanner(mdast) {
 
     const fragmentUrl = `${SITE}${pathname.replace(
       BANNERS_PATH,
-      FRAGMENTS_PATH
+      FRAGMENTS_PATH,
     )}${search}${hash}`;
     link.url = fragmentUrl;
     link.children[0].value = fragmentUrl;
@@ -78,12 +80,12 @@ export default function convertBanner(mdast) {
         message: 'Banner converted to fragment link',
         ...report,
       };
-    } else {
-      return {
-        status: STATUS_WARNING,
-        message: 'Block migration might not have been successful',
-        ...report,
-      };
     }
+
+    return {
+      status: STATUS_WARNING,
+      message: 'Block migration might not have been successful',
+      ...report,
+    };
   });
 }

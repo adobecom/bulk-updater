@@ -1,6 +1,6 @@
-import { selectAllBlocks } from '../../utils/mdast-utils.js';
+/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { select } from 'unist-util-select';
-import { extractLink } from '../../utils/mdast-utils.js';
+import { selectAllBlocks, extractLink } from '../../utils/mdast-utils.js';
 import {
   STATUS_SUCCESS,
   STATUS_WARNING,
@@ -21,11 +21,14 @@ const EMBED_URLS = [
 ];
 
 /**
- * Convert all embeds to links or iframes by renaming or removing the embed table and replacing it with a link
+ * Convert all embeds to links or iframes by renaming or removing the embed table
+ * and replacing it with a link
  *
  * @param {object} mdast - markdown tree
  * @returns {Promise<Array>} - report [{ status, message}]
  */
+
+/* eslint-disable-next-line import/prefer-default-export */
 export async function convertEmbed(mdast) {
   const embedBlocks = selectAllBlocks(mdast, 'Embed');
 
@@ -58,13 +61,13 @@ export async function convertEmbed(mdast) {
         status: STATUS_SUCCESS,
         message: `Embed ${linkURL} converted to link`,
       };
-    } else {
-      const textNode = select('text', embedBlock);
-      textNode.value = 'Iframe';
-      return {
-        status: STATUS_SUCCESS,
-        message: `Embed ${linkURL} converted to iframe`,
-      };
     }
+
+    const textNode = select('text', embedBlock);
+    textNode.value = 'Iframe';
+    return {
+      status: STATUS_SUCCESS,
+      message: `Embed ${linkURL} converted to iframe`,
+    };
   });
 }
