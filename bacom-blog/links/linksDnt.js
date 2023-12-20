@@ -1,3 +1,4 @@
+/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { selectAll } from 'unist-util-select';
 import {
   STATUS_SUCCESS,
@@ -20,13 +21,10 @@ export function linkReportSuccess(report) {
 
   if (!report?.pageLinkReports) return false;
 
-  const pageLinkReport =
-    report.pageLinkReports.length > 0
-      ? report.pageLinkReports
-      : [{ status: STATUS_FAILED, message: 'no entries' }];
-  const success = pageLinkReport.filter((entry) => {
-    return entry.status === STATUS_SUCCESS;
-  });
+  const pageLinkReport = report.pageLinkReports.length > 0
+    ? report.pageLinkReports
+    : [{ status: STATUS_FAILED, message: 'no entries' }];
+  const success = pageLinkReport.filter((entry) => entry.status === STATUS_SUCCESS);
 
   return success.length > 0;
 }
@@ -45,23 +43,18 @@ export function shouldAddDnt(link, locale, urlList) {
   if (urlList.includes(localizedPathname)) return false;
 
   // exclude banners or fragments
-  if (url.pathname.includes('/banners') || url.pathname.includes('/fragments'))
-    return false;
+  if (url.pathname.includes('/banners') || url.pathname.includes('/fragments')) return false;
 
   return true;
 }
 
-export function links_dnt(mdast, entry, entries) {
+export function linksDnt(mdast, entry, entries) {
   const linksReport = {
-    entry: entry,
+    entry,
     pageLinkReports: [],
   };
   const locale = entry.substring(0, 3);
-  if (!LOCALE_STRINGS.includes(locale))
-    linksReport.pageLinkReports.push({
-      status: STATUS_SKIPPED,
-      message: 'US content',
-    });
+  if (!LOCALE_STRINGS.includes(locale)) linksReport.pageLinkReports.push({ status: STATUS_SKIPPED, message: 'US content' });
 
   const links = selectAll('link', mdast);
 
@@ -72,7 +65,9 @@ export function links_dnt(mdast, entry, entries) {
     });
   }
 
+  /* eslint-disable-next-line */
   for (const link in links) {
+    /* eslint-disable-next-line */
     const url = links[link].url;
 
     if (typeof url !== 'string' || url?.length === 0) {
@@ -80,6 +75,7 @@ export function links_dnt(mdast, entry, entries) {
         status: STATUS_SKIPPED,
         message: `Link did not have url property. See ${links[link]} on ${entry}`,
       });
+      /* eslint-disable-next-line no-continue */
       continue;
     }
 

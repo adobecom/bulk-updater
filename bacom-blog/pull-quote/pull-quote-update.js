@@ -1,10 +1,11 @@
-import { getLeaf } from '../../utils/mdast-utils.js';
+/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { selectAll } from 'unist-util-select';
 import {
   STATUS_SUCCESS,
   STATUS_WARNING,
   STATUS_ERROR,
 } from '../../utils/migration-utils.js';
+import { getLeaf } from '../../utils/mdast-utils.js';
 
 export const QUOTE_BLOCK_NAME = 'quote (borders, align left)';
 
@@ -77,6 +78,7 @@ function splitQuoteAttribution(node, replacement) {
     return 'No company found. ';
   }
 
+  /* eslint-disable-next-line prefer-const */
   let [author, ...attr] = splitAttr;
   attr = attr.join(',');
 
@@ -100,8 +102,8 @@ function getAllValues(nodeList) {
 }
 
 /**
- * Takes the current mdast, finds all instances of pull quote, and changes them to quote. Likewise modifies
- * content into formats expected by Milo.
+ * Takes the current mdast, finds all instances of pull quote, and changes them to quote.
+ * Likewise modifies content into formats expected by Milo.
  *
  * @param {object} mdast - markdown tree
  * @returns {Promise<Array>} - report [{ status, message}]
@@ -138,11 +140,11 @@ export async function convertPullQuote(mdast) {
 
     if (!quoteBody || !quoteRow || !quoteCell) {
       report.status = STATUS_ERROR;
-      report.message = `Failed to find expected mdast structure.`;
+      report.message = 'Failed to find expected mdast structure.';
       const quoteHeader = currentQuoteBlock?.children.some(
-        (node) => node.type === 'gtHeader'
+        (node) => node.type === 'gtHeader',
       );
-      if (quoteHeader) report.message += ` Has Table Header.`;
+      if (quoteHeader) report.message += ' Has Table Header.';
       return report;
     }
 
@@ -154,7 +156,7 @@ export async function convertPullQuote(mdast) {
 
     if (selectAll('list', quoteCell).length) {
       report.status = STATUS_ERROR;
-      report.message = `Invalid content - list.`;
+      report.message = 'Invalid content - list.';
       return report;
     }
 
@@ -162,14 +164,14 @@ export async function convertPullQuote(mdast) {
 
     if (selectAll('strong + *', quoteCell).length) {
       report.status = STATUS_WARNING;
-      report.message = `Paritally bolded text. `;
+      report.message = 'Paritally bolded text. ';
     }
 
     const imgLeng = selectAll('image', quoteCell).length;
 
     if (imgLeng === 1) {
       report.status = STATUS_WARNING;
-      report.message += `Contains image. `;
+      report.message += 'Contains image. ';
     } else if (imgLeng > 1) {
       report.status = STATUS_ERROR;
       report.message += `Too many images (${imgLeng}). `;
@@ -178,7 +180,7 @@ export async function convertPullQuote(mdast) {
 
     const otherNodes = selectAll(
       ':not(gtCell, text, link, image, paragraph, strong, emphasis, heading, blockquote)',
-      quoteCell
+      quoteCell,
     );
 
     if (otherNodes.length) {
@@ -204,9 +206,7 @@ export async function convertPullQuote(mdast) {
       const linkNode = linkNodes[0];
       const linkedText = linkNode.children[0].value;
 
-      const textReplacmentIndex = textNodes.findIndex((node) => {
-        return node.value === linkedText;
-      });
+      const textReplacmentIndex = textNodes.findIndex((node) => node.value === linkedText);
 
       textNodes[textReplacmentIndex] = linkNode;
       quote = textNodes;
@@ -224,13 +224,12 @@ export async function convertPullQuote(mdast) {
       replacementRow = authorQuoteRow(
         replacementContent?.quote,
         replacementContent?.author,
-        replacementContent?.company
+        replacementContent?.company,
       );
     }
 
     const newValue = getAllValues(replacementRow.children);
-    const charDiff =
-      originalValue && newValue ? originalValue.length - newValue.length : null;
+    const charDiff = originalValue && newValue ? originalValue.length - newValue.length : null;
     report.characterDifference = charDiff;
 
     if (charDiff && Math.abs(charDiff) > 10) {
@@ -241,7 +240,7 @@ export async function convertPullQuote(mdast) {
     // We need to access the actual mdast via properties.
     quoteBody.children[1] = replacementRow;
     report.status = report.status || STATUS_SUCCESS;
-    report.message += `Converted quote.`;
+    report.message += 'Converted quote.';
 
     return report;
   });

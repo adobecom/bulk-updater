@@ -1,5 +1,6 @@
-import { selectAllBlocks } from '../../utils/mdast-utils.js';
+/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { select } from 'unist-util-select';
+import { selectAllBlocks } from '../../utils/mdast-utils.js';
 import { STATUS_SUCCESS, STATUS_WARNING } from '../../utils/migration-utils.js';
 
 /**
@@ -8,6 +9,7 @@ import { STATUS_SUCCESS, STATUS_WARNING } from '../../utils/migration-utils.js';
  * @param {object} mdast - markdown tree
  * @returns {Array<object>} - report
  */
+/* eslint-disable-next-line import/prefer-default-export */
 export async function imageToFigure(mdast) {
   const imageBlocks = selectAllBlocks(mdast, 'Images');
 

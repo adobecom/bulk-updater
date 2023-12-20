@@ -24,7 +24,7 @@ import { convertEmbed } from './bacom-blog/embed/embed.js';
 import convertBanner, { BANNERS_PATH } from './bacom-blog/banner/banner.js';
 import { bannerToAside } from './bacom-blog/aside/aside.js';
 import { convertTagHeader, TAGS_PATH } from './bacom-blog/tag-header/tag-header.js';
-import { links_dnt, linkReportSuccess } from './bacom-blog/links/links_dnt.js';
+import { linksDnt, linkReportSuccess } from './bacom-blog/links/linksDnt.js';
 import updateArticleFeed from './bacom-blog/article-feed/article-feed.js';
 
 const SOURCE_CACHE = 'cache';
@@ -164,7 +164,7 @@ async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
   const mdast = await getMdast(markdown);
   // Check and transform links
   console.log(`Transforming links for ${entry}`);
-  const linkReport = links_dnt(mdast, entry, entries);
+  const linkReport = linksDnt(mdast, entry, entries);
   totalLinksReport.push(linkReport);
 
   // Migrate blocks if there are block migrations

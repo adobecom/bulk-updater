@@ -49,12 +49,8 @@ export default function updateArticleFeed(mdast, entry) {
   const UK_PATH = '/uk/blog/';
   let feedURL;
 
-  if (entry.includes(AU_PATH))
-    feedURL =
-      'https://main--bacom-blog--adobecom.hlx.page/au/us-au-query-index.json';
-  if (entry.includes(UK_PATH))
-    feedURL =
-      'https://main--bacom-blog--adobecom.hlx.page/uk/us-uk-query-index.json';
+  if (entry.includes(AU_PATH)) feedURL = 'https://main--bacom-blog--adobecom.hlx.page/au/us-au-query-index.json';
+  if (entry.includes(UK_PATH)) feedURL = 'https://main--bacom-blog--adobecom.hlx.page/uk/us-uk-query-index.json';
   if (!feedURL) {
     return {
       status: STATUS_SKIPPED,
@@ -67,16 +63,15 @@ export default function updateArticleFeed(mdast, entry) {
   let header;
   let body;
 
-  if (feed.children[0].type === 'gtHeader') header = feed.children[0];
+  if (feed.children[0].type === 'gtHeader') [header] = feed.children;
 
   if (header) {
-    body = feed.children[1];
+    [, body] = feed.children;
   } else {
-    body = feed.children[0];
+    [body] = feed.children;
   }
 
-  if (header?.children?.length === 2)
-    moveNode(header.children[1], header, body);
+  if (header?.children?.length === 2) moveNode(header.children[1], header, body);
   body.children.push(getFeedRow(feedURL));
 
   return {

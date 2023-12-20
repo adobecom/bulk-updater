@@ -1,17 +1,16 @@
-import {
-  links_dnt,
-  shouldAddDnt,
-  linkReportSuccess,
-} from '../../../bacom-blog/links/links_dnt.js';
-import { skippedReport, successReport } from './mocks/reports-mocks.js';
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
+import {
+  linksDnt,
+  shouldAddDnt,
+  linkReportSuccess,
+} from '../../../bacom-blog/links/linksDnt.js';
+import { skippedReport, successReport } from './mocks/reports-mocks.js';
 import { getMdast } from '../../../utils/mdast-utils.js';
 
 describe('shouldAddDnt', () => {
   it('returns false if the link is already localized', () => {
-    const link =
-      'https://business.adobe.com/de/blog/basics/b2c-ecommerce-guide';
+    const link = 'https://business.adobe.com/de/blog/basics/b2c-ecommerce-guide';
     const locale = '/de';
     const urlList = ['/blog/basics/b2c-ecommerce-guide'];
 
@@ -27,10 +26,8 @@ describe('shouldAddDnt', () => {
   });
 
   it('returns false if the link is to a banner or fragment', () => {
-    const fragLink =
-      'https://business.adobe.com/fragments/real-time-customer-data-platform/rtcdp.html';
-    const bannerLink =
-      'https://business.adobe.com/banners/real-time-customer-data-platform/rtcdp.html';
+    const fragLink = 'https://business.adobe.com/fragments/real-time-customer-data-platform/rtcdp.html';
+    const bannerLink = 'https://business.adobe.com/banners/real-time-customer-data-platform/rtcdp.html';
     const locale = '/de';
     const urlList = ['/blog/basics/b2c-ecommerce-guide'];
 
@@ -47,8 +44,7 @@ describe('shouldAddDnt', () => {
   });
 
   it('returns true if the link is to same-host non-blog content', () => {
-    const link =
-      'https://business.adobe.com/products/real-time-customer-data-platform/rtcdp.html';
+    const link = 'https://business.adobe.com/products/real-time-customer-data-platform/rtcdp.html';
     const locale = '/de';
     const urlList = ['/blog/basics/b2c-ecommerce-guide'];
 
@@ -97,7 +93,7 @@ describe('links', () => {
     const entry = '/de/';
     const entries = ['/de/blog/basics/data-warehouse'];
 
-    links_dnt(inputMdast, entry, entries);
+    linksDnt(inputMdast, entry, entries);
     expect(inputMdast).to.deep.equal(outputMdast);
   });
 });

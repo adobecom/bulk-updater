@@ -1,8 +1,9 @@
-import { bannerToAside } from '../../../bacom-blog/aside/aside.js';
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
-import { getMdast, mdast2md } from '../../../utils/mdast-utils.js';
+/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { select } from 'unist-util-select';
+import { getMdast, mdast2md } from '../../../utils/mdast-utils.js';
+import { bannerToAside } from '../../../bacom-blog/aside/aside.js';
 
 const OUTPUT_FILE = 'test/bacom-blog/aside/aside.docx';
 
@@ -11,7 +12,7 @@ describe('convertBannerToAside', () => {
     it('should create table row and cells', async () => {
       const bannerMd = await readFile(
         new URL('./mocks/banner-with-image.md', import.meta.url),
-        'utf8'
+        'utf8',
       );
       const bannerMdast = await getMdast(bannerMd);
 
@@ -32,7 +33,7 @@ describe('convertBannerToAside', () => {
     it('should move image correctly', async () => {
       const bannerMdPath = new URL(
         './mocks/banner-with-image.md',
-        import.meta.url
+        import.meta.url,
       );
       const bannerMd = await readFile(bannerMdPath, 'utf8');
       const bannerMdast = await getMdast(bannerMd);
@@ -53,11 +54,11 @@ describe('convertBannerToAside', () => {
     it('should convert banner to aside with image', async () => {
       const bannerMdPath = new URL(
         './mocks/banner-with-image.md',
-        import.meta.url
+        import.meta.url,
       );
       const asideMdPath = new URL(
         './mocks/aside-with-image.md',
-        import.meta.url
+        import.meta.url,
       );
       const bannerMd = await readFile(bannerMdPath, 'utf8');
       const asideMd = await readFile(asideMdPath, 'utf8');
@@ -79,11 +80,11 @@ describe('convertBannerToAside', () => {
     it('should convert banner to aside without image', async () => {
       const bannerMdPath = new URL(
         './mocks/banner-without-image.md',
-        import.meta.url
+        import.meta.url,
       );
       const asideMdPath = new URL(
         './mocks/aside-without-image.md',
-        import.meta.url
+        import.meta.url,
       );
       const bannerMd = await readFile(bannerMdPath, 'utf8');
       const asideMd = await readFile(asideMdPath, 'utf8');

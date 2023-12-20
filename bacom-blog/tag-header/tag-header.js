@@ -1,7 +1,9 @@
 import { readFile } from 'fs/promises';
-import { getMdast } from '../../utils/mdast-utils.js';
+/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { select, selectAll } from 'unist-util-select';
+import { getMdast } from '../../utils/mdast-utils.js';
 import { STATUS_SUCCESS, STATUS_WARNING } from '../../utils/migration-utils.js';
+
 export const TAGS_PATH = '/tags';
 
 /**

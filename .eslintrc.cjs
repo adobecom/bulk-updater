@@ -15,6 +15,7 @@ module.exports = {
     'import/no-cycle': 0,
     'linebreak-style': ['error', 'unix'],
     'no-await-in-loop': 0,
+    'no-console': 'off',
     'no-param-reassign': [2, { props: false }],
     'no-restricted-syntax': [
       'error',
@@ -43,10 +44,11 @@ module.exports = {
   overrides: [
     {
       files: ['test/**/*.js'],
-      rules: { 'no-console': 0 },
     },
   ],
   ignorePatterns: [
+    'index.js',
+    'icons.js',
     'block-report.js',
     'blog-migration.js',
     'migration-utils.js',

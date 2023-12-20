@@ -1,7 +1,7 @@
-import { convertEmbed } from "../../../bacom-blog/embed/embed.js";
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
 import { getMdast } from '../../../utils/mdast-utils.js';
+import { convertEmbed } from '../../../bacom-blog/embed/embed.js';
 
 describe('embedToLink', () => {
   it('should convert embeds to links', async () => {

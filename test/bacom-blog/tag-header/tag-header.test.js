@@ -1,6 +1,6 @@
-import { convertTagHeader } from '../../../bacom-blog/tag-header/tag-header.js';
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
+import { convertTagHeader } from '../../../bacom-blog/tag-header/tag-header.js';
 import { getMdast } from '../../../utils/mdast-utils.js';
 
 describe('converTagHeader', () => {
