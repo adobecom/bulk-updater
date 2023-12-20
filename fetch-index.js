@@ -21,27 +21,27 @@ import { loadIndex } from './utils/fetch-utils.js';
  * @returns - An object with the totals and the list of failures
  */
 export async function fetchIndex(project, indexUrl) {
-    const entries = await loadIndex(project, indexUrl, false);
+  const entries = await loadIndex(project, indexUrl, false);
 
-    return entries.length;
+  return entries.length;
 }
 
 async function main(project, site, index) {
-    const indexUrl = `${site}${index}`;
-    const count = await fetchIndex(project, indexUrl);
-    console.log(`Total index entries: ${count}`);
+  const indexUrl = `${site}${index}`;
+  const count = await fetchIndex(project, indexUrl);
+  console.log(`Total index entries: ${count}`);
 }
 
 // node fetch-index.js <project> <site> <index>
 // node fetch-index.js bacom-blog https://main--business-website--adobe.hlx.page /blog/query-index.json?limit=3000
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const PROJECT = 'bacom-blog';
-    const SITE = 'https://main--business-website--adobe.hlx.page';
-    const INDEX = '/blog/query-index.json?limit=3000';
+  const PROJECT = 'bacom-blog';
+  const SITE = 'https://main--business-website--adobe.hlx.page';
+  const INDEX = '/blog/query-index.json?limit=3000';
 
-    const args = process.argv.slice(2);
-    const [project = PROJECT, site = SITE, index = INDEX] = args;
+  const args = process.argv.slice(2);
+  const [project = PROJECT, site = SITE, index = INDEX] = args;
 
-    await main(project, site, index);
-    process.exit(0);
+  await main(project, site, index);
+  process.exit(0);
 }

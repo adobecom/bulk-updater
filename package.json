@@ -1,12 +1,17 @@
 {
   "name": "bulk-doc-updater",
-  "type": "module",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "mocha",
     "test:watch": "mocha --watch --parallel",
+    "lint": "npm run lint:js",
+    "fix": "npm run lint --fix *.js",
+    "lint:js": "eslint .",
+    "lint:js:nibble": "eslint-nibble .",
+    "prepare": "husky install",
     "migration:blog": "node blog-migration.js"
   },
   "mocha": {
@@ -18,10 +23,32 @@
     "@adobe/fetch": "^3.2.1",
     "@adobe/helix-html-pipeline": "^3.4.4",
     "@adobe/helix-md2docx": "2.0.11",
+    "@babel/core": "7.17.7",
+    "@babel/eslint-parser": "7.17.0",
     "@esm-bundle/chai": "^4.3.4-fix.0",
+    "eslint-nibble": "^8.1.0",
+    "eslint-plugin-chai-friendly": "^0.7.2",
+    "eslint-plugin-compat": "^4.0.2",
+    "eslint-plugin-ecmalist": "^1.0.8",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "fs-extra": "^10.1.0",
     "glob": "^10.3.3",
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3",
     "mocha": "^10.2.0",
+    "sinon": "13.0.1",
+    "stylelint": "14.6.0",
+    "stylelint-config-prettier": "9.0.3",
+    "stylelint-config-standard": "25.0.0",
     "xlsx": "^0.18.5"
+  },
+  "lint-staged": {
+    "*.js": "eslint",
+    "*.css": "stylelint"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.1"
   }
 }
