@@ -1,6 +1,5 @@
 import { readFile } from 'fs/promises';
 import { expect } from '@esm-bundle/chai';
-/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { select } from 'unist-util-select';
 import { getMdast, mdast2md } from '../../../utils/mdast-utils.js';
 import { bannerToAside } from '../../../bacom-blog/aside/aside.js';
@@ -96,7 +95,7 @@ describe('convertBannerToAside', () => {
       expect(bannerMdast.type).to.equal('root');
 
       const imageNode = select('image', bannerMdast);
-      expect(imageNode).to.be.null;
+      expect(imageNode).to.be.undefined;
 
       const mdast = await getMdast(mdast2md(bannerMdast));
       expect(mdast).to.deep.equal(asideMdast);

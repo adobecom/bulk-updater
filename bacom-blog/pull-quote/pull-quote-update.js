@@ -1,4 +1,3 @@
-/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { selectAll } from 'unist-util-select';
 import {
   STATUS_SUCCESS,

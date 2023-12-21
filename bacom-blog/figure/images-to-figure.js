@@ -1,4 +1,3 @@
-/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { select } from 'unist-util-select';
 import { selectAllBlocks } from '../../utils/mdast-utils.js';
 import { STATUS_SUCCESS, STATUS_WARNING } from '../../utils/migration-utils.js';

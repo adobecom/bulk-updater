@@ -1,5 +1,4 @@
 import { expect } from '@esm-bundle/chai';
-/* eslint-disable-next-line import/no-extraneous-dependencies */
 import { select } from 'unist-util-select';
 import {
   getMdast,
@@ -71,7 +70,7 @@ describe('mdast-utils', () => {
       moveNodeParent(fromMdast, 'image', 'paragraph', toMdast);
 
       expect(select('paragraph', toMdast)).to.not.be.null;
-      expect(select('paragraph', fromMdast)).to.be.null;
+      expect(select('paragraph', fromMdast)).to.be.undefined;
     });
   });
 });
