@@ -55,7 +55,7 @@ describe('ExcelReporter', () => {
   });
 
   describe('Check XLSX file and format', () => {
-    const filepath = `${pathname}test.xlsx`;
+    const filepath = `${pathname}output/test.xlsx`;
 
     it('initializes with the correct properties', () => {
       const reporter = new ExcelReporter(filepath);
