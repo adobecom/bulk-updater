@@ -1,4 +1,5 @@
 import xlsx from 'xlsx';
+import * as fs from 'fs';
 import BaseReporter from './reporter.js';
 
 /**
@@ -71,6 +72,7 @@ class ExcelReporter extends BaseReporter {
      */
   saveReport() {
     if (this.filepath) {
+      xlsx.set_fs(fs);
       xlsx.writeFile(this.workbook, this.filepath);
     }
   }
