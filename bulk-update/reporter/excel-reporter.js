@@ -52,8 +52,8 @@ class ExcelReporter extends BaseReporter {
      * Updates the totals sheet for each topic and status.
      * @returns {Object} - The totals object.
      */
-  calculateTotals() {
-    const totals = super.calculateTotals();
+  generateTotals() {
+    const totals = super.generateTotals();
     const totalsSheet = this.workbook.Sheets.Totals;
     const data = [];
     Object.entries(totals).forEach(([topic, statusCount]) => {

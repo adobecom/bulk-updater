@@ -31,7 +31,7 @@ class BaseReporter {
      * Calculates the totals for each topic and status.
      * @returns {Object} - The totals object.
      */
-  calculateTotals() {
+  generateTotals() {
     const totals = {};
 
     Object.keys(this.logs).forEach((topic) => {

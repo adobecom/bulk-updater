@@ -28,8 +28,8 @@ class ConsoleReporter extends BaseReporter {
      * Calculates the totals for each topic and status.
      * @returns {Object} - The totals object.
      */
-  calculateTotals() {
-    const totals = super.calculateTotals();
+  generateTotals() {
+    const totals = super.generateTotals();
 
     this.console.table(totals);
 

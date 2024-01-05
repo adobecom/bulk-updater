@@ -22,40 +22,22 @@ describe('ExcelReporter', () => {
       sandbox.restore();
     });
 
-    it('should create a new workbook', () => {
+    it('creates a new workbook', () => {
       const reporter = new ExcelReporter();
 
       expect(reporter).is.not.undefined;
       expect(xlsx.utils.book_new.calledOnce).to.be.true;
     });
 
-    it('should append log to sheet', () => {
+    it('appends log to sheet', () => {
       const reporter = new ExcelReporter();
 
       reporter.log('topic', 'status', 'message', 'arg1', 'arg2');
 
       expect(xlsx.utils.book_append_sheet.calledTwice).to.be.true;
     });
-  });
 
-  describe('Check report', () => {
-    it('should log a message', () => {
-      const reporter = new ExcelReporter();
-
-      reporter.log('topic', 'status', 'message', 'arg1', 'arg2');
-
-      const report = reporter.getReport();
-
-      expect(report.logs.topic).to.have.lengthOf(1);
-      expect(report.logs.topic[0]).to.deep.equal({
-        status: 'status',
-        message: 'message',
-        0: 'arg1',
-        1: 'arg2',
-      });
-    });
-
-    it('should calculate the totals for each topic and status', () => {
+    it('appends totals to sheet', () => {
       const reporter = new ExcelReporter();
 
       reporter.log('topic1', 'status1', 'message1');
@@ -64,35 +46,28 @@ describe('ExcelReporter', () => {
       reporter.log('topic2', 'status2', 'message4');
       reporter.log('topic2', 'status2', 'message5');
 
-      const totals = reporter.calculateTotals();
+      reporter.generateTotals();
 
-      expect(totals).to.deep.equal({
-        topic1: {
-          status1: 1,
-          status2: 1,
-        },
-        topic2: {
-          status1: 1,
-          status2: 2,
-        },
-      });
+      expect(xlsx.utils.book_append_sheet.callCount).to.equal(3);
+      expect(xlsx.utils.aoa_to_sheet.callCount).to.equal(3);
+      expect(xlsx.utils.sheet_add_aoa.calledOnce).to.be.true;
     });
   });
 
   describe('Check XLSX file and format', () => {
     const filepath = `${pathname}test.xlsx`;
 
-    it('should initialize with the correct properties', () => {
+    it('initializes with the correct properties', () => {
       const reporter = new ExcelReporter(filepath);
 
       expect(reporter.filepath).to.equal(filepath);
       expect(reporter.workbook).is.not.undefined;
     });
 
-    it('should save the report to the specified filepath', () => {
+    it('saves the report to the specified filepath', () => {
       const reporter = new ExcelReporter(filepath);
       reporter.log('topic', 'status', 'message', 'arg1', 'arg2');
-      reporter.calculateTotals();
+      reporter.generateTotals();
 
       expect(fs.existsSync(filepath)).to.be.true;
 
@@ -100,7 +75,7 @@ describe('ExcelReporter', () => {
       expect(workbook.SheetNames).to.deep.equal(['Totals', 'topic']);
     });
 
-    it('should log a message to xlsx', () => {
+    it('logs a message to xlsx', () => {
       const reporter = new ExcelReporter();
 
       reporter.log('topic', 'status', 'message', 'arg1', 'arg2');
@@ -108,6 +83,7 @@ describe('ExcelReporter', () => {
 
       const topicSheet = reporter.workbook.Sheets.topic;
 
+      // Remove the type property from each cell
       deleteObjectProperty(topicSheet, 't');
       expect(topicSheet).to.deep.equal({
         '!ref': 'A1:D2',
@@ -120,7 +96,7 @@ describe('ExcelReporter', () => {
       });
     });
 
-    it('should calculate the totals for each topic and status', () => {
+    it('produces totals sheet when calculating totals', () => {
       const reporter = new ExcelReporter();
 
       reporter.log('topic1', 'status1', 'message1');
@@ -129,9 +105,10 @@ describe('ExcelReporter', () => {
       reporter.log('topic2', 'status2', 'message4');
       reporter.log('topic2', 'status2', 'message5');
 
-      reporter.calculateTotals();
+      reporter.generateTotals();
       const totalsSheet = reporter.workbook.Sheets.Totals;
 
+      // Remove the type property from each cell
       deleteObjectProperty(totalsSheet, 't');
       expect(totalsSheet).to.deep.equal({
         '!ref': 'A1:C5',

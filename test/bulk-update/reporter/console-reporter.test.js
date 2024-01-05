@@ -13,16 +13,26 @@ describe('ConsoleReporter', () => {
     console.table.restore();
   });
 
-  it('should log a message and update the report', () => {
+  it('logs a message', () => {
     const reporter = new ConsoleReporter();
 
-    reporter.log('topic', 'status', 'message', 'arg1', 'arg2');
+    reporter.log('topic', 'status', 'logs message 1', 'arg1', 'arg2');
 
     expect(console.log.calledOnce).to.be.true;
-    expect(console.log.calledWith('topic - status: message', 'arg1', 'arg2')).to.be.true;
+    expect(console.log.calledWith('topic - status: logs message 1', 'arg1', 'arg2')).to.be.true;
   });
 
-  it('should calculate the totals for each topic and status', () => {
+  it('logs multiple messages', () => {
+    const reporter = new ConsoleReporter();
+
+    reporter.log('topic', 'status', 'logs multiple message 1', 'arg1', 'arg2');
+    reporter.log('topic', 'status', 'logs multiple message 2', 'arg1', 'arg2');
+
+    expect(console.log.calledTwice).to.be.true;
+    expect(console.log.calledWith('topic - status: logs multiple message 2', 'arg1', 'arg2')).to.be.true;
+  });
+
+  it('calculates the totals for each topic and status', () => {
     const reporter = new ConsoleReporter();
 
     reporter.log('topic1', 'status1', 'message1');
@@ -31,7 +41,7 @@ describe('ConsoleReporter', () => {
     reporter.log('topic2', 'status2', 'message4');
     reporter.log('topic2', 'status2', 'message5');
 
-    reporter.calculateTotals();
+    reporter.generateTotals();
 
     expect(console.table.calledWith({
       topic1: {
