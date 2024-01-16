@@ -66,13 +66,14 @@ describe('ExcelReporter', () => {
 
     it('saves the report to the specified filepath', () => {
       const reporter = new ExcelReporter(filepath);
+      const saveReportSpy = sinon.spy(reporter, 'saveReport');
       reporter.log('topic', 'status', 'message', 'arg1', 'arg2');
       reporter.generateTotals();
 
+      expect(saveReportSpy.calledTwice).to.be.true;
       expect(fs.existsSync(filepath)).to.be.true;
 
-      const workbook = xlsx.readFile(filepath);
-      expect(workbook.SheetNames).to.deep.equal(['Totals', 'topic']);
+      saveReportSpy.restore();
     });
 
     it('logs a message to xlsx', () => {

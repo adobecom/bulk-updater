@@ -29,11 +29,12 @@ export function entryToPath(entry) {
  *
  * @param {string} url - The URL to fetch the markdown file from.
  * @param {string} mdDir - The local path to save the fetched markdown to.
+ * @param {number} waitMs - The number of milliseconds to wait before fetching the markdown.
  * @returns {string} - The markdown content as a string or null if not found or an error occurred.
  */
-async function getMarkdown(url, reporter) {
+async function getMarkdown(url, reporter, waitMs = 500) {
   try {
-    await delay(500); // Wait 500ms to avoid rate limiting
+    await delay(waitMs); // Wait 500ms to avoid rate limiting
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -81,7 +82,9 @@ async function getMdast(mdTxt, reporter) {
  * @param {number} config.cacheTimeMs - The cache time in milliseconds. If -1, the cache never expires.
  * @returns {Promise<Object>} An object containing the markdown content, the markdown abstract syntax tree (mdast), the entry, the markdown path, and the markdown URL.
  */
-export async function loadDocument(entry, { mdDir, siteUrl, reporter, cacheTimeMs = 0 }) {
+export async function loadDocument(entry, config) {
+  if (!config) throw new Error('Missing config');
+  const { mdDir, siteUrl, reporter, cacheTimeMs = 0 } = config;
   const document = { entry, path: entryToPath(entry) };
   document.url = new URL(document.path, siteUrl).href;
   document.markdownFile = `${mdDir}${document.path}.md`;
@@ -98,7 +101,7 @@ export async function loadDocument(entry, { mdDir, siteUrl, reporter, cacheTimeM
   }
 
   if (!document.markdown) {
-    document.markdown = await getMarkdown(`${document.url}.md`, reporter);
+    document.markdown = await getMarkdown(`${document.url}.md`, reporter, config.waitMs);
 
     if (document.markdown && mdDir) {
       const folder = document.markdownFile.split('/').slice(0, -1).join('/');
@@ -133,7 +136,20 @@ async function saveDocx(mdast, output, reporter) {
   }
 }
 
-export async function saveDocument({ mdast, entry }, { reporter, outputDir }) {
+/**
+ * Saves the document as a DOCX file.
+ *
+ * @param {Object} document - The document to be saved.
+ * @param {Object} config - The configuration options for saving the document.
+ * @param {Object} document.mdast - The Markdown AST of the document.
+ * @param {string} document.entry - The entry point of the document.
+ * @param {Object} config.reporter - The reporter object for logging.
+ * @param {string} config.outputDir - The output directory for saving the document.
+ * @returns {Promise<void>} - A promise that resolves when the document is saved.
+ */
+export async function saveDocument(document, config) {
+  const { mdast, entry } = document;
+  const { reporter, outputDir } = config;
   const documentPath = entryToPath(entry);
   const output = `${outputDir}${documentPath}.docx`;
   await saveDocx(mdast, output, reporter);

@@ -72,6 +72,8 @@ class ExcelReporter extends BaseReporter {
      */
   saveReport() {
     if (this.filepath) {
+      const directoryPath = this.filepath.split('/').slice(0, -1).join('/');
+      fs.mkdirSync(directoryPath, { recursive: true });
       xlsx.set_fs(fs);
       xlsx.writeFile(this.workbook, this.filepath);
     }

@@ -13,6 +13,7 @@ const config = {
   outputDir: `${pathname}output/`,
 };
 
+const markdown = 'Test file\n';
 const mdast = {
   type: 'root',
   children: [
@@ -61,17 +62,20 @@ describe('DocumentManager', () => {
       expect(document).to.deep.equal({
         entry,
         path: 'test-file',
-        markdown: 'Test file\n',
+        markdown,
         mdast,
         markdownFile: `${pathname}mock/test-file.md`,
         url: 'https://main--bacom--adobecom.hlx.live/test-file',
       });
     });
 
+    it('loads a mock file');
+
     it('loads a draft file', async () => {
       const entry = '/';
       config.mdDir = null;
       config.siteUrl = 'https://main--bacom--adobecom.hlx.page';
+      config.waitMs = 0;
 
       const document = await loadDocument(entry, config);
       expect(document.url).to.equal('https://main--bacom--adobecom.hlx.page/index');
@@ -83,6 +87,7 @@ describe('DocumentManager', () => {
       const entry = '/';
       config.mdDir = null;
       config.siteUrl = 'https://main--bacom--adobecom.hlx.live';
+      config.waitMs = 0;
 
       const document = await loadDocument(entry, config);
       expect(document.url).to.equal('https://main--bacom--adobecom.hlx.live/index');
