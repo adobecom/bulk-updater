@@ -38,13 +38,13 @@ async function getMarkdown(url, reporter, waitMs = 500) {
     const response = await fetch(url);
 
     if (!response.ok) {
-      reporter.log('load', 'error', `Failed to fetch markdown. '${url}' '${response.status}' '${response.statusText}'`);
+      reporter.log('load', 'error', 'Failed to fetch markdown.', url, response.status, response.statusText);
       return '';
     }
-    reporter.log('load', 'success', `Loaded markdown from '${url}'`);
+    reporter.log('load', 'success', 'Loaded markdown', url);
     return await response.text();
   } catch (e) {
-    reporter.log('load', 'warn', `Markdown not found at url '${url}' '${e.message}'`);
+    reporter.log('load', 'warn', 'Markdown not found at url', url, e.message);
   }
 
   return '';
@@ -79,12 +79,12 @@ async function getMdast(mdTxt, reporter) {
  * @param {string} config.mdDir - The directory to save the fetched markdown to.
  * @param {string} config.siteUrl - The base URL for relative markdown paths.
  * @param {function} config.reporter - A logging function.
- * @param {number} config.cacheTimeMs - The cache time in milliseconds. If -1, the cache never expires.
+ * @param {number} config.mdCacheMs - The cache time in milliseconds. If -1, the cache never expires.
  * @returns {Promise<Object>} An object containing the markdown content, the markdown abstract syntax tree (mdast), the entry, the markdown path, and the markdown URL.
  */
 export async function loadDocument(entry, config) {
   if (!config) throw new Error('Missing config');
-  const { mdDir, siteUrl, reporter, cacheTimeMs = 0 } = config;
+  const { mdDir, siteUrl, reporter, mdCacheMs = 0 } = config;
   const document = { entry, path: entryToPath(entry) };
   document.url = new URL(document.path, siteUrl).href;
   document.markdownFile = `${mdDir}${document.path}.md`;
@@ -92,7 +92,7 @@ export async function loadDocument(entry, config) {
   if (mdDir && fs.existsSync(document.markdownFile)) {
     const stats = fs.statSync(document.markdownFile);
     const modifiedTime = new Date(stats.mtime).getTime();
-    const expiryTime = cacheTimeMs === -1 ? Infinity : modifiedTime - cacheTimeMs;
+    const expiryTime = mdCacheMs === -1 ? Infinity : modifiedTime - mdCacheMs;
 
     if (expiryTime > Date.now()) {
       document.markdown = fs.readFileSync(document.markdownFile, 'utf8');
@@ -150,6 +150,10 @@ async function saveDocx(mdast, output, reporter) {
 export async function saveDocument(document, config) {
   const { mdast, entry } = document;
   const { reporter, outputDir } = config;
+  if (!outputDir) {
+    config.reporter.log('save', 'error', 'No output directory specified. Skipping save.');
+    return;
+  }
   const documentPath = entryToPath(entry);
   const output = `${outputDir}${documentPath}.docx`;
   await saveDocx(mdast, output, reporter);

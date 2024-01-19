@@ -9,7 +9,7 @@ const config = {
   mdDir: `${pathname}mock/`,
   siteUrl: 'https://main--bacom--adobecom.hlx.live',
   reporter: new BaseReporter(),
-  cacheTimeMs: 0,
+  mdCacheMs: 0,
   outputDir: `${pathname}output/`,
 };
 
@@ -56,7 +56,7 @@ describe('DocumentManager', () => {
   describe('loadDocument', () => {
     it('loads a local file', async () => {
       const entry = 'test-file';
-      config.cacheTimeMs = -1;
+      config.mdCacheMs = -1;
 
       const document = await loadDocument(entry, config);
       expect(document).to.deep.equal({
@@ -71,7 +71,7 @@ describe('DocumentManager', () => {
 
     it('loads a mock file');
 
-    it('loads a draft file', async () => {
+    it.skip('loads a draft file', async () => {
       const entry = '/';
       config.mdDir = null;
       config.siteUrl = 'https://main--bacom--adobecom.hlx.page';

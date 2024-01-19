@@ -25,17 +25,41 @@ Here is an example of a configuration object setup:
 config = {
   "siteUrl": "https://main--bacom--adobecom.hlx.page/", // The hlx site url
   "reporter": new ConsoleReporter(), // The logging type
-  "outputPath": "output", // The output directory for the docx files
+  "outputDir": "output", // The output directory for the docx files
   "mdDir": "markdown", // The directory for storing the fetched markdown.
   "cacheTimeMs": 0 // Disables the cache.
 }
 ```
 
+## Bulk Update
+
+The `bulk-update.js` file is responsible for loading data from various sources and performing a bulk update operation. It can be called using `npm run bulk-update <folder> <list>` from the root of the project.
+
+Examples are under the `migration-examples` folder.
+
 ## Migration Function
 
-The `migration.js` file sets up the configuration object and performs the actual migration.
+In order to create a migration, create a migration file within the a new migration folder with the name `migration.js`. This file is responsible for setting up the configuration object and performing the actual migration.
 
-Structure: TBD
+### Structure
+
+The `migration.js` script should exports the `init` and `migrate` functions for use by `bulk-update.js`.
+
+- `init`: The init function returns the configuration object for the migration.
+- `migrate`: The migrate function performs the actual migration. 
+
+### Migration
+The `migrate` function takes a document object as input, which includes the entry path and the Markdown AST of the document. The function should update the document object with the updated entry path and updated Markdown AST.
+
+## Custom Migrations
+
+1. **Create a new JavaScript file**: This file will serve as your primary migration script.
+
+2. **Import necessary modules**: At the beginning of your script, import the required modules. `loadDocument` and `saveDocument` from the `document-manager` module, and the `ConsoleReporter` or `ExcelReporter` module.
+
+3. **Define the main function**: This function will execute the migration. It begins by setting up a configuration object, then iterates over a list of entries. For each entry, it loads the document, modifies it, and saves it.
+
+4. **Modify the Document**: During the iteration over each entry in the list, the document is loaded, modified, and saved. The specific modifications made will depend on the unique requirements of your migration.
 
 ## Reporter
 
