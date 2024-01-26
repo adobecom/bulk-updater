@@ -18,13 +18,13 @@ class BaseReporter {
       this.logs[topic] = [];
     }
 
-    const log = {
+    const logMessage = {
       status,
       message,
       ...args,
     };
 
-    this.logs[topic].push(log);
+    this.logs[topic].push(logMessage);
   }
 
   /**

@@ -1,4 +1,5 @@
 import ExcelReporter from '../bulk-update/reporter/excel-reporter.js';
+import { saveDocument } from '../bulk-update/document-manager/document-manager.js';
 
 const { pathname } = new URL('.', import.meta.url);
 const config = {
@@ -11,7 +12,7 @@ const config = {
 };
 
 /**
- * Example Migration
+ * Example Migration, run using `npm run bulk-update 'migration-example'`
  *
  * @returns {Object} - The configuration object for the migration.
  */
@@ -40,4 +41,5 @@ export async function migrate(document) {
   });
 
   config.reporter.log('hello world', 'success', 'Added Hello World', document.entry);
+  await saveDocument(document, config);
 }

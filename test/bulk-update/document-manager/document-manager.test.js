@@ -71,7 +71,7 @@ describe('DocumentManager', () => {
 
     it('loads a mock file');
 
-    it.skip('loads a draft file', async () => {
+    it.skip('fetches a draft file', async () => {
       const entry = '/';
       config.mdDir = null;
       config.siteUrl = 'https://main--bacom--adobecom.hlx.page';
@@ -83,7 +83,7 @@ describe('DocumentManager', () => {
       expect(document.mdast).to.not.be.empty;
     });
 
-    it('loads a live file', async () => {
+    it('fetches a live file', async () => {
       const entry = '/';
       config.mdDir = null;
       config.siteUrl = 'https://main--bacom--adobecom.hlx.live';
@@ -108,7 +108,7 @@ describe('DocumentManager', () => {
       expect(report.logs.save[0]).to.deep.equal({
         status: 'success',
         message: 'Saved docx to',
-        0: `${config.outputDir}test-file.docx`,
+        0: `${config.outputDir}${document.entry}.docx`,
       });
 
       const filepath = `${config.outputDir}${document.entry}.docx`;

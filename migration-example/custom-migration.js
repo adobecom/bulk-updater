@@ -1,9 +1,10 @@
-// import { loadDocument } from '../bulk-update/bulk-update.js';
 import { loadDocument, saveDocument } from '../bulk-update/document-manager/document-manager.js';
 import ConsoleReporter from '../bulk-update/reporter/console-reporter.js';
 
 /**
- * Example Migration
+ * Example Migration, run using `node migration-example/custom-migration.js`
+ *
+ * @returns {Object} - The configuration object for the migration.
  */
 async function main() {
   const list = ['/'];

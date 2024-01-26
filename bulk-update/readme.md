@@ -39,11 +39,11 @@ Examples are under the `migration-examples` folder.
 
 ## Migration Function
 
-In order to create a migration, create a migration file within the a new migration folder with the name `migration.js`. This file is responsible for setting up the configuration object and performing the actual migration.
+In order to create a migration, add a migration file within the a new migration folder with the name `migration.js`. This file is responsible for setting up the configuration object and performing the actual migration.
 
 ### Structure
 
-The `migration.js` script should exports the `init` and `migrate` functions for use by `bulk-update.js`.
+The `migration.js` script should export the `init` and `migrate` functions for use by `bulk-update.js`.
 
 - `init`: The init function returns the configuration object for the migration.
 - `migrate`: The migrate function performs the actual migration. 

@@ -22,15 +22,15 @@ export function entryToPath(entry) {
 }
 
 /**
- * Fetches a markdown file from a given URL and optionally saves it locally.
+ * Fetches a markdown file from a given URL.
  *
  * If the `url` option is provided, the function fetches the markdown from the given URL.
  * If the `mdDir` option is provided, it saves the fetched markdown to the specified local path.
  *
  * @param {string} url - The URL to fetch the markdown file from.
- * @param {string} mdDir - The local path to save the fetched markdown to.
+ * @param {function} reporter - A logging function.
  * @param {number} waitMs - The number of milliseconds to wait before fetching the markdown.
- * @returns {string} - The markdown content as a string or null if not found or an error occurred.
+ * @returns {Promise<string>} A promise that resolves to the fetched markdown.
  */
 async function getMarkdown(url, reporter, waitMs = 500) {
   try {
@@ -41,7 +41,6 @@ async function getMarkdown(url, reporter, waitMs = 500) {
       reporter.log('load', 'error', 'Failed to fetch markdown.', url, response.status, response.statusText);
       return '';
     }
-    reporter.log('load', 'success', 'Loaded markdown', url);
     return await response.text();
   } catch (e) {
     reporter.log('load', 'warn', 'Markdown not found at url', url, e.message);
@@ -56,11 +55,11 @@ async function getMarkdown(url, reporter, waitMs = 500) {
  * @param {string} mdTxt - The markdown text to be parsed.
  * @returns {object} mdast - The mdast is being returned.
  */
-async function getMdast(mdTxt, reporter) {
+function getMdast(mdTxt, reporter) {
   const log = (message) => { reporter.log('parse', 'info', message); };
   const state = { content: { data: mdTxt }, log };
 
-  await parseMarkdown(state);
+  parseMarkdown(state);
   const { mdast } = state.content;
   return mdast;
 }
@@ -84,7 +83,7 @@ async function getMdast(mdTxt, reporter) {
  */
 export async function loadDocument(entry, config) {
   if (!config) throw new Error('Missing config');
-  const { mdDir, siteUrl, reporter, mdCacheMs = 0 } = config;
+  const { mdDir, siteUrl, reporter, waitMs, mdCacheMs = 0 } = config;
   const document = { entry, path: entryToPath(entry) };
   document.url = new URL(document.path, siteUrl).href;
   document.markdownFile = `${mdDir}${document.path}.md`;
@@ -101,17 +100,17 @@ export async function loadDocument(entry, config) {
   }
 
   if (!document.markdown) {
-    document.markdown = await getMarkdown(`${document.url}.md`, reporter, config.waitMs);
+    document.markdown = await getMarkdown(`${document.url}.md`, reporter, waitMs);
+    reporter.log('load', 'success', 'Fetched markdown', `${document.url}.md`);
 
     if (document.markdown && mdDir) {
       const folder = document.markdownFile.split('/').slice(0, -1).join('/');
       fs.mkdirSync(folder, { recursive: true });
       fs.writeFileSync(document.markdownFile, document.markdown);
-      reporter.log('save', 'success', 'Saved markdown', document.markdownFile);
     }
   }
 
-  document.mdast = await getMdast(document.markdown, reporter);
+  document.mdast = getMdast(document.markdown, reporter);
 
   return document;
 }
@@ -122,18 +121,12 @@ export async function loadDocument(entry, config) {
  * @param {object} mdast
  * @param {string} outputFile
  */
-async function saveDocx(mdast, output, reporter) {
+async function saveDocx(mdast, output) {
   const outputFolder = output.split('/').slice(0, -1).join('/');
   fs.mkdirSync(outputFolder, { recursive: true });
 
-  try {
-    const buffer = await mdast2docx(mdast);
-    fs.writeFileSync(output, buffer);
-
-    reporter.log('save', 'success', 'Saved docx to', output);
-  } catch (e) {
-    reporter.log('save', 'error', e.message);
-  }
+  const buffer = await mdast2docx(mdast);
+  fs.writeFileSync(output, buffer);
 }
 
 /**
@@ -156,5 +149,11 @@ export async function saveDocument(document, config) {
   }
   const documentPath = entryToPath(entry);
   const output = `${outputDir}${documentPath}.docx`;
-  await saveDocx(mdast, output, reporter);
+
+  try {
+    await saveDocx(mdast, output);
+    reporter.log('save', 'success', 'Saved docx to', `${output}`);
+  } catch (e) {
+    reporter.log('save', 'error', e.message, `${documentPath}.docx`);
+  }
 }

@@ -1,9 +1,15 @@
 import fs from 'fs';
 import { fetch } from '@adobe/fetch';
-import { loadDocument, saveDocument } from './document-manager/document-manager.js';
+import { loadDocument } from './document-manager/document-manager.js';
 
+/**
+ * Loads data from the specified URL.
+ *
+ * @param {string} url - The URL to fetch the data from.
+ * @returns {Promise<any>} - A promise that resolves to the fetched data in JSON format.
+ */
 export async function loadFromUrl(url) {
-  const response = fetch(url);
+  const response = await fetch(url);
   return response.json();
 }
 
@@ -13,8 +19,8 @@ export async function loadFromUrl(url) {
  * or a local path to a TXT file.
  *
  * @param {string|string[]} source - The list of entries to load from.
- * @returns {Promise<string[]>} The loaded data as an array of strings.
- * @throws {Error} If the list format or entry is unsupported.
+ * @returns {Promise<string[]>} - The loaded data as an array of strings.
+ * @throws {Error} - If the list format or entry is unsupported.
  */
 export async function loadListData(source) {
   if (Array.isArray(source) || source.includes(',')) {
@@ -37,24 +43,39 @@ export async function loadListData(source) {
   }
 }
 
-export async function main(migrationFolder, list = null) {
+/**
+ * Executes a bulk update operation using a migration script, loading data from various sources
+ * and executing bulk update operations from the migration script.
+ *
+ * @param {string} migrationFolder - Path to the folder containing the migration script.
+ * @param {string|null} list - Entry list, or null to use list in the migration script's config.
+ * @param {Object|null} reporter - A reporter object, or null for migration script's config.
+ * @returns {Promise<object>} - Promise that resolves with bulk update totals.
+ */
+export async function main(migrationFolder, list = null, reporter = null) {
   const migrationFile = `${process.cwd()}/${migrationFolder}/migration.js`;
   // eslint-disable-next-line import/no-dynamic-require, global-require
   const migration = await import(migrationFile);
   const config = migration.init();
-  const entryList = await loadListData(list || config.list);
 
-  await Promise.all(entryList.map(async (entry, i) => {
-    console.log(`Processing entry ${i + 1} of ${entryList.length} ${entry}`);
-    const document = await loadDocument(entry, config);
-    await migration.migrate(document);
-    saveDocument(document, config);
-  }));
+  config.reporter = reporter || config.reporter;
 
-  config.reporter.generateTotals();
+  try {
+    const entryList = await loadListData(list || config.list);
+
+    await Promise.all(entryList.map(async (entry, i) => {
+      console.log(`Processing entry ${i + 1} of ${entryList.length} ${entry}`);
+      const document = await loadDocument(entry, config);
+      await migration.migrate(document);
+    }));
+  } catch (e) {
+    console.error(`Bulk Update Error: ${e.message}`);
+  }
+
+  return config.reporter.generateTotals();
 }
 
-// npm bulk-update <project> <list>
+// npm run bulk-update <project> <list>
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   const [migrationFolder, list = null] = args;
