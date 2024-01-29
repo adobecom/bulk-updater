@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import fs from 'fs';
+import { stub } from 'sinon';
 import { loadDocument, saveDocument, entryToPath } from '../../../bulk-update/document-manager/document-manager.js';
 import BaseReporter from '../../../bulk-update/reporter/reporter.js';
 
@@ -69,30 +70,18 @@ describe('DocumentManager', () => {
       });
     });
 
-    it('loads a mock file');
-
-    it.skip('fetches a draft file', async () => {
+    it('fetches a file', async () => {
       const entry = '/';
       config.mdDir = null;
       config.siteUrl = 'https://main--bacom--adobecom.hlx.page';
       config.waitMs = 0;
 
-      const document = await loadDocument(entry, config);
+      const stubFetch = stub().resolves({ ok: true, text: stub().resolves(markdown) });
+
+      const document = await loadDocument(entry, config, stubFetch);
       expect(document.url).to.equal('https://main--bacom--adobecom.hlx.page/index');
-      expect(document.markdown).to.not.be.empty;
-      expect(document.mdast).to.not.be.empty;
-    });
-
-    it('fetches a live file', async () => {
-      const entry = '/';
-      config.mdDir = null;
-      config.siteUrl = 'https://main--bacom--adobecom.hlx.live';
-      config.waitMs = 0;
-
-      const document = await loadDocument(entry, config);
-      expect(document.url).to.equal('https://main--bacom--adobecom.hlx.live/index');
-      expect(document.markdown).to.not.be.empty;
-      expect(document.mdast).to.not.be.empty;
+      expect(document.markdown).to.equal(markdown);
+      expect(document.mdast).to.deep.equal(mdast);
     });
   });
 

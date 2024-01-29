@@ -32,10 +32,10 @@ export function entryToPath(entry) {
  * @param {number} waitMs - The number of milliseconds to wait before fetching the markdown.
  * @returns {Promise<string>} A promise that resolves to the fetched markdown.
  */
-async function getMarkdown(url, reporter, waitMs = 500) {
+async function getMarkdown(url, reporter, waitMs = 500, fetchFunction = fetch) {
   try {
-    await delay(waitMs); // Wait 500ms to avoid rate limiting
-    const response = await fetch(url);
+    await delay(waitMs); // Wait 500ms to avoid rate limiting, not needed for live.
+    const response = await fetchFunction(url);
 
     if (!response.ok) {
       reporter.log('load', 'error', 'Failed to fetch markdown.', url, response.status, response.statusText);
@@ -81,7 +81,7 @@ function getMdast(mdTxt, reporter) {
  * @param {number} config.mdCacheMs - The cache time in milliseconds. If -1, the cache never expires.
  * @returns {Promise<Object>} An object containing the markdown content, the markdown abstract syntax tree (mdast), the entry, the markdown path, and the markdown URL.
  */
-export async function loadDocument(entry, config) {
+export async function loadDocument(entry, config, fetchFunction = fetch) {
   if (!config) throw new Error('Missing config');
   const { mdDir, siteUrl, reporter, waitMs, mdCacheMs = 0 } = config;
   const document = { entry, path: entryToPath(entry) };
@@ -100,7 +100,7 @@ export async function loadDocument(entry, config) {
   }
 
   if (!document.markdown) {
-    document.markdown = await getMarkdown(`${document.url}.md`, reporter, waitMs);
+    document.markdown = await getMarkdown(`${document.url}.md`, reporter, waitMs, fetchFunction);
     reporter.log('load', 'success', 'Fetched markdown', `${document.url}.md`);
 
     if (document.markdown && mdDir) {
