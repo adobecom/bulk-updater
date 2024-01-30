@@ -7,13 +7,14 @@
   "scripts": {
     "test": "mocha --exit",
     "test:watch": "mocha --watch --parallel",
-    "test:bulk": "npm run test test/bulk-update/**/*.js",
-    "test:bulk:watch": "npm run test:watch test/bulk-update/**/*.js",
+    "test:bulk": "npm run test 'test/bulk-update/**/*.js'",
+    "test:bulk:watch": "npm run test:watch 'test/bulk-update/**/*.js'",
     "lint": "npm run lint:js",
     "fix": "npm run lint --fix *.js",
     "lint:js": "eslint .",
     "lint:js:nibble": "eslint-nibble .",
     "prepare": "husky install",
+    "bulk-update": "node bulk-update/bulk-update.js",
     "migration:blog": "node blog-migration.js"
   },
   "mocha": {

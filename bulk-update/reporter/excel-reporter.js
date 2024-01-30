@@ -62,7 +62,12 @@ class ExcelReporter extends BaseReporter {
       });
     });
     xlsx.utils.sheet_add_aoa(totalsSheet, data, { origin: 'A2' });
-    this.saveReport();
+    try {
+      this.saveReport();
+      console.log(`Report saved to ${this.filepath}`);
+    } catch (e) {
+      console.error(`Error saving report to ${this.filepath}: ${e.message}`);
+    }
 
     return totals;
   }

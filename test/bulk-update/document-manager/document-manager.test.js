@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import fs from 'fs';
+import { stub } from 'sinon';
 import { loadDocument, saveDocument, entryToPath } from '../../../bulk-update/document-manager/document-manager.js';
 import BaseReporter from '../../../bulk-update/reporter/reporter.js';
 
@@ -9,7 +10,7 @@ const config = {
   mdDir: `${pathname}mock/`,
   siteUrl: 'https://main--bacom--adobecom.hlx.live',
   reporter: new BaseReporter(),
-  cacheTimeMs: 0,
+  mdCacheMs: 0,
   outputDir: `${pathname}output/`,
 };
 
@@ -56,7 +57,7 @@ describe('DocumentManager', () => {
   describe('loadDocument', () => {
     it('loads a local file', async () => {
       const entry = 'test-file';
-      config.cacheTimeMs = -1;
+      config.mdCacheMs = -1;
 
       const document = await loadDocument(entry, config);
       expect(document).to.deep.equal({
@@ -69,30 +70,18 @@ describe('DocumentManager', () => {
       });
     });
 
-    it('loads a mock file');
-
-    it('loads a draft file', async () => {
+    it('fetches a file', async () => {
       const entry = '/';
       config.mdDir = null;
       config.siteUrl = 'https://main--bacom--adobecom.hlx.page';
       config.waitMs = 0;
 
-      const document = await loadDocument(entry, config);
+      const stubFetch = stub().resolves({ ok: true, text: stub().resolves(markdown) });
+
+      const document = await loadDocument(entry, config, stubFetch);
       expect(document.url).to.equal('https://main--bacom--adobecom.hlx.page/index');
-      expect(document.markdown).to.not.be.empty;
-      expect(document.mdast).to.not.be.empty;
-    });
-
-    it('loads a live file', async () => {
-      const entry = '/';
-      config.mdDir = null;
-      config.siteUrl = 'https://main--bacom--adobecom.hlx.live';
-      config.waitMs = 0;
-
-      const document = await loadDocument(entry, config);
-      expect(document.url).to.equal('https://main--bacom--adobecom.hlx.live/index');
-      expect(document.markdown).to.not.be.empty;
-      expect(document.mdast).to.not.be.empty;
+      expect(document.markdown).to.equal(markdown);
+      expect(document.mdast).to.deep.equal(mdast);
     });
   });
 
@@ -108,7 +97,7 @@ describe('DocumentManager', () => {
       expect(report.logs.save[0]).to.deep.equal({
         status: 'success',
         message: 'Saved docx to',
-        0: `${config.outputDir}test-file.docx`,
+        0: `${config.outputDir}${document.entry}.docx`,
       });
 
       const filepath = `${config.outputDir}${document.entry}.docx`;
