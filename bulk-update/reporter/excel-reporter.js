@@ -3,17 +3,42 @@ import * as fs from 'fs';
 import BaseReporter from './reporter.js';
 
 /**
- * ExcelReporter class extending BaseReporter and logging to an XLSX file.
+ * ExcelReporter class extending BaseReporter and logging to an Excel report file.
+ *
+ * @extends BaseReporter
  */
 class ExcelReporter extends BaseReporter {
-  constructor(filepath) {
+  /**
+   * Creates a new instance of the ExcelReporter class.
+   *
+   * @param {string} filepath - The file path where the Excel file will be saved.
+   * @param {boolean} [autoSave=true] - Excel file should be automatically saved when logging.
+   */
+  constructor(filepath, autoSave = true) {
     super();
     this.filepath = filepath;
+    this.autoSave = autoSave;
     this.workbook = xlsx.utils.book_new();
     const totalsSheet = xlsx.utils.aoa_to_sheet([['Topic', 'Status', 'Count']]);
     xlsx.utils.book_append_sheet(this.workbook, totalsSheet, 'Totals');
+  }
 
-    this.saveReport();
+  /**
+   * Get date string in the format of YYYY-MM-DD_HH-MM for file naming.
+   *
+   * @returns {string} - date string
+   */
+  static getDateString(date = new Date()) {
+    return date.toLocaleString('en-US', {
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+      .replace(/\/|,|:| /g, '-')
+      .replace('--', '_');
   }
 
   /**
@@ -25,16 +50,29 @@ class ExcelReporter extends BaseReporter {
      * @param {...any} args - Additional arguments to be included in the log.
      */
   log(topic, status, message, ...args) {
+    const header = ['Status', 'Message'];
+    const log = [status, message];
+    args.forEach((arg) => {
+      if (typeof arg === 'object' && !Array.isArray(arg)) {
+        Object.entries(arg).forEach(([key, value]) => {
+          header.push(key);
+          log.push(value);
+        });
+      } else if (Array.isArray(arg)) {
+        log.push(...arg);
+      } else {
+        log.push(arg);
+      }
+    });
     super.log(topic, status, message, ...args);
 
     const sheetName = topic || 'Uncategorized';
     let sheet = this.workbook.Sheets[sheetName];
     if (!sheet) {
-      sheet = xlsx.utils.aoa_to_sheet([['Status', 'Message']]);
+      sheet = xlsx.utils.aoa_to_sheet([header]);
       xlsx.utils.book_append_sheet(this.workbook, sheet, sheetName);
     }
 
-    const log = [status, message, ...args];
     const range = xlsx.utils.decode_range(sheet['!ref']);
     const newRow = range.e.r + 1;
 
@@ -45,7 +83,7 @@ class ExcelReporter extends BaseReporter {
 
     sheet['!ref'] = xlsx.utils.encode_range({ s: range.s, e: { r: newRow, c: log.length - 1 } });
 
-    this.saveReport();
+    if (this.autoSave) this.saveReport();
   }
 
   /**
@@ -62,6 +100,7 @@ class ExcelReporter extends BaseReporter {
       });
     });
     xlsx.utils.sheet_add_aoa(totalsSheet, data, { origin: 'A2' });
+    if (!this.filepath) return totals;
     try {
       this.saveReport();
       console.log(`Report saved to ${this.filepath}`);
@@ -73,15 +112,14 @@ class ExcelReporter extends BaseReporter {
   }
 
   /**
-     * Saves the generated report to the specified filepath.
-     */
+   * Saves the generated report to the specified filepath.
+   */
   saveReport() {
-    if (this.filepath) {
-      const directoryPath = this.filepath.split('/').slice(0, -1).join('/');
-      fs.mkdirSync(directoryPath, { recursive: true });
-      xlsx.set_fs(fs);
-      xlsx.writeFile(this.workbook, this.filepath);
-    }
+    if (!this.filepath) return;
+    const directoryPath = this.filepath.split('/').slice(0, -1).join('/');
+    fs.mkdirSync(directoryPath, { recursive: true });
+    xlsx.set_fs(fs);
+    xlsx.writeFile(this.workbook, this.filepath);
   }
 }
 

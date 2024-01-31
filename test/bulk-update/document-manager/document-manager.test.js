@@ -7,8 +7,8 @@ import BaseReporter from '../../../bulk-update/reporter/reporter.js';
 const { pathname } = new URL('.', import.meta.url);
 
 const config = {
-  mdDir: `${pathname}mock/`,
-  siteUrl: 'https://main--bacom--adobecom.hlx.live',
+  mdDir: `${pathname}mock`,
+  siteUrl: 'https://main--bacom--adobecom.hlx.test',
   reporter: new BaseReporter(),
   mdCacheMs: 0,
   outputDir: `${pathname}output/`,
@@ -56,17 +56,17 @@ describe('DocumentManager', () => {
 
   describe('loadDocument', () => {
     it('loads a local file', async () => {
-      const entry = 'test-file';
+      const entry = '/test-file';
       config.mdCacheMs = -1;
 
       const document = await loadDocument(entry, config);
       expect(document).to.deep.equal({
         entry,
-        path: 'test-file',
+        path: '/test-file',
         markdown,
         mdast,
         markdownFile: `${pathname}mock/test-file.md`,
-        url: 'https://main--bacom--adobecom.hlx.live/test-file',
+        url: 'https://main--bacom--adobecom.hlx.test/test-file',
       });
     });
 
@@ -74,7 +74,7 @@ describe('DocumentManager', () => {
       const entry = '/';
       config.mdDir = null;
       config.siteUrl = 'https://main--bacom--adobecom.hlx.page';
-      config.waitMs = 0;
+      config.fetchWaitMs = 0;
 
       const stubFetch = stub().resolves({ ok: true, text: stub().resolves(markdown) });
 
@@ -82,6 +82,15 @@ describe('DocumentManager', () => {
       expect(document.url).to.equal('https://main--bacom--adobecom.hlx.page/index');
       expect(document.markdown).to.equal(markdown);
       expect(document.mdast).to.deep.equal(mdast);
+    });
+
+    it('throws an error for invalid paths', async () => {
+      try {
+        await loadDocument('test-file', config);
+      } catch (err) {
+        expect(err).to.exist;
+        expect(err.message).to.contain('Invalid path');
+      }
     });
   });
 
