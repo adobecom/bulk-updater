@@ -10,7 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
-import { writeFile, mkdir, access } from 'fs/promises';
+import { writeFile, access } from 'fs/promises';
+import * as fs from 'fs';
 import xlsx from 'xlsx';
 import { getMdast, getTableMap } from './utils/mdast-utils.js';
 import { saveDocx } from './utils/docx-utils.js';
@@ -90,8 +91,10 @@ async function createReport(reports, reportFile) {
   });
 
   const reportDir = reportFile.substring(0, reportFile.lastIndexOf('/'));
-  await mkdir(reportDir, { recursive: true });
-  await xlsx.writeFile(workbook, reportFile);
+
+  fs.mkdirSync(reportDir, { recursive: true });
+  xlsx.set_fs(fs);
+  xlsx.writeFile(workbook, reportFile);
 }
 
 function formatReportData(reports) {
