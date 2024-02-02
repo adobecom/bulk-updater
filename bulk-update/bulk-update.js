@@ -78,6 +78,8 @@ export async function loadListData(source, fetchFunction = fetch) {
       return loadListData(JSON.parse(fs.readFileSync(source, 'utf8').trim()), fetchFunction);
     case 'txt':
       return loadListData(fs.readFileSync(source, 'utf8').trim().split('\n'), fetchFunction);
+    case 'html':
+      return [source];
     default:
       throw new Error(`Unsupported list format or entry: ${source}`);
   }
@@ -117,7 +119,7 @@ export default async function main(config, migrate, reporter = null) {
  */
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
-  const [migrationFolder, list = null] = args;
+  const [migrationFolder, list] = args;
   const migrationFile = `${process.cwd()}/${migrationFolder}/migration.js`;
   // eslint-disable-next-line import/no-dynamic-require, global-require
   const migration = await import(migrationFile);

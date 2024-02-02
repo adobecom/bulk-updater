@@ -1,5 +1,6 @@
-import xlsx from 'xlsx';
 import * as fs from 'fs';
+import path from 'path';
+import xlsx from 'xlsx';
 import BaseReporter from './reporter.js';
 
 /**
@@ -13,6 +14,7 @@ class ExcelReporter extends BaseReporter {
    *
    * @param {string} filepath - The file path where the Excel file will be saved.
    * @param {boolean} [autoSave=true] - Excel file should be automatically saved when logging.
+   * Disable to improve performance. Don't forget to call `saveReport` when done.
    */
   constructor(filepath, autoSave = true) {
     super();
@@ -93,12 +95,9 @@ class ExcelReporter extends BaseReporter {
   generateTotals() {
     const totals = super.generateTotals();
     const totalsSheet = this.workbook.Sheets.Totals;
-    const data = [];
-    Object.entries(totals).forEach(([topic, statusCount]) => {
-      Object.entries(statusCount).forEach(([status, count]) => {
-        data.push([topic, status, count]);
-      });
-    });
+    const data = Object.entries(totals)
+      .flatMap(([topic, statusCount]) => Object.entries(statusCount)
+        .map(([status, count]) => [topic, status, count]));
     xlsx.utils.sheet_add_aoa(totalsSheet, data, { origin: 'A2' });
     if (!this.filepath) return totals;
     try {
@@ -116,7 +115,7 @@ class ExcelReporter extends BaseReporter {
    */
   saveReport() {
     if (!this.filepath) return;
-    const directoryPath = this.filepath.split('/').slice(0, -1).join('/');
+    const directoryPath = path.dirname(this.filepath);
     fs.mkdirSync(directoryPath, { recursive: true });
     xlsx.set_fs(fs);
     xlsx.writeFile(this.workbook, this.filepath);
