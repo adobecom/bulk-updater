@@ -10,7 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-import { writeFile, access } from 'fs/promises';
 import * as fs from 'fs';
 import xlsx from 'xlsx';
 import { getMdast, getTableMap } from './utils/mdast-utils.js';
@@ -275,7 +274,7 @@ async function handleMigration(markdown, entry, pageIndex, outputDir, entries) {
 
 async function ensureDocxFileExists(mdast, sourceDocxFile) {
   try {
-    await access(sourceDocxFile);
+    fs.accessSync(sourceDocxFile);
   } catch (e) {
     await saveDocx(mdast, sourceDocxFile);
   }
@@ -323,11 +322,11 @@ export async function main(index = INDEX, source = SOURCE_CACHE, outputDir = OUT
 
   const dateStr = getDateString();
   const migrationReportFile = `${REPORT_DIR}/${PROJECT}/Migration ${dateStr}`;
-  await writeFile(`${migrationReportFile}.json`, JSON.stringify({ reports }, null, 2));
+  fs.writeFileSync(`${migrationReportFile}.json`, JSON.stringify({ reports }, null, 2));
   console.log(`Report written to ${migrationReportFile}.json`);
 
   const linkReportFile = `${REPORT_DIR}/${PROJECT}/Links ${dateStr}`;
-  await writeFile(`${linkReportFile}.json`, JSON.stringify({ totalLinksReport }, null, 2));
+  fs.writeFileSync(`${linkReportFile}.json`, JSON.stringify({ totalLinksReport }, null, 2));
   console.log(`Report written to ${linkReportFile}.json`);
 
   await createReport(reports, `${migrationReportFile}.xlsx`);
