@@ -26,8 +26,15 @@ function getFeedRow(feedURL) {
             type: 'paragraph',
             children: [
               {
-                type: 'text',
-                value: feedURL,
+                type: 'link',
+                title: null,
+                url: feedURL,
+                children: [
+                  {
+                    type: 'text',
+                    value: feedURL,
+                  },
+                ],
               },
             ],
           },
@@ -49,8 +56,8 @@ export default function updateArticleFeed(mdast, entry) {
   const UK_PATH = '/uk/blog/';
   let feedURL;
 
-  if (entry.includes(AU_PATH)) feedURL = 'https://main--bacom-blog--adobecom.hlx.page/au/us-au-query-index.json';
-  if (entry.includes(UK_PATH)) feedURL = 'https://main--bacom-blog--adobecom.hlx.page/uk/us-uk-query-index.json';
+  if (entry.includes(AU_PATH)) feedURL = 'https://main--bacom-blog--adobecom.hlx.page/au/blog/us-au-query-index.json';
+  if (entry.includes(UK_PATH)) feedURL = 'https://main--bacom-blog--adobecom.hlx.page/uk/blog/us-uk-query-index.json';
   if (!feedURL) {
     return {
       status: STATUS_SKIPPED,

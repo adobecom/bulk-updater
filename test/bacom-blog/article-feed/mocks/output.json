@@ -107,18 +107,25 @@
                                                                                           ]
                                                                                 },
                                                                                 {
-                                                                                          "type": "gtCell",
+                                                                                  "type": "gtCell",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "type": "paragraph",
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "type": "link",
+                                                                                          "title": null,
+                                                                                          "url": "https://main--bacom-blog--adobecom.hlx.page/au/blog/us-au-query-index.json",
                                                                                           "children": [
-                                                                                                    {
-                                                                                                              "type": "paragraph",
-                                                                                                              "children": [
-                                                                                                                        {
-                                                                                                                                  "type": "text",
-                                                                                                                                  "value": "https://main--bacom-blog--adobecom.hlx.page/au/us-au-query-index.json"
-                                                                                                                        }
-                                                                                                              ]
-                                                                                                    }
+                                                                                            {
+                                                                                              "type": "text",
+                                                                                              "value": "https://main--bacom-blog--adobecom.hlx.page/au/blog/us-au-query-index.json"
+                                                                                            }
                                                                                           ]
+                                                                                        }
+                                                                                      ]
+                                                                                    }
+                                                                                  ]
                                                                                 }
                                                                       ]
                                                             }
