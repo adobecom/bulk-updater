@@ -27,6 +27,13 @@ describe('FaaS Variations Report', () => {
         expect(getLetterScheme(input)).to.equal(expectedOutput);
       });
     });
+
+    const unexpectedInput = [-1, -100, '', 'A', '1'];
+    unexpectedInput.forEach((input) => {
+      it(`converts unexpected input "${input}" to an empty string`, () => {
+        expect(getLetterScheme(input)).to.eql('');
+      });
+    });
   });
 
   describe('variations', () => {

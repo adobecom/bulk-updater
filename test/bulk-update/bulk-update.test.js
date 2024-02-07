@@ -85,7 +85,7 @@ describe('BulkUpdater', () => {
       expect(data).to.deep.equal(expectedData);
     });
 
-    it('should return an empty array if source is not provided', async () => {
+    it('return an empty array if source is not provided', async () => {
       const result = await loadListData();
       expect(result).to.be.an('array');
       expect(result).to.be.empty;

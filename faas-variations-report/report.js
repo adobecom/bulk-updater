@@ -93,6 +93,7 @@ export async function loadFragments(document, fetchFunction = fetch) {
 export const getLetterScheme = (number) => {
   let result = '';
   let index = number;
+  if (typeof number !== 'number') return result;
   while (index >= 0) {
     result = String.fromCharCode(65 + (index % 26)) + result;
     index = Math.floor(index / 26) - 1;
@@ -171,7 +172,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
   const sortedVariations = Object.entries(reportVariations).sort((a, b) => b[1].count - a[1].count);
   sortedVariations.forEach(([hash, { count, structure, example, variant }]) => {
-    config.reporter.log('faas-variations', 'info', 'Found Variation', { variant, count, hash, structure, example: `${config.siteUrl}${example}` });
+    const exampleURL = new URL(example, config.siteUrl).toString().replace(/\.html$/, '');
+    config.reporter.log('faas-variations', 'info', 'Found Variation', { variant, count, hash, structure, example: exampleURL });
   });
 
   config.reporter.saveReport();
