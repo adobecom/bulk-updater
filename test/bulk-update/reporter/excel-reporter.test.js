@@ -11,6 +11,17 @@ const deleteObjectProperty = (obj, prop) => Object.keys(obj).forEach((key) => {
 });
 
 describe('ExcelReporter', () => {
+  describe('getDateString', () => {
+    it('returns the formatted date string', () => {
+      const date = new Date('2024-01-01T12:34:56');
+      const expectedDateString = '01-01-2024_12-34';
+
+      const actualDateString = ExcelReporter.getDateString(date);
+
+      expect(actualDateString).to.equal(expectedDateString);
+    });
+  });
+
   describe('Check sheets js library is called', () => {
     const sandbox = sinon.createSandbox();
 
@@ -94,6 +105,25 @@ describe('ExcelReporter', () => {
         B2: { v: 'message' },
         C2: { v: 'arg1' },
         D2: { v: 'arg2' },
+      });
+    });
+
+    it('appends object to sheet', () => {
+      const reporter = new ExcelReporter();
+
+      reporter.log('topic', 'status', 'message', { key: 'value' });
+      expect(reporter.workbook.SheetNames).to.deep.equal(['Totals', 'topic']);
+
+      const topicSheet = reporter.workbook.Sheets.topic;
+      deleteObjectProperty(topicSheet, 't');
+      expect(topicSheet).to.deep.equal({
+        '!ref': 'A1:C2',
+        A1: { v: 'Status' },
+        B1: { v: 'Message' },
+        A2: { v: 'status' },
+        B2: { v: 'message' },
+        C1: { v: 'key' },
+        C2: { v: 'value' },
       });
     });
 

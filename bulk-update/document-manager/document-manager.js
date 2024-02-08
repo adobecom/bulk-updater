@@ -1,5 +1,5 @@
 /* eslint-disable max-len */
-import { fetch } from '@adobe/fetch';
+import { fetch, timeoutSignal, AbortError } from '@adobe/fetch';
 import { mdast2docx } from '@adobe/helix-md2docx';
 import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
 
@@ -29,21 +29,29 @@ export function entryToPath(entry) {
  *
  * @param {string} url - The URL to fetch the markdown file from.
  * @param {function} reporter - A logging function.
- * @param {number} waitMs - The number of milliseconds to wait before fetching the markdown.
+ * @param {number} fetchWaitMs - The number of milliseconds to wait before fetching the markdown.
  * @returns {Promise<string>} A promise that resolves to the fetched markdown.
  */
-async function getMarkdown(url, reporter, waitMs = 500, fetchFunction = fetch) {
+async function fetchMarkdown(url, reporter, fetchWaitMs = 500, fetchFunction = fetch) {
   try {
-    await delay(waitMs); // Wait 500ms to avoid rate limiting, not needed for live.
-    const response = await fetchFunction(url);
+    console.log(`Fetching ${url}`);
+    await delay(fetchWaitMs); // Wait 500ms to avoid rate limiting, not needed for live.
+    const signal = timeoutSignal(5000); // 5s timeout
+    const response = await fetchFunction(url, { signal });
 
     if (!response.ok) {
       reporter.log('load', 'error', 'Failed to fetch markdown.', url, response.status, response.statusText);
       return '';
     }
-    return await response.text();
+    const text = await response.text();
+    signal.clear();
+    return text;
   } catch (e) {
-    reporter.log('load', 'warn', 'Markdown not found at url', url, e.message);
+    if (e instanceof AbortError) {
+      reporter.log('load', 'warn', 'Fetch timed out after 1s', url);
+    } else {
+      reporter.log('load', 'warn', 'Markdown not found at url', url, e.message);
+    }
   }
 
   return '';
@@ -65,7 +73,21 @@ function getMdast(mdTxt, reporter) {
 }
 
 /**
- * Load markdown from a file or URL.
+ * Checks if a document has expired based on its modified time and cache time.
+ *
+ * @param {number} mtime - The modified time of the document.
+ * @param {number} cacheTime - The cache time in milliseconds. Use -1 for no caching.
+ * @returns {boolean} - Returns true if the document has not expired, false otherwise.
+ */
+export function hasExpired(mtime, cacheTime, date = Date.now()) {
+  const modifiedTime = new Date(mtime).getTime();
+  const expiryTime = cacheTime === -1 ? Infinity : modifiedTime + cacheTime;
+
+  return expiryTime < date;
+}
+
+/**
+ * Load entry markdown from a file or URL.
  *
  * If a save directory is provided in the config and a file exists at that path,
  * this function will return the contents of that file if it was modified
@@ -73,34 +95,34 @@ function getMdast(mdTxt, reporter) {
  * specified path or URL, save it to the save directory if one is provided, and
  * return the fetched markdown.
  *
- * @param {string} entry - The path or URL to fetch the markdown from.
+ * @param {string} entry - The entry path of the document.
  * @param {Object} config - The configuration options.
  * @param {string} config.mdDir - The directory to save the fetched markdown to.
  * @param {string} config.siteUrl - The base URL for relative markdown paths.
  * @param {function} config.reporter - A logging function.
  * @param {number} config.mdCacheMs - The cache time in milliseconds. If -1, the cache never expires.
+ * @param {Function} [fetchFunction=fetch] - The fetch function to use for fetching markdown.
  * @returns {Promise<Object>} An object containing the markdown content, the markdown abstract syntax tree (mdast), the entry, the markdown path, and the markdown URL.
+ * @throws {Error} - If config is missing or entry is invalid.
  */
 export async function loadDocument(entry, config, fetchFunction = fetch) {
   if (!config) throw new Error('Missing config');
-  const { mdDir, siteUrl, reporter, waitMs, mdCacheMs = 0 } = config;
+  if (!entry || !entry.startsWith('/')) throw new Error(`Invalid path: ${entry}`);
+  const { mdDir, siteUrl, reporter, fetchWaitMs, mdCacheMs = 0 } = config;
   const document = { entry, path: entryToPath(entry) };
   document.url = new URL(document.path, siteUrl).href;
   document.markdownFile = `${mdDir}${document.path}.md`;
 
   if (mdDir && fs.existsSync(document.markdownFile)) {
     const stats = fs.statSync(document.markdownFile);
-    const modifiedTime = new Date(stats.mtime).getTime();
-    const expiryTime = mdCacheMs === -1 ? Infinity : modifiedTime - mdCacheMs;
-
-    if (expiryTime > Date.now()) {
+    if (!hasExpired(stats.mtime, mdCacheMs)) {
       document.markdown = fs.readFileSync(document.markdownFile, 'utf8');
       reporter.log('load', 'success', 'Loaded markdown', document.markdownFile);
     }
   }
 
   if (!document.markdown) {
-    document.markdown = await getMarkdown(`${document.url}.md`, reporter, waitMs, fetchFunction);
+    document.markdown = await fetchMarkdown(`${document.url}.md`, reporter, fetchWaitMs, fetchFunction);
     reporter.log('load', 'success', 'Fetched markdown', `${document.url}.md`);
 
     if (document.markdown && mdDir) {
