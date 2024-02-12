@@ -31,9 +31,9 @@
     },
     {
       "type": "node-terminal",
-      "name": "Test Watch",
+      "name": "Test File",
       "request": "launch",
-      "command": "npm run test:watch",
+      "command": "npm run test ${file}",
       "cwd": "${workspaceFolder}"
     }
   ]

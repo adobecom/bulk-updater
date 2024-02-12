@@ -24,6 +24,7 @@
   "license": "ISC",
   "dependencies": {
     "@adobe/fetch": "^4.1.1",
+    "@adobe/helix-docx2md": "^1.5.1",
     "@adobe/helix-html-pipeline": "^5.4.4",
     "@adobe/helix-md2docx": "^2.1.38",
     "@babel/core": "7.17.7",
