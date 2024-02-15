@@ -129,7 +129,6 @@ export async function compareLinks(links1, links2) {
   });
 
   result.unique = result.links.filter((link) => !link.match);
-
   result.match = result.unique.length === 0;
 
   return result;
