@@ -63,7 +63,7 @@ async function fetchMarkdown(url, reporter, fetchWaitMs = 500, fetchFunction = f
  * @param {string} mdTxt - The markdown text to be parsed.
  * @returns {object} mdast - The mdast is being returned.
  */
-function getMdast(mdTxt, reporter) {
+export function getMdast(mdTxt, reporter) {
   const log = (message) => { reporter.log('parse', 'info', message); };
   const state = { content: { data: mdTxt }, log };
 
@@ -166,7 +166,7 @@ export async function saveDocument(document, config) {
   const { mdast, entry } = document;
   const { reporter, outputDir } = config;
   if (!outputDir) {
-    config.reporter.log('save', 'error', 'No output directory specified. Skipping save.');
+    reporter.log('save', 'error', 'No output directory specified. Skipping save.');
     return;
   }
   const documentPath = entryToPath(entry);
