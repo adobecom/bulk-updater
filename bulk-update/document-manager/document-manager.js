@@ -117,18 +117,20 @@ export async function loadDocument(entry, config, fetchFunction = fetch) {
     const stats = fs.statSync(document.markdownFile);
     if (!hasExpired(stats.mtime, mdCacheMs)) {
       document.markdown = fs.readFileSync(document.markdownFile, 'utf8');
-      reporter.log('load', 'success', 'Loaded markdown', document.markdownFile);
+      reporter.log('load', 'success', 'Loaded markdown', { entry });
     }
   }
 
   if (!document.markdown) {
     document.markdown = await fetchMarkdown(`${document.url}.md`, reporter, fetchWaitMs, fetchFunction);
-    reporter.log('load', 'success', 'Fetched markdown', `${document.url}.md`);
+    if (document.markdown) {
+      reporter.log('load', 'success', 'Fetched markdown', { entry });
 
-    if (document.markdown && mdDir) {
-      const folder = document.markdownFile.split('/').slice(0, -1).join('/');
-      fs.mkdirSync(folder, { recursive: true });
-      fs.writeFileSync(document.markdownFile, document.markdown);
+      if (mdDir) {
+        const folder = document.markdownFile.split('/').slice(0, -1).join('/');
+        fs.mkdirSync(folder, { recursive: true });
+        fs.writeFileSync(document.markdownFile, document.markdown);
+      }
     }
   }
 
@@ -174,8 +176,8 @@ export async function saveDocument(document, config) {
 
   try {
     await saveDocx(mdast, output);
-    reporter.log('save', 'success', 'Saved docx to', `${output}`);
+    reporter.log('save', 'success', 'Saved docx', { entry });
   } catch (e) {
-    reporter.log('save', 'error', e.message, `${documentPath}.docx`);
+    reporter.log('save', 'error', e.message, { entry });
   }
 }

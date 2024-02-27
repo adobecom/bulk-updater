@@ -135,8 +135,8 @@ describe('DocumentManager', () => {
       expect(report.logs.save).to.have.lengthOf(1);
       expect(report.logs.save[0]).to.deep.equal({
         status: 'success',
-        message: 'Saved docx to',
-        0: `${config.outputDir}${document.entry}.docx`,
+        message: 'Saved docx',
+        0: { entry: document.entry },
       });
 
       const filepath = `${config.outputDir}${document.entry}.docx`;

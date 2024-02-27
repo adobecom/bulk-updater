@@ -116,15 +116,42 @@ export default async function main(config, migrate, reporter = null) {
  * and executing bulk update operations from the migration script.
  *
  * npm run bulk-update <project> <list>
+ *
+ * @param {string} migrationFolder - The folder containing the migration script.
+ * @param {string|Array} list - The list of items to migrate.
+ * @returns {Promise<void>} - A promise that resolves when the migration is complete.
  */
+async function runMigration(migrationFolder, list) {
+  const migrationFile = `${process.cwd()}/${migrationFolder}/migration.js`;
+
+  console.log(`Running bulk update with migration script: ${migrationFile}`);
+  if (!fs.existsSync(migrationFile)) {
+    console.error(`Migration script not found at: ${migrationFile}`);
+    process.exit(1);
+  }
+
+  try {
+    // eslint-disable-next-line import/no-dynamic-require, global-require
+    const migration = await import(migrationFile);
+
+    if (!migration || !migration.init || !migration.migrate) {
+      throw new Error('Missing init or migrate functions in migration script');
+    }
+
+    console.log('Initializing migration script:', migrationFile);
+    const config = await migration.init(list);
+
+    await main(config, migration.migrate);
+    process.exit(0);
+  } catch (error) {
+    console.error('Error loading migration script:', error);
+    process.exit(1);
+  }
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   const [migrationFolder, list] = args;
-  const migrationFile = `${process.cwd()}/${migrationFolder}/migration.js`;
-  // eslint-disable-next-line import/no-dynamic-require, global-require
-  const migration = await import(migrationFile);
-  const config = await migration.init(list);
 
-  await main(config, migration.migrate);
-  process.exit(0);
+  runMigration(migrationFolder, list);
 }

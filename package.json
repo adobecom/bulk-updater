@@ -24,7 +24,7 @@
   "license": "ISC",
   "dependencies": {
     "@adobe/fetch": "^4.1.1",
-    "@adobe/helix-docx2md": "^1.5.1",
+    "@adobe/helix-docx2md": "^1.5.2",
     "@adobe/helix-html-pipeline": "^5.4.4",
     "@adobe/helix-md2docx": "^2.1.38",
     "@babel/core": "7.17.7",
@@ -44,9 +44,11 @@
     "stylelint": "14.6.0",
     "stylelint-config-prettier": "9.0.3",
     "stylelint-config-standard": "25.0.0",
+    "unist-builder": "^4.0.0",
     "unist-util-select": "^5.1.0",
     "unist-util-visit-parents": "^6.0.1",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.19.3/xlsx-0.19.3.tgz"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.19.3/xlsx-0.19.3.tgz",
+    "yauzl": "^3.1.0"
   },
   "lint-staged": {
     "*.js": "eslint",
