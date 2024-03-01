@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { fetch } from '@adobe/fetch';
-import { loadDocument } from './document-manager/document-manager.js';
+import { loadDocument, checkLinks } from './document-manager/document-manager.js';
 
 const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, milliseconds); });
 
@@ -86,6 +86,26 @@ export async function loadListData(source, fetchFunction = fetch) {
 }
 
 /**
+ * Validates the migration by checking the links in the entry against the provided configuration.
+ *
+ * @param {Object} entry - The entry to validate.
+ * @param {Object} config - The configuration object.
+ * @returns {Promise<void>} - A promise that resolves once the validation is complete.
+ */
+async function validateMigration({ entry }, config) {
+  const links = await checkLinks(entry, config);
+  if (links) {
+    console.log(`Links Match: ${links.match}, ${links.unique.length} unique links found.`);
+    if (links.unique.length) {
+      config?.reporter.log('validation', 'error', 'Unique links found', { entry, count: links.unique.length });
+      console.table(links.unique);
+    }
+  } else {
+    console.log('Could not validate links');
+  }
+}
+
+/**
  * Executes a bulk update operation using the provided migration function
  * Loads data from various sources and executes bulk update operations from the migration function.
  *
@@ -101,7 +121,10 @@ export default async function main(config, migrate, reporter = null) {
     for (const [i, entry] of config.list.entries()) {
       console.log(`Processing entry ${i + 1} of ${config.list.length} ${entry}`);
       const document = await loadDocument(entry, config);
-      await migrate(document);
+      const success = await migrate(document);
+      if (success) {
+        await validateMigration(document, config);
+      }
     }
   } catch (e) {
     console.error('Bulk Update Error:', e);

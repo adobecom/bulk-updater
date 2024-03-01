@@ -11,16 +11,21 @@ describe('Blog CAAS Migration', () => {
 
   beforeEach(() => {
     validCardMetadata = {
-      CardTitle: 'Title',
+      Title: 'Title',
       CardDescription: 'Description',
-      CardImage: 'https://business.adobe.com/media.png',
-      CardImageAltText: 'Image',
-      CardImageLabel: 'image0',
+      CardImage: {
+        alt: 'Image card image',
+        label: 'image0',
+        type: 'image',
+        url: 'https://business.adobe.com/media.png',
+      },
+      CardImageAltText: 'Image card image',
       ContentType: 'blog',
       PrimaryTag: 'caas:content-type/blog',
       CardDate: '2024-02-27',
       Tags: [
         'caas:content-type/blog',
+        'caas:cta/read-article',
         'caas:business-unit/creative-cloud',
       ],
     };
@@ -36,14 +41,14 @@ describe('Blog CAAS Migration', () => {
     it('returns false for missing metadata', () => {
       const metadata = { ...validCardMetadata };
 
-      delete metadata.CardTitle;
+      delete metadata.Title;
       const result = validateCardMetadata(metadata);
       expect(result).to.be.false;
     });
 
     it('returns false for long titles', () => {
       const metadata = { ...validCardMetadata };
-      metadata.CardTitle = 'Title'.repeat(10);
+      metadata.Title = 'Title'.repeat(10);
 
       const result = validateCardMetadata(metadata);
       expect(result).to.be.false;

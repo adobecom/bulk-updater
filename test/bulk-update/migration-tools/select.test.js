@@ -1,7 +1,15 @@
 import fs from 'fs';
 import { expect } from '@esm-bundle/chai';
+import { select } from 'unist-util-select';
 import { getMdast } from '../../../bulk-update/document-manager/document-manager.js';
-import { getBlockInfo, selectAllBlocks, selectBlock, mapBlock, blockToObject } from '../../../bulk-update/migration-tools/select.js';
+import {
+  getBlockInfo,
+  isBlockMatch,
+  selectAllBlocks,
+  selectBlock,
+  mapBlock,
+  blockToObject,
+} from '../../../bulk-update/migration-tools/select.js';
 
 const { pathname } = new URL('.', import.meta.url);
 
@@ -26,26 +34,66 @@ describe('Select', () => {
     });
   });
 
+  describe('isBlockMatch', () => {
+    const tests = [
+      ['Block', 'block', true],
+      ['Block ', 'Block', true],
+      ['Block', 'block (option1)', true],
+      ['Block', 'Block (option1, option2)', true],
+      ['block-name', 'block-name ', true],
+      ['block name', 'Block-Name (option1)', true],
+      ['Block Name', 'block name (option1)', true],
+      ['Block-Name', 'block-name (option1, option2)', true],
+      ['Blocks', 'Block (option1)', false],
+      ['block false', 'block name', false],
+    ];
+
+    tests.forEach(([block, table, expected]) => {
+      it(`${expected ? 'matchs' : 'does not match'} block '${block}' and the table '${table}'`, () => {
+        const result = isBlockMatch(block, { type: 'gridTable', children: [{ type: 'gtRow', children: [{ type: 'gtCell', children: [{ type: 'text', value: table }] }] }] });
+        expect(result).to.equal(expected);
+      });
+    });
+  });
+
   describe('selectAllBlocks', () => {
-    it('selects all grid tables with the specified block name', () => {
-      const md = fs.readFileSync(`${pathname}mock/select.md`, 'utf-8');
-      const mdast = getMdast(md);
-      const blockName = 'section-metadata';
-      const result = selectAllBlocks(mdast, blockName);
-      expect(result.length).to.equal(2);
-      expect(result[0].type).to.equal('gridTable');
-      expect(result[1].type).to.equal('gridTable');
+    const tests = [
+      ['Marquee', 1, 'marquee (split, small, light)'],
+      ['Section Metadata', 2, 'section-metadata'],
+      ['Aside', 1, 'aside (inline)'],
+      ['Metadata', 1, 'Metadata'],
+    ];
+
+    tests.forEach(([blockName, expectedCount, expectedVariant]) => {
+      it(`selects ${expectedCount} grid table(s) with the ${blockName} block name`, () => {
+        const md = fs.readFileSync(`${pathname}mock/select.md`, 'utf-8');
+        const mdast = getMdast(md);
+
+        const result = selectAllBlocks(mdast, blockName);
+        expect(result.length).to.equal(expectedCount);
+        expect(select('text', result[0])?.value).to.equal(expectedVariant);
+      });
     });
   });
 
   describe('selectBlock', () => {
-    it('selects the first grid table with the specified block name', () => {
-      const md = fs.readFileSync(`${pathname}mock/select.md`, 'utf-8');
-      const mdast = getMdast(md);
-      const blockName = 'aside';
-      const result = selectBlock(mdast, blockName);
-      expect(result).to.not.be.null;
-      expect(result.type).to.equal('gridTable');
+    const tests = [
+      ['Marquee', 'marquee (split, small, light)'],
+      ['Section Metadata', 'section-metadata'],
+      ['Aside', 'aside (inline)'],
+      ['Metadata', 'Metadata'],
+    ];
+
+    tests.forEach(([blockName, expectedVariant]) => {
+      it(`selects the first grid table with the ${blockName} block name`, () => {
+        const md = fs.readFileSync(`${pathname}mock/select.md`, 'utf-8');
+        const mdast = getMdast(md);
+
+        const result = selectBlock(mdast, blockName);
+        expect(result).to.not.be.undefined;
+        expect(result.type).to.equal('gridTable');
+        expect(select('text', result)?.value).to.equal(expectedVariant);
+      });
     });
   });
 

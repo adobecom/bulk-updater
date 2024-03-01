@@ -1,7 +1,14 @@
 import fs from 'fs';
 import { expect } from '@esm-bundle/chai';
 import { stub } from 'sinon';
-import { compare, compareLink, compareLinks, extractLinks } from '../../link-check/linkCompare.js';
+import {
+  compare,
+  compareLink,
+  compareLinks,
+  extractLinks,
+  extractLinksFromHtml,
+  extractLinksFromMarkdown,
+} from '../../link-check/linkCompare.js';
 
 const { pathname } = new URL('.', import.meta.url);
 
@@ -139,11 +146,11 @@ describe('Link comparison', () => {
       expect(result.match).to.be.false;
       expect(result.unique).to.have.lengthOf(4);
       expect(result.links).to.deep.equal([
-        { index: 0, link1: linkURLs[0], link2: linkURLs[4], match: false },
-        { index: 1, link1: linkURLs[1], link2: linkURLs[3], match: false },
-        { index: 2, link1: linkURLs[2], link2: linkURLs[2], match: true },
-        { index: 3, link1: linkURLs[3], link2: linkURLs[1], match: false },
-        { index: 4, link1: linkURLs[4], link2: linkURLs[0], match: false },
+        { link: 0, link1: linkURLs[0], link2: linkURLs[4], match: false },
+        { link: 1, link1: linkURLs[1], link2: linkURLs[3], match: false },
+        { link: 2, link1: linkURLs[2], link2: linkURLs[2], match: true },
+        { link: 3, link1: linkURLs[3], link2: linkURLs[1], match: false },
+        { link: 4, link1: linkURLs[4], link2: linkURLs[0], match: false },
       ]);
     });
 
@@ -207,6 +214,75 @@ describe('Link comparison', () => {
       expect(result.unique).to.have.lengthOf(14);
       expect(result.links).to.have.lengthOf(14);
       expect(result.links).to.deep.equal(expected);
+    });
+  });
+
+  describe('extractLinksFromHtml', () => {
+    it('Extracts links from HTML content', () => {
+      const content = `
+        <a href="https://www.adobe.com/creativecloud.html">Creative Cloud</a>
+        <a href="https://www.adobe.com/products/photoshop.html">Photoshop</a>
+        <a href="https://www.adobe.com/products/illustrator.html">Illustrator</a>
+        <a href="https://www.adobe.com/products/premiere.html">Premiere</a>
+        <a href="https://www.adobe.com/products/acrobat.html">Acrobat</a>
+      `;
+      const expectedLinks = [
+        'https://www.adobe.com/creativecloud.html',
+        'https://www.adobe.com/products/photoshop.html',
+        'https://www.adobe.com/products/illustrator.html',
+        'https://www.adobe.com/products/premiere.html',
+        'https://www.adobe.com/products/acrobat.html',
+      ];
+
+      const links = extractLinksFromHtml(content);
+
+      expect(links).to.deep.equal(expectedLinks);
+    });
+
+    it('Extracts links from HTML content with different attribute order', () => {
+      const content = `
+        <a href="https://www.adobe.com/creativecloud.html" target="_blank">Creative Cloud</a>
+        <a target="_blank" href="https://www.adobe.com/products/photoshop.html">Photoshop</a>
+        <a href="https://www.adobe.com/products/illustrator.html" target="_blank">Illustrator</a>
+        <a target="_blank" href="https://www.adobe.com/products/premiere.html">Premiere</a>
+        <a href="https://www.adobe.com/products/acrobat.html" target="_blank">Acrobat</a>
+      `;
+      const expectedLinks = [
+        'https://www.adobe.com/creativecloud.html',
+        'https://www.adobe.com/products/photoshop.html',
+        'https://www.adobe.com/products/illustrator.html',
+        'https://www.adobe.com/products/premiere.html',
+        'https://www.adobe.com/products/acrobat.html',
+      ];
+
+      const links = extractLinksFromHtml(content);
+
+      expect(links).to.deep.equal(expectedLinks);
+    });
+  });
+
+  describe('extractLinksFromMarkdown', () => {
+    it('Extracts links from Markdown content', () => {
+      const content = `
+        [Creative Cloud](https://www.adobe.com/creativecloud.html)
+        [Photoshop](https://www.adobe.com/products/photoshop.html)
+        [Illustrator](https://www.adobe.com/products/illustrator.html)
+        [Premiere](https://www.adobe.com/products/premiere.html)
+        [Acrobat](https://www.adobe.com/products/acrobat.html)
+        [LinkedIn](https://www.linkedin.com/in/test/#_blank)
+      `;
+      const expectedLinks = [
+        'https://www.adobe.com/creativecloud.html',
+        'https://www.adobe.com/products/photoshop.html',
+        'https://www.adobe.com/products/illustrator.html',
+        'https://www.adobe.com/products/premiere.html',
+        'https://www.adobe.com/products/acrobat.html',
+        'https://www.linkedin.com/in/test/#_blank',
+      ];
+
+      const links = extractLinksFromMarkdown(content);
+
+      expect(links).to.deep.equal(expectedLinks);
     });
   });
 });

@@ -10,6 +10,7 @@ import { docx2md } from '@adobe/helix-docx2md';
  * @returns {boolean} - Returns true if the links have the same host and pathname, otherwise false.
  */
 export function compareLink(link1, link2) {
+  if (!link1 || !link2) return false;
   const url1 = new URL(link1.trim(), 'https://business.adobe.com/');
   const url2 = new URL(link2.trim(), 'https://business.adobe.com/');
 
@@ -48,6 +49,25 @@ function getFileType(source) {
 
   return source.split('.').pop() || null;
 }
+/**
+ * Extracts links from content based on a given regex pattern.
+ *
+ * @param {string} content - The content to extract links from.
+ * @param {RegExp} regex - The regex pattern to match links.
+ * @returns {string[]} - An array of links extracted from the content.
+ */
+function findLinks(content, regex, i) {
+  const links = [];
+  let match = regex.exec(content);
+  while (match !== null) {
+    const link = match[i];
+    if (link.startsWith('http')) {
+      links.push(link);
+    }
+    match = regex.exec(content);
+  }
+  return links;
+}
 
 /**
  * Extracts links from markdown content.
@@ -55,15 +75,9 @@ function getFileType(source) {
  * @param {string} content - The markdown content.
  * @returns {string[]} - An array of links extracted from the content.
  */
-function extractLinksFromMarkdown(content) {
+export function extractLinksFromMarkdown(content) {
   const regex = /\[.*?\]\((.*?)\)/g;
-  const links = [];
-  let match = regex.exec(content);
-  while (match !== null) {
-    links.push(match[1]);
-    match = regex.exec(content);
-  }
-  return links;
+  return findLinks(content, regex, 1);
 }
 
 /**
@@ -72,23 +86,17 @@ function extractLinksFromMarkdown(content) {
  * @param {string} content - The HTML content.
  * @returns {string[]} - An array of links extracted from the content.
  */
-function extractLinksFromHtml(content) {
+export function extractLinksFromHtml(content) {
   const regex = /<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1/g;
-  const links = [];
-  let match = regex.exec(content);
-  while (match !== null) {
-    links.push(match[2]);
-    match = regex.exec(content);
-  }
-  return links;
+  return findLinks(content, regex, 2);
 }
 
 /**
  * Extracts links from a source based on its file type.
  *
  * @param {string} source - The source URL or file path.
- * @param {string} content - The content of the source.
- * @returns {string[]} - An array of links extracted from the source.
+ * @param {Function} [fetchFn=fetch] - The function used to fetch the content from the source.
+ * @returns {Promise<string[]>} - An array of links extracted from the source.
  * @throws {Error} - Throws an error if the file type is unsupported.
  */
 export async function extractLinks(source, fetchFn = fetch) {
@@ -120,12 +128,14 @@ export async function extractLinks(source, fetchFn = fetch) {
  * @param {Array} links2 - The second array of links.
  * @returns {Promise<object>} - Match status and unique links.
  */
-export async function compareLinks(links1, links2) {
+export function compareLinks(links1, links2) {
   const result = { match: false, unique: [] };
 
   result.links = links1.map((link1, index) => {
     const link2 = links2[index];
-    return { index, link1, link2, match: compareLink(link1, link2) };
+    const match = compareLink(link1, link2);
+
+    return { link: index, link1, link2, match };
   });
 
   result.unique = result.links.filter((link) => !link.match);

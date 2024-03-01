@@ -4,14 +4,27 @@ import { u } from 'unist-builder';
 import { BulkUpdate, ExcelReporter, loadListData, saveDocument } from '../bulk-update/index.js';
 import { selectBlock, blockToObject } from '../bulk-update/migration-tools/select.js';
 
-const { pathname } = new URL('.', import.meta.url);
 const DRY_RUN = false; // do not save documents
-const SHORT_RUN = true; // first 50 entries for testing
-
 const MAX_CARD_TITLE_LENGTH = 48;
 const WARNING_CARD_DESCRIPTION_LENGTH = 108;
 const MAX_CARD_DESCRIPTION_LENGTH = 178;
 const PRIMARY_TAG = 'caas:content-type/blog';
+const ADDITIONAL_TAGS = ['caas:cta/read-article'];
+
+const { pathname } = new URL('.', import.meta.url);
+const dateString = ExcelReporter.getDateString();
+const missingTags = {};
+
+const config = {
+  list: `${pathname}list.txt`,
+  siteUrl: 'https://main--bacom-blog--adobecom.hlx.live',
+  prodSiteUrl: 'https://business.adobe.com',
+  reporter: new ExcelReporter(`${pathname}reports/caas-${dateString}.xlsx`, false),
+  outputDir: `${pathname}output`,
+  mdDir: `${pathname}md`,
+  mdCacheMs: 1 * 24 * 60 * 60 * 1000, // 1 day(s)
+  fetchWaitMs: 20,
+};
 
 function loadCaasMappings() {
   try {
@@ -24,59 +37,37 @@ function loadCaasMappings() {
     return lowercaseMappings;
   } catch (error) {
     console.error('Error loading caas-mappings.json:', error);
+
     return {};
   }
 }
 
-const caasMappings = loadCaasMappings();
-const dateString = ExcelReporter.getDateString();
+/**
+ * Maps tags to their corresponding values in the CaaS system.
+ *
+ * @param {Object} metadata - The metadata block object.
+ * @param {string} entry - The entry object.
+ * @returns {string[]} - The mapped tags in the CaaS system.
+ */
+function mapTags(metadata, entry) {
+  const tags = metadata.Tags ? metadata.Tags.split(',') : [];
+  const caasMappings = loadCaasMappings();
 
-const skipList = [
-  '/blog/perspectives/a-quick-start-guide-to-web-performance',
-  '/blog/how-to/how-to-accelerate-content-production-with-adobe-experience-manager-headless',
-  '/blog/perspectives/how-hanesbrands-and-adobe-built-one-of-the-fastest-ecommerce-websites-in-the-world',
-  '/blog/the-latest/digital-experiences-with-adobe-experience-manager-sites',
-  '/blog/basics/a-brief-overview-of-headless-cms',
-  '/blog/how-to/personalizing-ecommerce-merchandising-with-ai-in-adobe-commerce',
-  '/blog/how-to/the-usual-suspects-5-configuration-issues-to-maximize-your-peak-sales',
-  '/blog/basics/digital-asset-management',
-  '/blog/how-to/get-started-with-marketo-engage-program-templates',
-  '/blog/the-latest/streamlining-adobe-experience-manager-sites-content-creation-process-unleashing-efficiency-with-adobe-workfront',
-  '/blog/basics/kanban-boards',
-];
-
-const missingTags = {};
-
-const config = {
-  list: ['https://main--bacom-blog--adobecom.hlx.live/blog/query-index.json'],
-  siteUrl: 'https://main--bacom-blog--adobecom.hlx.live',
-  prodSiteUrl: 'https://business.adobe.com',
-  reporter: new ExcelReporter(`${pathname}reports/caas-${dateString}.xlsx`, false),
-  outputDir: `${pathname}output`,
-  mdDir: `${pathname}md`,
-  mdCacheMs: 24 * 60 * 60 * 1000, // 1 day
-  fetchWaitMs: 20,
-};
-
-export async function init(list) {
-  const entryList = await loadListData(list || config.list);
-  config.list = entryList.filter((entry) => entry && !skipList.includes(entry));
-  if (SHORT_RUN) config.list = config.list.slice(0, 50);
-  return config;
-}
-
-function mapTags(tags, entry) {
   const caasTags = tags.map((tag) => {
     const cleanedTag = tag.replace(/\s+/g, ' ').trim();
-    const caasTag = caasMappings[cleanedTag.toLowerCase()] ?? '';
-    if (cleanedTag && !caasTag) {
+    const caasTag = caasMappings[cleanedTag.toLowerCase()] ?? null;
+    if (cleanedTag && caasTag === null) {
       missingTags[cleanedTag] = true;
       config.reporter.log('Tags', 'error', 'Missing tag mapping', { tag: cleanedTag, entry });
     }
+
     return caasTag;
   });
 
-  return caasTags;
+  if (entry.startsWith('/blog/the-latest/')) caasTags.push('caas:topic/news');
+  if (entry.startsWith('/blog/perspectives/')) caasTags.push('caas:topic/trends');
+
+  return caasTags.filter((tag, index) => caasTags.indexOf(tag) === index);
 }
 
 /**
@@ -87,25 +78,25 @@ function mapTags(tags, entry) {
  * @returns {Object} - The card metadata object.
  */
 export function getCardMetadata(mdast, entry) {
+  const cardMetadata = { ContentType: 'blog' };
   const pageTitle = select('heading[depth="1"] text', mdast);
   const pageImage = select('image', mdast);
   const metadataBlock = selectBlock(mdast, 'metadata');
-  const cardMetadata = { ContentType: 'blog' };
 
-  if (pageTitle?.value) cardMetadata.CardTitle = pageTitle.value;
+  if (pageTitle?.value) cardMetadata.Title = pageTitle.value;
   if (pageImage) {
-    cardMetadata.CardImage = pageImage.url;
-    cardMetadata.CardImageAltText = pageImage.alt;
-    cardMetadata.CardImageLabel = pageImage.label;
+    cardMetadata.CardImage = { ...pageImage };
+    const altText = pageImage.alt ? `${pageImage.alt} card image` : `${cardMetadata.Title} card image`;
+    cardMetadata.CardImage.alt = altText;
+    cardMetadata.CardImageAltText = altText;
   }
 
   if (metadataBlock) {
     const metadata = blockToObject(metadataBlock);
-    const blogTags = metadata.Tags ? metadata.Tags.split(',') : [];
-    const caasTags = mapTags(blogTags, entry);
+    const caasTags = mapTags(metadata, entry);
 
-    if (!cardMetadata.CardTitle && metadata.Title) {
-      cardMetadata.CardTitle = metadata.Title;
+    if (!cardMetadata.Title && metadata.Title) {
+      cardMetadata.Title = metadata.Title;
     }
     if (metadata['Publication Date']) {
       const [date] = new Date(metadata['Publication Date']).toISOString().split('T');
@@ -114,7 +105,7 @@ export function getCardMetadata(mdast, entry) {
     if (metadata.Description) cardMetadata.CardDescription = metadata.Description;
 
     cardMetadata.PrimaryTag = PRIMARY_TAG;
-    cardMetadata.Tags = [PRIMARY_TAG, ...caasTags].filter((tag) => tag);
+    cardMetadata.Tags = [PRIMARY_TAG, ...ADDITIONAL_TAGS, ...caasTags].filter((tag) => tag);
   }
 
   return cardMetadata;
@@ -125,19 +116,15 @@ export function getCardMetadata(mdast, entry) {
  *
  * @param {string} name - The name of the block.
  * @param {Object} fields - The fields of the block.
- * @returns {Object} - The created block.
+ * @returns {Array} - The created block.
  */
 export function createBlock(name, fields) {
-  const blockName = name.replace(/\s+/g, '-').toLowerCase();
   const block = u('gridTable', [
     u('gtBody', [
       u('gtRow', [
-        u('gtCell', { colSpan: 2 }, [u('paragraph', [u('text', blockName)])]),
+        u('gtCell', { colSpan: 2 }, [u('paragraph', [u('text', name)])]),
       ]),
-      ...Object.entries(fields).map(([key, value]) => u('gtRow', [
-        u('gtCell', [u('paragraph', [u('text', key ?? '')])]),
-        u('gtCell', [u('paragraph', [value ?? u('text', '')])]),
-      ])),
+      ...fields.map((values) => u('gtRow', values.map((value) => u('gtCell', [u('paragraph', [value ?? u('text', '')])])))),
     ]),
   ]);
 
@@ -150,19 +137,19 @@ export function createBlock(name, fields) {
  * @returns {object} Card Metadata block mdast
  */
 export function createCardMetadataBlock(cardMetadata) {
-  const fields = {
-    CardTitle: u('text', cardMetadata.CardTitle),
-    CardDate: u('text', cardMetadata.CardDate),
-    CardImage: u('image', { url: cardMetadata.CardImage, title: cardMetadata.CardImageLabel, alt: cardMetadata.CardImageAltText }),
-    CardImageAltText: u('text', cardMetadata.CardImageAltText),
-    CardDescription: u('text', cardMetadata.CardDescription),
-    ContentType: u('text', cardMetadata.ContentType),
-    primaryTag: u('text', cardMetadata.PrimaryTag),
-    Tags: u('text', cardMetadata.Tags.join(', ')),
-  };
+  const fields = [
+    [u('text', 'Title'), u('text', cardMetadata.Title)],
+    [u('text', 'CardDate'), u('text', cardMetadata.CardDate)],
+    [u('text', 'CardImage'), cardMetadata.CardImage],
+    [u('text', 'CardImageAltText'), u('text', cardMetadata.CardImageAltText)],
+    [u('text', 'CardDescription'), u('text', cardMetadata.CardDescription)],
+    [u('text', 'ContentType'), u('text', cardMetadata.ContentType)],
+    [u('text', 'primaryTag'), u('text', cardMetadata.PrimaryTag)],
+    [u('text', 'Tags'), u('text', cardMetadata.Tags.join(', '))],
+  ];
 
-  if (cardMetadata.cta1Text) fields.cta1Text = u('text', cardMetadata.cta1Text);
-  if (cardMetadata.cta1URL) fields.cta1URL = u('link', { url: cardMetadata.cta1URL }, [u('text', cardMetadata.cta1URL)]);
+  if (cardMetadata.cta1Text) fields.push([u('text', 'cta1Text'), u('text', cardMetadata.cta1Text)]);
+  if (cardMetadata.cta1URL) fields.push([u('text', 'cta1URL'), u('link', { url: cardMetadata.cta1URL }, [u('text', cardMetadata.cta1URL)])]);
 
   return createBlock('Card Metadata', fields);
 }
@@ -175,7 +162,7 @@ export function createCardMetadataBlock(cardMetadata) {
  * @returns {bool} - True if the metadata is valid, false otherwise.
  */
 export function validateCardMetadata(cardMetadata, reporter, entry) {
-  const requiredFields = ['CardTitle', 'CardDescription', 'CardDate', 'Tags', 'CardImage'];
+  const requiredFields = ['Title', 'CardDescription', 'CardDate', 'Tags', 'CardImage'];
   let valid = true;
 
   const missingFields = requiredFields.filter((field) => !cardMetadata[field]);
@@ -189,13 +176,13 @@ export function validateCardMetadata(cardMetadata, reporter, entry) {
     valid = false;
   }
 
-  if (cardMetadata.Tags && cardMetadata.Tags.length <= 1) {
+  if (cardMetadata.Tags && cardMetadata.Tags.length <= ADDITIONAL_TAGS.length + 1) {
     reporter?.log('Card Metadata', 'Warning', 'No tags found.', { Value: cardMetadata.Tags, entry });
   }
 
-  const { CardTitle, CardDescription } = cardMetadata;
-  if (CardTitle && CardTitle.length > MAX_CARD_TITLE_LENGTH) {
-    reporter?.log('Card Metadata', 'Error', `Card Title should be a maximum of ${MAX_CARD_TITLE_LENGTH} characters.`, { Value: CardTitle, entry });
+  const { Title, CardDescription } = cardMetadata;
+  if (Title && Title.length > MAX_CARD_TITLE_LENGTH) {
+    reporter?.log('Card Metadata', 'Error', `Card Title should be a maximum of ${MAX_CARD_TITLE_LENGTH} characters.`, { Value: Title, entry });
     valid = false;
   }
 
@@ -210,20 +197,44 @@ export function validateCardMetadata(cardMetadata, reporter, entry) {
 }
 
 /**
- * Performs migration for a adding card metadata.
+ * Performs migration that adds card metadata to a page.
  *
  * @param {Object} document - The document to be migrated.
  */
 export async function migrate(document) {
   const { mdast, entry } = document;
+  if (selectBlock(mdast, 'Card Metadata')) {
+    config.reporter.log('save', 'skip', 'Card metadata already exists', { entry });
+
+    return false;
+  }
+
   const cardMetadata = getCardMetadata(mdast, entry);
   validateCardMetadata(cardMetadata, config.reporter, entry);
   const cardMetadataBlock = createCardMetadataBlock(cardMetadata);
   mdast.children.push(cardMetadataBlock);
-  if (!DRY_RUN) {
-    await saveDocument(document, config);
+  if (DRY_RUN) {
+    config.reporter.log('save', 'skip', 'DRY RUN', { entry });
+
+    return false;
   }
+
+  await saveDocument(document, config);
+
   return true;
+}
+
+/**
+ * Initializes the migration process.
+ *
+ * @param {Array} list - The list of data to be migrated.
+ * @returns {Promise<Object>} - A promise that resolves to the configuration object.
+ */
+export async function init(list) {
+  const entryList = await loadListData(list || config.list);
+  config.list = entryList;
+
+  return config;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

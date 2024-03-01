@@ -1,11 +1,12 @@
 /* eslint-disable max-len */
+import fs from 'fs';
 import { fetch, timeoutSignal, AbortError } from '@adobe/fetch';
 import { mdast2docx } from '@adobe/helix-md2docx';
 import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
-
-import fs from 'fs';
+import { compare } from '../../link-check/linkCompare.js';
 
 const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, milliseconds); });
+const { pathname } = new URL('.', import.meta.url);
 
 /**
  * Format the path to the actual url/file.
@@ -19,6 +20,22 @@ export function entryToPath(entry) {
   let path = entry.split(/\?|#/)[0].replace(/\/$/, '/index');
   path = path.replace(/\.html$/, ''); // Remove .html extension
   return path;
+}
+
+/**
+ * Checks links against the original document.
+ *
+ * @param {string} entry - The entry to check the links for.
+ * @param {object} config - The configuration object.
+ * @returns {Promise<object>}
+ */
+export function checkLinks(entry, config) {
+  const output = `${config.outputDir}${entryToPath(entry)}.docx`;
+  const mdURL = `${config.siteUrl}${entry}.md`;
+
+  if (!fs.existsSync(output)) return false;
+
+  return compare(mdURL, output);
 }
 
 /**
@@ -87,6 +104,34 @@ export function hasExpired(mtime, cacheTime, date = Date.now()) {
 }
 
 /**
+ * Loads markdown content from a file.
+ *
+ * @param {string} markdownFile - The path to the markdown file.
+ * @param {number} mdCacheMs - The cache duration in milliseconds.
+ * @returns {string|null} The content of the markdown file, or null if the file doesn't exist or has expired in the cache.
+ */
+function loadMarkdownFromFile(markdownFile, mdCacheMs) {
+  if (!fs.existsSync(markdownFile)) return null;
+
+  const stats = fs.statSync(markdownFile);
+  if (hasExpired(stats.mtime, mdCacheMs)) return null;
+
+  return fs.readFileSync(markdownFile, 'utf8');
+}
+
+/**
+ * Saves the provided markdown content to a file.
+ *
+ * @param {string} markdownFile - The path of the markdown file to save.
+ * @param {string} markdown - The markdown content to be saved.
+ */
+function saveMarkdownToFile(markdownFile, markdown) {
+  const folder = markdownFile.split('/').slice(0, -1).join('/');
+  fs.mkdirSync(folder, { recursive: true });
+  fs.writeFileSync(markdownFile, markdown);
+}
+
+/**
  * Load entry markdown from a file or URL.
  *
  * If a save directory is provided in the config and a file exists at that path,
@@ -110,31 +155,32 @@ export async function loadDocument(entry, config, fetchFunction = fetch) {
   if (!entry || !entry.startsWith('/')) throw new Error(`Invalid path: ${entry}`);
   const { mdDir, siteUrl, reporter, fetchWaitMs, mdCacheMs = 0 } = config;
   const document = { entry, path: entryToPath(entry) };
+
   document.url = new URL(document.path, siteUrl).href;
   document.markdownFile = `${mdDir}${document.path}.md`;
 
-  if (mdDir && fs.existsSync(document.markdownFile)) {
-    const stats = fs.statSync(document.markdownFile);
-    if (!hasExpired(stats.mtime, mdCacheMs)) {
-      document.markdown = fs.readFileSync(document.markdownFile, 'utf8');
-      reporter.log('load', 'success', 'Loaded markdown', { entry });
-    }
-  }
+  if (mdDir) {
+    document.markdown = loadMarkdownFromFile(document.markdownFile, mdCacheMs);
 
-  if (!document.markdown) {
-    document.markdown = await fetchMarkdown(`${document.url}.md`, reporter, fetchWaitMs, fetchFunction);
     if (document.markdown) {
-      reporter.log('load', 'success', 'Fetched markdown', { entry });
+      document.mdast = getMdast(document.markdown, reporter);
+      reporter.log('load', 'success', 'Loaded file', { entry });
 
-      if (mdDir) {
-        const folder = document.markdownFile.split('/').slice(0, -1).join('/');
-        fs.mkdirSync(folder, { recursive: true });
-        fs.writeFileSync(document.markdownFile, document.markdown);
-      }
+      return document;
     }
   }
 
-  document.mdast = getMdast(document.markdown, reporter);
+  document.markdown = await fetchMarkdown(`${document.url}.md`, reporter, fetchWaitMs, fetchFunction);
+
+  if (document.markdown) {
+    if (mdDir) saveMarkdownToFile(document.markdownFile, document.markdown);
+    document.mdast = getMdast(document.markdown, reporter);
+    reporter.log('load', 'success', 'Fetched entry', { entry });
+
+    return document;
+  }
+
+  reporter.log('load', 'error', 'Failed to load or fetch entry', { entry });
 
   return document;
 }
@@ -149,7 +195,8 @@ async function saveDocx(mdast, output) {
   const outputFolder = output.split('/').slice(0, -1).join('/');
   fs.mkdirSync(outputFolder, { recursive: true });
 
-  const buffer = await mdast2docx(mdast);
+  const stylesXML = fs.readFileSync(`${pathname}styles.xml`, 'utf8');
+  const buffer = await mdast2docx(mdast, { stylesXML });
   fs.writeFileSync(output, buffer);
 }
 

@@ -5,8 +5,8 @@ Migration to add card metadata to blog pages so that blog articles can be added 
 ## Overview
 
 1. Extracting data and metadata from the existing blog content.
-2. Map Metadata tags to CaaS tags.
-3. Validate the extracted metadata.
+2. Mapping Metadata tags to CaaS tags.
+3. Validating the extracted metadata.
 4. Creating a new card-metadata block for CaaS.
 
 ## Usage

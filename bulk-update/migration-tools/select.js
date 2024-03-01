@@ -30,10 +30,10 @@ export const getBlockInfo = (str) => {
  * @param {Object} table - The table to check against.
  * @returns {boolean} - True if the block matches, false otherwise.
  */
-const isBlockMatch = (block, table) => {
+export const isBlockMatch = (block, table) => {
   const blockInfo = getBlockInfo(select('text', table)?.value?.toLowerCase());
   const blockName = blockInfo ? blockInfo.blockName : null;
-  return blockName === block.toLowerCase();
+  return blockName === block.trim().toLowerCase().replace(/\s+/g, '-');
 };
 
 export const selectAllBlocks = (mdast, block) => selectAll('gridTable', mdast)
@@ -59,6 +59,7 @@ export const mapBlock = (block) => {
   const rows = selectAll('gtRow', block).slice(1);
   const data = rows.map((row) => {
     const cells = selectAll('gtCell text', row);
+
     return cells.map((cell) => cell.value);
   });
 
