@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { fetch } from '@adobe/fetch';
-import { loadDocument, checkLinks } from './document-manager/document-manager.js';
+import { loadDocument } from './document-manager/document-manager.js';
+import { validateMigration } from './validation/validation.js';
 
 const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, milliseconds); });
 
@@ -37,7 +38,7 @@ export async function loadQueryIndex(url, fetchFunction = fetch, fetchWaitMs = 5
     const nextUrl = new URL(url);
     nextUrl.searchParams.set('limit', limit);
     nextUrl.searchParams.set('offset', offset + limit);
-    entries.push(...await loadQueryIndex(nextUrl.toString(), fetchFunction));
+    entries.push(...await loadQueryIndex(nextUrl.toString(), fetchFunction, fetchWaitMs));
   }
 
   return entries;
@@ -52,13 +53,13 @@ export async function loadQueryIndex(url, fetchFunction = fetch, fetchWaitMs = 5
  * @returns {Promise<string[]>} - The loaded data as an array of strings.
  * @throws {Error} - If the list format or entry is unsupported.
  */
-export async function loadListData(source, fetchFunction = fetch) {
+export async function loadListData(source, fetchFunction = fetch, fetchWaitMs = 500) {
   if (!source) return [];
   if (Array.isArray(source) || source.includes(',')) {
     const entries = Array.isArray(source) ? source : source.split(',');
     const loadedEntries = [];
     for (const entry of entries) {
-      const loadedData = await loadListData(entry.trim(), fetchFunction);
+      const loadedData = await loadListData(entry.trim(), fetchFunction, fetchWaitMs);
       if (loadedData) loadedEntries.push(...loadedData);
     }
     return loadedEntries;
@@ -73,35 +74,15 @@ export async function loadListData(source, fetchFunction = fetch) {
   switch (extension) {
     case 'json':
       if (source.startsWith('http')) {
-        return loadQueryIndex(source, fetchFunction);
+        return loadQueryIndex(source, fetchFunction, fetchWaitMs);
       }
-      return loadListData(JSON.parse(fs.readFileSync(source, 'utf8').trim()), fetchFunction);
+      return loadListData(JSON.parse(fs.readFileSync(source, 'utf8').trim()), fetchFunction, fetchWaitMs);
     case 'txt':
-      return loadListData(fs.readFileSync(source, 'utf8').trim().split('\n'), fetchFunction);
+      return loadListData(fs.readFileSync(source, 'utf8').trim().split('\n'), fetchFunction, fetchWaitMs);
     case 'html':
       return [source];
     default:
       throw new Error(`Unsupported list format or entry: ${source}`);
-  }
-}
-
-/**
- * Validates the migration by checking the links in the entry against the provided configuration.
- *
- * @param {Object} entry - The entry to validate.
- * @param {Object} config - The configuration object.
- * @returns {Promise<void>} - A promise that resolves once the validation is complete.
- */
-async function validateMigration({ entry }, config) {
-  const links = await checkLinks(entry, config);
-  if (links) {
-    console.log(`Links Match: ${links.match}, ${links.unique.length} unique links found.`);
-    if (links.unique.length) {
-      config?.reporter.log('validation', 'error', 'Unique links found', { entry, count: links.unique.length });
-      console.table(links.unique);
-    }
-  } else {
-    console.log('Could not validate links');
   }
 }
 
@@ -121,10 +102,8 @@ export default async function main(config, migrate, reporter = null) {
     for (const [i, entry] of config.list.entries()) {
       console.log(`Processing entry ${i + 1} of ${config.list.length} ${entry}`);
       const document = await loadDocument(entry, config);
-      const success = await migrate(document);
-      if (success) {
-        await validateMigration(document, config);
-      }
+      await migrate(document);
+      await validateMigration(document, config);
     }
   } catch (e) {
     console.error('Bulk Update Error:', e);

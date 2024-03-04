@@ -1,84 +1,84 @@
 [
   {
-    "link": 0,
+    "index": 0,
     "link1": "https://business.adobe.com/blog/basics/lean",
     "link2": "https://www.workfront.com/project-management/methodologies/lean#_dnt",
     "match": false
   },
   {
-    "link": 1,
+    "index": 1,
     "link1": "https://business.adobe.com/blog/basics/8-wastes-of-lean#transportation",
     "link2": "https://business.adobe.com/fr/blog/basics/8-wastes-of-lean#transports",
     "match": false
   },
   {
-    "link": 2,
+    "index": 2,
     "link1": "https://business.adobe.com/blog/basics/8-wastes-of-lean#inventory",
     "link2": "https://business.adobe.com/fr/products/workfront/tour.html#surstockage",
     "match": false
   },
   {
-    "link": 3,
+    "index": 3,
     "link1": "https://business.adobe.com/blog/basics/8-wastes-of-lean#motion",
     "link2": "https://business.adobe.com/blog/basics/lean#mouvements-inutiles",
     "match": false
   },
   {
-    "link": 4,
+    "index": 4,
     "link1": "https://business.adobe.com/blog/basics/8-wastes-of-lean#waiting",
     "link2": "https://business.adobe.com/fr/blog/basics/8-wastes-of-lean#temps-dattente",
     "match": false
   },
   {
-    "link": 5,
+    "index": 5,
     "link1": "https://business.adobe.com/blog/basics/8-wastes-of-lean#overproduction",
     "link2": "https://business.adobe.com/blog/basics/product-backlogs-and-how-they-optimize-your-agile-experience#surproduction",
     "match": false
   },
   {
-    "link": 6,
+    "index": 6,
     "link1": "https://business.adobe.com/blog/basics/8-wastes-of-lean#overprocessing",
     "link2": "https://business.adobe.com/fr/products/workfront/main.html#traitements-inutiles",
     "match": false
   },
   {
-    "link": 7,
+    "index": 7,
     "link1": "https://business.adobe.com/blog/basics/8-wastes-of-lean#defects",
     "link2": "https://business.adobe.com/fr/blog/basics/8-wastes-of-lean#défauts",
     "match": false
   },
   {
-    "link": 8,
+    "index": 8,
     "link1": "https://business.adobe.com/blog/basics/8-wastes-of-lean#skills-or-unused-talent",
     "link2": "https://business.adobe.com/fr/blog/basics/8-wastes-of-lean#sous-utilisation-des-compétences-ou-talents-non-utilisés",
     "match": false
   },
   {
-    "link": 9,
+    "index": 9,
     "link1": "https://business.adobe.com/blog/basics/what-is-kanban",
     "link2": "https://business.adobe.com/fr/blog/basics/8-wastes-of-lean",
     "match": false
   },
   {
-    "link": 10,
+    "index": 10,
     "link1": "https://business.adobe.com/blog/basics/product-backlogs-and-how-they-optimize-your-agile-experience",
     "link2": "https://www.workfront.com/project-management/methodologies/lean/gemba-walk#_dnt",
     "match": false
   },
   {
-    "link": 11,
+    "index": 11,
     "link1": "https://business.adobe.com/products/workfront/main.html",
     "link2": "https://business.adobe.com/fr/blog/basics/8-wastes-of-lean",
     "match": false
   },
   {
-    "link": 12,
+    "index": 12,
     "link1": "https://business.adobe.com/products/workfront/main.html#main",
     "link2": "https://business.adobe.com/fr/blog/basics/8-wastes-of-lean#_dnt",
     "match": false
   },
   {
-    "link": 13,
+    "index": 13,
     "link1": "https://business.adobe.com/products/workfront/tour.html",
     "link2": "https://business.adobe.com/fr/blog/basics/8-wastes-of-lean",
     "match": false

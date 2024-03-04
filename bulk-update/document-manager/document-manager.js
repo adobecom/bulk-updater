@@ -3,7 +3,6 @@ import fs from 'fs';
 import { fetch, timeoutSignal, AbortError } from '@adobe/fetch';
 import { mdast2docx } from '@adobe/helix-md2docx';
 import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
-import { compare } from '../../link-check/linkCompare.js';
 
 const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, milliseconds); });
 const { pathname } = new URL('.', import.meta.url);
@@ -20,22 +19,6 @@ export function entryToPath(entry) {
   let path = entry.split(/\?|#/)[0].replace(/\/$/, '/index');
   path = path.replace(/\.html$/, ''); // Remove .html extension
   return path;
-}
-
-/**
- * Checks links against the original document.
- *
- * @param {string} entry - The entry to check the links for.
- * @param {object} config - The configuration object.
- * @returns {Promise<object>}
- */
-export function checkLinks(entry, config) {
-  const output = `${config.outputDir}${entryToPath(entry)}.docx`;
-  const mdURL = `${config.siteUrl}${entry}.md`;
-
-  if (!fs.existsSync(output)) return false;
-
-  return compare(mdURL, output);
 }
 
 /**

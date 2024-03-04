@@ -9,8 +9,7 @@ import { select, selectAll } from 'unist-util-select';
  * @param {string} str - The input block string.
  * @returns {Object} - An object containing the block name and options.
  */
-export const getBlockInfo = (str) => {
-  if (!str) return null;
+export const getBlockInfo = (str = '') => {
   const blockInfo = {};
   const regex = /([\w\s-]+)\s*(?:\(([^)]*)\))?/;
   const match = regex.exec(str.toLowerCase());
