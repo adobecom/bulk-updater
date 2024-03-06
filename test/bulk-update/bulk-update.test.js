@@ -36,7 +36,7 @@ describe('BulkUpdater', () => {
           ],
         }),
       });
-      const data = await loadListData('https://main--bacom--adobecom.hlx.test/query-index.json', stubFetch);
+      const data = await loadListData('https://main--bacom--adobecom.hlx.test/query-index.json', stubFetch, 0);
 
       expect(data).to.be.an('array');
       expect(data.length).to.equal(1);
@@ -55,7 +55,7 @@ describe('BulkUpdater', () => {
           ],
         }),
       });
-      const data = await loadListData(`${pathname}mock/query-indexes.json`, stubFetch);
+      const data = await loadListData(`${pathname}mock/query-indexes.json`, stubFetch, 0);
 
       expect(data).to.be.an('array');
       expect(data).to.deep.equal(['/test/path1', '/test/path1']);

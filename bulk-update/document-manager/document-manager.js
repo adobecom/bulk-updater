@@ -1,11 +1,11 @@
 /* eslint-disable max-len */
+import fs from 'fs';
 import { fetch, timeoutSignal, AbortError } from '@adobe/fetch';
 import { mdast2docx } from '@adobe/helix-md2docx';
 import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
 
-import fs from 'fs';
-
 const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, milliseconds); });
+const { pathname } = new URL('.', import.meta.url);
 
 /**
  * Format the path to the actual url/file.
@@ -87,6 +87,34 @@ export function hasExpired(mtime, cacheTime, date = Date.now()) {
 }
 
 /**
+ * Loads markdown content from a file.
+ *
+ * @param {string} markdownFile - The path to the markdown file.
+ * @param {number} mdCacheMs - The cache duration in milliseconds.
+ * @returns {string|null} The content of the markdown file, or null if the file doesn't exist or has expired in the cache.
+ */
+function loadMarkdownFromFile(markdownFile, mdCacheMs) {
+  if (!fs.existsSync(markdownFile)) return null;
+
+  const stats = fs.statSync(markdownFile);
+  if (hasExpired(stats.mtime, mdCacheMs)) return null;
+
+  return fs.readFileSync(markdownFile, 'utf8');
+}
+
+/**
+ * Saves the provided markdown content to a file.
+ *
+ * @param {string} markdownFile - The path of the markdown file to save.
+ * @param {string} markdown - The markdown content to be saved.
+ */
+function saveMarkdownToFile(markdownFile, markdown) {
+  const folder = markdownFile.split('/').slice(0, -1).join('/');
+  fs.mkdirSync(folder, { recursive: true });
+  fs.writeFileSync(markdownFile, markdown);
+}
+
+/**
  * Load entry markdown from a file or URL.
  *
  * If a save directory is provided in the config and a file exists at that path,
@@ -110,29 +138,32 @@ export async function loadDocument(entry, config, fetchFunction = fetch) {
   if (!entry || !entry.startsWith('/')) throw new Error(`Invalid path: ${entry}`);
   const { mdDir, siteUrl, reporter, fetchWaitMs, mdCacheMs = 0 } = config;
   const document = { entry, path: entryToPath(entry) };
+
   document.url = new URL(document.path, siteUrl).href;
   document.markdownFile = `${mdDir}${document.path}.md`;
 
-  if (mdDir && fs.existsSync(document.markdownFile)) {
-    const stats = fs.statSync(document.markdownFile);
-    if (!hasExpired(stats.mtime, mdCacheMs)) {
-      document.markdown = fs.readFileSync(document.markdownFile, 'utf8');
-      reporter.log('load', 'success', 'Loaded markdown', document.markdownFile);
+  if (mdDir) {
+    document.markdown = loadMarkdownFromFile(document.markdownFile, mdCacheMs);
+
+    if (document.markdown) {
+      document.mdast = getMdast(document.markdown, reporter);
+      reporter.log('load', 'success', 'Loaded file', { entry });
+
+      return document;
     }
   }
 
-  if (!document.markdown) {
-    document.markdown = await fetchMarkdown(`${document.url}.md`, reporter, fetchWaitMs, fetchFunction);
-    reporter.log('load', 'success', 'Fetched markdown', `${document.url}.md`);
+  document.markdown = await fetchMarkdown(`${document.url}.md`, reporter, fetchWaitMs, fetchFunction);
 
-    if (document.markdown && mdDir) {
-      const folder = document.markdownFile.split('/').slice(0, -1).join('/');
-      fs.mkdirSync(folder, { recursive: true });
-      fs.writeFileSync(document.markdownFile, document.markdown);
-    }
+  if (document.markdown) {
+    if (mdDir) saveMarkdownToFile(document.markdownFile, document.markdown);
+    document.mdast = getMdast(document.markdown, reporter);
+    reporter.log('load', 'success', 'Fetched entry', { entry });
+
+    return document;
   }
 
-  document.mdast = getMdast(document.markdown, reporter);
+  reporter.log('load', 'error', 'Failed to load or fetch entry', { entry });
 
   return document;
 }
@@ -147,7 +178,8 @@ async function saveDocx(mdast, output) {
   const outputFolder = output.split('/').slice(0, -1).join('/');
   fs.mkdirSync(outputFolder, { recursive: true });
 
-  const buffer = await mdast2docx(mdast);
+  const stylesXML = fs.readFileSync(`${pathname}styles.xml`, 'utf8');
+  const buffer = await mdast2docx(mdast, { stylesXML });
   fs.writeFileSync(output, buffer);
 }
 
@@ -174,8 +206,8 @@ export async function saveDocument(document, config) {
 
   try {
     await saveDocx(mdast, output);
-    reporter.log('save', 'success', 'Saved docx to', `${output}`);
+    reporter.log('save', 'success', 'Saved docx', { entry });
   } catch (e) {
-    reporter.log('save', 'error', e.message, `${documentPath}.docx`);
+    reporter.log('save', 'error', e.message, { entry });
   }
 }
