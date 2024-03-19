@@ -3,6 +3,7 @@ import fs from 'fs';
 import { fetch, timeoutSignal, AbortError } from '@adobe/fetch';
 import { mdast2docx } from '@adobe/helix-md2docx';
 import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
+import validateMdast from '../validation/mdast.js';
 
 const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, milliseconds); });
 const { pathname } = new URL('.', import.meta.url);
@@ -177,6 +178,7 @@ export async function loadDocument(entry, config, fetchFunction = fetch) {
 async function saveDocx(mdast, output) {
   const outputFolder = output.split('/').slice(0, -1).join('/');
   fs.mkdirSync(outputFolder, { recursive: true });
+  validateMdast(mdast);
 
   const stylesXML = fs.readFileSync(`${pathname}styles.xml`, 'utf8');
   const buffer = await mdast2docx(mdast, { stylesXML });

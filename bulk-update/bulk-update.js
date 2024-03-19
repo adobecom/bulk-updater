@@ -97,13 +97,17 @@ export async function loadListData(source, fetchFunction = fetch, fetchWaitMs = 
  */
 export default async function main(config, migrate, reporter = null) {
   config.reporter = reporter || config.reporter;
+  const { length } = config.list;
 
   try {
     for (const [i, entry] of config.list.entries()) {
-      console.log(`Processing entry ${i + 1} of ${config.list.length} ${entry}`);
+      const percentage = Math.round(((i + 1) / length) * 10000) / 100;
+      console.log(`Processing entry ${i + 1} of ${length} (${percentage}%) ${entry}`);
       const document = await loadDocument(entry, config);
       await migrate(document);
-      await validateMigration(document, config);
+      if (config.validateMigration) {
+        await validateMigration(document, config);
+      }
     }
   } catch (e) {
     console.error('Bulk Update Error:', e);

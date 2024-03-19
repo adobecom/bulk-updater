@@ -16,7 +16,15 @@ const dateString = ExcelReporter.getDateString();
 const missingTags = {};
 
 const config = {
-  list: `${pathname}list.txt`,
+  list: [
+    'https://main--bacom-blog--adobecom.hlx.live/de/blog/query-index.json',
+    'https://main--bacom-blog--adobecom.hlx.live/fr/blog/query-index.json',
+    'https://main--bacom-blog--adobecom.hlx.live/au/blog/query-index.json',
+    'https://main--bacom-blog--adobecom.hlx.live/uk/blog/query-index.json',
+    'https://main--bacom-blog--adobecom.hlx.live/blog/query-index.json',
+    'https://main--bacom-blog--adobecom.hlx.live/jp/blog/query-index.json',
+    'https://main--bacom-blog--adobecom.hlx.live/kr/blog/query-index.json',
+  ],
   siteUrl: 'https://main--bacom-blog--adobecom.hlx.live',
   prodSiteUrl: 'https://business.adobe.com',
   reporter: new ExcelReporter(`${pathname}reports/caas-${dateString}.xlsx`, false),
@@ -24,6 +32,7 @@ const config = {
   mdDir: `${pathname}md`,
   mdCacheMs: 1 * 24 * 60 * 60 * 1000, // 1 day(s)
   fetchWaitMs: 20,
+  validateMigration: !DRY_RUN,
 };
 
 function loadCaasMappings() {
@@ -78,7 +87,7 @@ function mapTags(metadata, entry) {
  * @returns {Object} - The card metadata object.
  */
 export function getCardMetadata(mdast, entry) {
-  const cardMetadata = { ContentType: 'blog' };
+  const cardMetadata = { };
   const pageTitle = select('heading[depth="1"] text', mdast);
   const pageImage = select('image', mdast);
   const metadataBlock = selectBlock(mdast, 'metadata');
@@ -99,8 +108,13 @@ export function getCardMetadata(mdast, entry) {
       cardMetadata.Title = metadata.Title;
     }
     if (metadata['Publication Date']) {
-      const [date] = new Date(metadata['Publication Date']).toISOString().split('T');
-      cardMetadata.CardDate = date;
+      try {
+        const publicationDate = new Date(metadata['Publication Date']);
+        const [date] = publicationDate.toISOString().split('T');
+        cardMetadata.CardDate = date;
+      } catch (error) {
+        config.reporter?.log('Card Metadata', 'Error', 'Error parsing publication date', { Value: metadata['Publication Date'], entry });
+      }
     }
     if (metadata.Description) cardMetadata.CardDescription = metadata.Description;
 
@@ -138,13 +152,12 @@ export function createBlock(name, fields) {
  */
 export function createCardMetadataBlock(cardMetadata) {
   const fields = [
-    [u('text', 'Title'), u('text', cardMetadata.Title)],
-    [u('text', 'CardDate'), u('text', cardMetadata.CardDate)],
+    [u('text', 'Title'), u('text', cardMetadata.Title ?? '')],
+    [u('text', 'CardDate'), u('text', cardMetadata.CardDate ?? '')],
     [u('text', 'CardImage'), cardMetadata.CardImage],
-    [u('text', 'CardImageAltText'), u('text', cardMetadata.CardImageAltText)],
-    [u('text', 'CardDescription'), u('text', cardMetadata.CardDescription)],
-    [u('text', 'ContentType'), u('text', cardMetadata.ContentType)],
-    [u('text', 'primaryTag'), u('text', cardMetadata.PrimaryTag)],
+    [u('text', 'CardImageAltText'), u('text', cardMetadata.CardImageAltText ?? '')],
+    [u('text', 'CardDescription'), u('text', cardMetadata.CardDescription ?? '')],
+    [u('text', 'primaryTag'), u('text', cardMetadata.PrimaryTag ?? '')],
     [u('text', 'Tags'), u('text', cardMetadata.Tags.join(', '))],
   ];
 
@@ -162,7 +175,7 @@ export function createCardMetadataBlock(cardMetadata) {
  * @returns {bool} - True if the metadata is valid, false otherwise.
  */
 export function validateCardMetadata(cardMetadata, reporter, entry) {
-  const requiredFields = ['Title', 'CardDescription', 'CardDate', 'Tags', 'CardImage'];
+  const requiredFields = ['Title', 'CardDate', 'Tags', 'CardImage'];
   let valid = true;
 
   const missingFields = requiredFields.filter((field) => !cardMetadata[field]);
@@ -172,7 +185,7 @@ export function validateCardMetadata(cardMetadata, reporter, entry) {
   }
 
   if (cardMetadata.CardDate && !/^\d{4}-\d{2}-\d{2}$/.test(cardMetadata.CardDate)) {
-    reporter?.log('Card Metadata', 'Error', 'Card Date should be in YYYY-MM-DD format.', { Value: cardMetadata.CardDate, entry });
+    reporter?.log('Card Metadata', 'Error', 'Card Date should be in YYYY-MM-DD format.', { Value: cardMetadata.CardDate, entry, CardDate: cardMetadata.CardDate });
     valid = false;
   }
 
@@ -182,15 +195,16 @@ export function validateCardMetadata(cardMetadata, reporter, entry) {
 
   const { Title, CardDescription } = cardMetadata;
   if (Title && Title.length > MAX_CARD_TITLE_LENGTH) {
-    reporter?.log('Card Metadata', 'Error', `Card Title should be a maximum of ${MAX_CARD_TITLE_LENGTH} characters.`, { Value: Title, entry });
-    valid = false;
+    reporter?.log('Card Metadata', 'Warning', `Card Title should be a maximum of ${MAX_CARD_TITLE_LENGTH} characters.`, { Value: Title, entry });
   }
 
   if (CardDescription && CardDescription.length > MAX_CARD_DESCRIPTION_LENGTH) {
-    reporter?.log('Card Metadata', 'Error', `Card Description should be a maximum of ${MAX_CARD_DESCRIPTION_LENGTH} characters.`, { Value: CardDescription, entry });
-    valid = false;
+    reporter?.log('Card Metadata', 'Warning', `Card Description should be a maximum of ${MAX_CARD_DESCRIPTION_LENGTH} characters.`, { Value: CardDescription, entry });
   } else if (CardDescription && CardDescription.length > WARNING_CARD_DESCRIPTION_LENGTH) {
-    reporter?.log('Card Metadata', 'Warning', `Card Description exceeds ${WARNING_CARD_DESCRIPTION_LENGTH} characters.`, { Value: CardDescription, entry });
+    reporter?.log('Card Metadata', 'Info', `Card Description exceeds ${WARNING_CARD_DESCRIPTION_LENGTH} characters.`, { Value: CardDescription, entry });
+  }
+  if (!CardDescription) {
+    reporter?.log('Missing Description', 'Info', 'Card Description is required', { entry, CardDate: cardMetadata.CardDate });
   }
 
   return valid;
@@ -210,7 +224,9 @@ export async function migrate(document) {
   }
 
   const cardMetadata = getCardMetadata(mdast, entry);
-  validateCardMetadata(cardMetadata, config.reporter, entry);
+  const isValid = validateCardMetadata(cardMetadata, config.reporter, entry);
+  if (!isValid) return false;
+
   const cardMetadataBlock = createCardMetadataBlock(cardMetadata);
   mdast.children.push(cardMetadataBlock);
   if (DRY_RUN) {
@@ -232,7 +248,7 @@ export async function migrate(document) {
  */
 export async function init(list) {
   const entryList = await loadListData(list || config.list);
-  config.list = entryList;
+  config.list = entryList.filter((entry) => entry && !entry.match(/^\/\w{0,2}\/?blog\/$/));
 
   return config;
 }
