@@ -25,6 +25,7 @@ describe('Select', () => {
       ['Block Name', { blockName: 'block-name', options: [], variant: 'block-name' }],
       ['Block Name(option1)', { blockName: 'block-name', options: ['option1'], variant: 'block-name (option1)' }],
       ['Block Name(option1, Option2)', { blockName: 'block-name', options: ['option1', 'option2'], variant: 'block-name (option1, option2)' }],
+      ['', { blockName: '', options: [], variant: '' }],
     ];
 
     tests.forEach(([input, expectedOutput]) => {

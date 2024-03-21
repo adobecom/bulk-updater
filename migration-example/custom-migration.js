@@ -1,5 +1,4 @@
-import { loadDocument, saveDocument } from '../bulk-update/document-manager/document-manager.js';
-import ConsoleReporter from '../bulk-update/reporter/console-reporter.js';
+import { ConsoleReporter, loadDocument, saveDocument } from '../bulk-update/index.js';
 
 /**
  * Example Migration, run using `node migration-example/custom-migration.js`

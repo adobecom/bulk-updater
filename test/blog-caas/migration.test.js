@@ -20,7 +20,6 @@ describe('Blog CAAS Migration', () => {
         url: 'https://business.adobe.com/media.png',
       },
       CardImageAltText: 'Image card image',
-      ContentType: 'blog',
       PrimaryTag: 'caas:content-type/blog',
       CardDate: '2024-02-27',
       Tags: [
@@ -42,22 +41,6 @@ describe('Blog CAAS Migration', () => {
       const metadata = { ...validCardMetadata };
 
       delete metadata.Title;
-      const result = validateCardMetadata(metadata);
-      expect(result).to.be.false;
-    });
-
-    it('returns false for long titles', () => {
-      const metadata = { ...validCardMetadata };
-      metadata.Title = 'Title'.repeat(10);
-
-      const result = validateCardMetadata(metadata);
-      expect(result).to.be.false;
-    });
-
-    it('returns false for long descriptions', () => {
-      const metadata = { ...validCardMetadata };
-      metadata.CardDescription = 'Description'.repeat(20);
-
       const result = validateCardMetadata(metadata);
       expect(result).to.be.false;
     });

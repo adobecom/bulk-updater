@@ -13,9 +13,9 @@ export const getBlockInfo = (str = '') => {
   const blockInfo = {};
   const regex = /([\w\s-]+)\s*(?:\(([^)]*)\))?/;
   const match = regex.exec(str.toLowerCase());
-  const [, blockName, optionsRaw] = match.map((t) => (t ? t.trim() : undefined));
+  const [, blockName, optionsRaw] = match?.map((t) => (t ? t.trim() : undefined)) ?? [];
 
-  blockInfo.blockName = blockName.replace(/\s+/g, '-');
+  blockInfo.blockName = blockName?.replace(/\s+/g, '-') || '';
   blockInfo.options = optionsRaw ? optionsRaw.split(',').map((option) => option.trim()) : [];
   blockInfo.variant = blockInfo.options.length > 0 ? `${blockInfo.blockName} (${blockInfo.options.join(', ')})` : blockInfo.blockName;
 
