@@ -178,7 +178,6 @@ export async function loadDocument(entry, config, fetchFunction = fetch) {
 async function saveDocx(mdast, output) {
   const outputFolder = output.split('/').slice(0, -1).join('/');
   fs.mkdirSync(outputFolder, { recursive: true });
-  validateMdast(mdast);
 
   const stylesXML = fs.readFileSync(`${pathname}styles.xml`, 'utf8');
   const buffer = await mdast2docx(mdast, { stylesXML });
@@ -205,6 +204,11 @@ export async function saveDocument(document, config) {
   }
   const documentPath = entryToPath(entry);
   const output = `${outputDir}${documentPath}.docx`;
+  const issues = validateMdast(mdast);
+
+  issues.forEach((issue) => {
+    reporter.log('validation', 'error', issue, { entry });
+  });
 
   try {
     await saveDocx(mdast, output);

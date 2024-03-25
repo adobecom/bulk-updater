@@ -47,11 +47,32 @@ describe('Blog CAAS Migration', () => {
   });
 
   describe('getCardMetadata', () => {
+    const md = fs.readFileSync(`${pathname}mock/blog-caas.md`, 'utf-8');
+    const mdast = getMdast(md);
+
     it('returns the correct metadata from mdast', () => {
-      const md = fs.readFileSync(`${pathname}mock/blog-caas.md`, 'utf-8');
-      const mdast = getMdast(md);
       const result = getCardMetadata(mdast, '/blog/blog-caas');
       expect(result).to.deep.equal(validCardMetadata);
+    });
+
+    it('adds the news caas tags for latest pages', () => {
+      const result = getCardMetadata(mdast, '/blog/the-latest/blog-caas');
+      expect(result.Tags).to.include('caas:topic/news');
+    });
+
+    it('adds the news caas tags for international latest pages', () => {
+      const result = getCardMetadata(mdast, '/de/blog/the-latest/blog-caas');
+      expect(result.Tags).to.include('caas:topic/news');
+    });
+
+    it('adds the trends caas tags for perspectives pages', () => {
+      const result = getCardMetadata(mdast, '/blog/perspectives/blog-caas');
+      expect(result.Tags).to.include('caas:topic/trends');
+    });
+
+    it('adds the trends caas tags for international perspectives pages', () => {
+      const result = getCardMetadata(mdast, '/fr/blog/perspectives/blog-caas');
+      expect(result.Tags).to.include('caas:topic/trends');
     });
   });
 
