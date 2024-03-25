@@ -14,41 +14,41 @@ describe('MDAST validation', () => {
       expect(result).to.deep.equal(['root', 'paragraph', 'text']);
     });
   });
-  it('throws an error for an empty text node', () => {
-    const mdast = {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [
-            {
-              type: 'text',
-              value: '',
-            },
-          ],
-        },
-      ],
-    };
 
-    expect(() => validateMdast(mdast)).to.throw('Invalid text node root > paragraph > text: {"type":"text","value":""}');
-  });
+  describe('validateMdast', () => {
+    it('returns an array of invalid nodes', () => {
+      const mdast = {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              { type: 'text' },
+            ],
+          },
+        ],
+      };
 
-  it('does not throw an error for a non-empty text node', () => {
-    const mdast = {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [
-            {
-              type: 'text',
-              value: 'Some text',
-            },
-          ],
-        },
-      ],
-    };
+      expect(validateMdast(mdast)).to.deep.equal(['Invalid text node root > paragraph > text: {"type":"text"}']);
+    });
 
-    expect(() => validateMdast(mdast)).to.not.throw();
+    it('returns an empty array for valid nodes', () => {
+      const mdast = {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                value: '',
+              },
+            ],
+          },
+        ],
+      };
+
+      expect(validateMdast(mdast)).to.deep.equal([]);
+    });
   });
 });

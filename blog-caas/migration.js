@@ -71,10 +71,10 @@ function mapTags(metadata, entry) {
     }
 
     return caasTag;
-  });
+  }).filter((tag) => tag);
 
-  if (entry.startsWith('/blog/the-latest/')) caasTags.push('caas:topic/news');
-  if (entry.startsWith('/blog/perspectives/')) caasTags.push('caas:topic/trends');
+  if (entry.match(/^\/\w{0,2}\/?blog\/the-latest\//)) caasTags.push('caas:topic/news');
+  if (entry.match(/^\/\w{0,2}\/?blog\/perspectives\//)) caasTags.push('caas:topic/trends');
 
   return caasTags.filter((tag, index) => caasTags.indexOf(tag) === index);
 }
@@ -190,7 +190,7 @@ export function validateCardMetadata(cardMetadata, reporter, entry) {
   }
 
   if (cardMetadata.Tags && cardMetadata.Tags.length <= ADDITIONAL_TAGS.length + 1) {
-    reporter?.log('Card Metadata', 'Warning', 'No tags found.', { Value: cardMetadata.Tags, entry });
+    reporter?.log('Card Metadata', 'Warning', 'No tag mappings found.', { Value: cardMetadata.Tags, entry });
   }
 
   const { Title, CardDescription } = cardMetadata;
