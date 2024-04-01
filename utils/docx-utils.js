@@ -134,7 +134,7 @@ const readDocxEntries = async (file) => {
 function loadImages(mediaFiles, tree) {
   visit(tree, (node) => {
     if (node.type === "image" && node.url) {
-      const ref = crypto.createHash("sha1").update(node.url).digest("hex");
+      const ref = crypto.createHash("sha256").update(node.url).digest("hex");
       const cleanUrl = node.url.replace(/[\?|#].*/g, "");
       const ext = cleanUrl.split(".").pop();
       const matchingFile = Object.keys(mediaFiles).find((f) => f.includes(ref));

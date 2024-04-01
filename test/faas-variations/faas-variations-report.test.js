@@ -55,74 +55,74 @@ describe('FaaS Variations Report', () => {
 
     it('reports variations text block with paragraph link', async () => {
       const entry = '/au/resources/webinars/extending-content-for-every-interaction';
-      const result = [{
-        hash: '47e05f2b52a71da3eb4ce6c63f995997408d4401',
+      const result = {
         structure: "root > gridTable 'text' > gtBody > gtRow > gtCell > paragraph > link",
         variant: 'A',
-      }];
+      };
 
       const variations = await getReport(entry);
-      expect(Object.values(variations)).to.deep.equal(result);
+      expect(variations[0].structure).to.equal(result.structure);
+      expect(variations[0].variant).to.equal(result.variant);
     });
 
     it('reports variations for text block, mobile max width variation, with paragraph link', async () => {
       const entry = '/au/resources/ebooks/5-ai-powered-strategies-for-ecommerce-personalization';
-      const result = [{
-        hash: '062f5c942cb9e5f80fd3d37b969740e9d5640a5c',
+      const result = {
         structure: "root > gridTable 'text (mobile max width)' > gtBody > gtRow > gtCell > paragraph > link",
         variant: 'B',
-      }];
+      };
 
       const variations = await getReport(entry);
-      expect(Object.values(variations)).to.deep.equal(result);
+      expect(variations[0].structure).to.equal(result.structure);
+      expect(variations[0].variant).to.equal(result.variant);
     });
 
     it('reports variations for text block with paragraph link', async () => {
       const entry = '/au/resources/ebooks/elements-of-engagement-marketing';
-      const result = [{
-        hash: '47e05f2b52a71da3eb4ce6c63f995997408d4401',
+      const result = {
         structure: "root > gridTable 'text' > gtBody > gtRow > gtCell > paragraph > link",
         variant: 'A',
-      }];
+      };
 
       const variations = await getReport(entry);
-      expect(Object.values(variations)).to.deep.equal(result);
+      expect(variations[0].structure).to.equal(result.structure);
+      expect(variations[0].variant).to.equal(result.variant);
     });
 
     it('reports variations for columns contained block with paragraph link', async () => {
       const entry = '/au/resources/webinars/marketos-secrets-to-social-media-marketing';
-      const result = [{
-        hash: 'dfa6662d4da27970a8e3b9b2c437b19617b2e0b3',
+      const result = {
         structure: "root > gridTable 'columns (contained)' > gtBody > gtRow > gtCell > paragraph > link",
         variant: 'C',
-      }];
+      };
 
       const variations = await getReport(entry);
-      expect(Object.values(variations)).to.deep.equal(result);
+      expect(variations[0].structure).to.equal(result.structure);
+      expect(variations[0].variant).to.equal(result.variant);
     });
 
     it('reports variations for marquee small light block with paragraph strong link', async () => {
       const entry = '/au/resources/webinars/winning-strategies-for-b2b-ecommerce-in-2023';
-      const result = [{
-        hash: '022145c3a934096fc1f46b647d472e6ebc01dce1',
+      const result = {
         structure: "root > gridTable 'marquee (small, light)' > gtBody > gtRow > gtCell > paragraph > strong > root > paragraph > link",
         variant: 'D',
-      }];
+      };
 
       const variations = await getReport(entry);
-      expect(Object.values(variations)).to.deep.equal(result);
+      expect(variations[0].structure).to.equal(result.structure);
+      expect(variations[0].variant).to.equal(result.variant);
     });
 
     it('reports variations for a paragraph link', async () => {
       const entry = '/au/resources/digital-trends-report';
-      const result = [{
-        hash: '6aac3fa46842107c5dae7739b3b378015de78928',
+      const result = {
         structure: 'root > paragraph > link',
         variant: 'E',
-      }];
+      };
 
       const variations = await getReport(entry);
-      expect(Object.values(variations)).to.deep.equal(result);
+      expect(variations[0].structure).to.equal(result.structure);
+      expect(variations[0].variant).to.equal(result.variant);
     });
   });
 

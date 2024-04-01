@@ -112,7 +112,7 @@ const getVariant = (node, ancestors) => {
   const variation = {};
 
   variation.structure = `${mapAncestors(ancestors).join(' > ')} > ${node.type}`;
-  variation.hash = createHash('sha1').update(variation.structure).digest('hex');
+  variation.hash = createHash('sha256').update(variation.structure).digest('hex');
   variation.variant = reportVariations[variation.hash]?.variant
     || getLetterScheme(Object.keys(reportVariations).length);
 
