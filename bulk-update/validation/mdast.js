@@ -22,10 +22,14 @@ export const mapAncestors = (ancestors) => ancestors.map((ancestor) => {
 });
 
 export default function validateMdast(mdast) {
+  const invalidNodes = [];
   visitParents(mdast, 'text', (node, ancestors) => {
-    if (!node.value) {
+    if (node.value === undefined) {
       const structure = `${mapAncestors(ancestors).join(' > ')} > ${node.type}`;
-      throw new Error(`Invalid text node ${structure}: ${JSON.stringify(node)}`);
+
+      invalidNodes.push(`Invalid text node ${structure}: ${JSON.stringify(node)}`);
     }
   });
+
+  return invalidNodes;
 }
