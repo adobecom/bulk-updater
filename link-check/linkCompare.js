@@ -10,6 +10,8 @@ import { docx2md } from '@adobe/helix-docx2md';
  * @returns {boolean} - Returns true if the links have the same host and pathname, otherwise false.
  */
 export function compareLink(link1, link2) {
+  if (!link1 || !link2) return false;
+
   const url1 = new URL(link1.trim(), 'https://business.adobe.com/');
   const url2 = new URL(link2.trim(), 'https://business.adobe.com/');
 
