@@ -15,7 +15,8 @@ const LIST = [
 ];
 
 async function init() {
-  const reporter = new ExcelReporter(`${pathname}reports/caas-links.xlsx`, true);
+  const report = new ExcelReporter(`${pathname}reports/blog-links.xlsx`, true);
+  const reportExtra = new ExcelReporter(`${pathname}reports/blog-links-extra.xlsx`, false);
   const list = await loadListData(LIST);
   const { length } = list;
 
@@ -26,21 +27,38 @@ async function init() {
     const franklinURL = FRANKLIN_BLOG + entry;
     try {
       const result = await compare(miloURL, franklinURL);
-      reporter.log('link-check', 'info', 'Checked Links', {
+      const miloLinks = result.links.map((link) => link.link1);
+      const franklinLinks = result.links.map((link) => link.link2);
+
+      report.log('link-check', 'info', 'Checked Links', { miloURL, franklinURL, broken: !result.match });
+      reportExtra.log('link-check', 'info', 'Checked Links', {
         entry,
         miloURL,
         franklinURL,
+        broken: !result.match,
         match: result.match,
-        unique: result.unique.length,
-        total: result.links.length,
+        miloTotal: miloLinks.filter((x) => x).length,
+        franklinTotal: franklinLinks.filter((x) => x).length,
       });
+      reportExtra.log('milo-links', 'info', miloURL, miloLinks);
+      reportExtra.log('franklin-links', 'info', franklinURL, franklinLinks);
     } catch (e) {
       console.error('Error Checking Links:', e);
-      reporter.log('link-check', 'error', 'Error Checking Links', { entry, miloURL, franklinURL, error: e.message });
+      report.log('link-check', 'error', 'Error Checking Links', { miloURL, franklinURL, broken: false });
+      reportExtra.log('link-check', 'error', 'Error Checking Links', {
+        entry,
+        miloURL,
+        franklinURL,
+        broken: true,
+        error: e.message,
+      });
     }
   }
-  reporter.calculateTotals();
-  reporter.saveReport();
+
+  report.generateTotals();
+  report.saveReport();
+  reportExtra.generateTotals();
+  reportExtra.saveReport();
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
