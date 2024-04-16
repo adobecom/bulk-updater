@@ -1,3 +1,4 @@
+import { fetch } from '@adobe/fetch';
 import { compare } from './linkCompare.js';
 import { ExcelReporter, loadListData } from '../bulk-update/index.js';
 
@@ -14,6 +15,21 @@ const LIST = [
   'https://main--bacom-blog--adobecom.hlx.live/kr/blog/query-index.json',
 ];
 
+/**
+ * Compares two URLs
+ *
+ * @param {URL} url1 - The milo URL.
+ * @param {URL} url2 - The franklin URL.
+ * @returns boolean
+ */
+function comparison(url1, url2) {
+  if (url2.pathname.includes('/banners/')) return true;
+  if (url1.href.includes('#_dnt')) {
+    return (url1.host === url2.host) && (url1.pathname === url2.pathname);
+  }
+  return url1.href === url2.href;
+}
+
 async function init() {
   const report = new ExcelReporter(`${pathname}reports/blog-links.xlsx`, true);
   const reportExtra = new ExcelReporter(`${pathname}reports/blog-links-extra.xlsx`, false);
@@ -26,12 +42,13 @@ async function init() {
     const miloURL = MILO_BLOG + entry;
     const franklinURL = FRANKLIN_BLOG + entry;
     try {
-      const result = await compare(miloURL, franklinURL);
+      const result = await compare(miloURL, franklinURL, fetch, comparison);
       const miloLinks = result.links.map((link) => link.link1);
       const franklinLinks = result.links.map((link) => link.link2);
+      const status = result.match ? 'match' : 'broken';
 
-      report.log('link-check', 'info', 'Checked Links', { miloURL, franklinURL, broken: !result.match });
-      reportExtra.log('link-check', 'info', 'Checked Links', {
+      report.log('link-check', status, 'Checked Links', { miloURL, franklinURL, broken: !result.match });
+      reportExtra.log('link-check', status, 'Checked Links', {
         entry,
         miloURL,
         franklinURL,
