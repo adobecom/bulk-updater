@@ -2,6 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "List Rollout",
+      "program": "${workspaceFolder}/rollout/list-rollout.js",
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node",
+      "cwd": "${workspaceFolder}/rollout"
+    },
+    {
       "type": "node-terminal",
       "name": "Bulk Update Example",
       "request": "launch",

@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<w:document
+    xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+    xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex"
+    xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex"
+    xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex"
+    xmlns:cx3="http://schemas.microsoft.com/office/drawing/2016/5/9/chartex"
+    xmlns:cx4="http://schemas.microsoft.com/office/drawing/2016/5/10/chartex"
+    xmlns:cx5="http://schemas.microsoft.com/office/drawing/2016/5/11/chartex"
+    xmlns:cx6="http://schemas.microsoft.com/office/drawing/2016/5/12/chartex"
+    xmlns:cx7="http://schemas.microsoft.com/office/drawing/2016/5/13/chartex"
+    xmlns:cx8="http://schemas.microsoft.com/office/drawing/2016/5/14/chartex"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink"
+    xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d"
+    xmlns:o="urn:schemas-microsoft-com:office:office"
+    xmlns:oel="http://schemas.microsoft.com/office/2019/extlst"
+    xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+    xmlns:v="urn:schemas-microsoft-com:vml"
+    xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+    xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+    xmlns:w10="urn:schemas-microsoft-com:office:word"
+    xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+    xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"
+    xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex"
+    xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid"
+    xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml"
+    xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash"
+    xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex"
+    xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+    xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+    xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+    xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14">
+    <w:body>
+        <w:p w:rsidR="6B793512" w:rsidP="0FB88248" w:rsidRDefault="6B793512" w14:paraId="68300698" w14:textId="70B78451">
+            <w:pPr>
+                <w:pStyle w:val="ListParagraph" />
+                <w:numPr>
+                    <w:ilvl w:val="0" />
+                    <w:numId w:val="22" />
+                </w:numPr>
+                <w:suppressLineNumbers w:val="0" />
+                <w:bidi w:val="0" />
+                <w:spacing w:before="0" w:beforeAutospacing="off" w:after="0" w:afterAutospacing="off" w:line="259" w:lineRule="auto" />
+                <w:ind w:left="720" w:right="0" w:hanging="360" />
+                <w:jc w:val="left" />
+                <w:rPr />
+            </w:pPr>
+            <w:r w:rsidR="6B793512">
+                <w:rPr />
+                <w:t>First line</w:t>
+            </w:r>
+        </w:p>
+        <w:p w:rsidR="6B793512" w:rsidP="0FB88248" w:rsidRDefault="6B793512" w14:paraId="4842E7B3" w14:textId="5D5E21C0">
+            <w:pPr>
+                <w:pStyle w:val="ListParagraph" />
+                <w:numPr>
+                    <w:ilvl w:val="0" />
+                    <w:numId w:val="22" />
+                </w:numPr>
+                <w:suppressLineNumbers w:val="0" />
+                <w:bidi w:val="0" />
+                <w:spacing w:before="0" w:beforeAutospacing="off" w:after="0" w:afterAutospacing="off" w:line="259" w:lineRule="auto" />
+                <w:ind w:left="720" w:right="0" w:hanging="360" />
+                <w:jc w:val="left" />
+                <w:rPr />
+            </w:pPr>
+            <w:r w:rsidR="6B793512">
+                <w:rPr />
+                <w:t>Second line</w:t>
+            </w:r>
+        </w:p>
+        <w:p w:rsidR="6B793512" w:rsidP="0FB88248" w:rsidRDefault="6B793512" w14:paraId="50A43AD8" w14:textId="768498AD">
+            <w:pPr>
+                <w:pStyle w:val="ListParagraph" />
+                <w:numPr>
+                    <w:ilvl w:val="0" />
+                    <w:numId w:val="22" />
+                </w:numPr>
+                <w:suppressLineNumbers w:val="0" />
+                <w:bidi w:val="0" />
+                <w:spacing w:before="0" w:beforeAutospacing="off" w:after="0" w:afterAutospacing="off" w:line="259" w:lineRule="auto" />
+                <w:ind w:left="720" w:right="0" w:hanging="360" />
+                <w:jc w:val="left" />
+                <w:rPr>
+                    <w:noProof w:val="0" />
+                    <w:lang w:val="en-US" />
+                </w:rPr>
+                <w:pPrChange w:author="Chris Peyer" w:date="2024-04-18T18:23:22.38Z">
+                    <w:pPr>
+                        <w:pStyle w:val="ListParagraph" />
+                        <w:numPr>
+                            <w:ilvl w:val="0" />
+                            <w:numId w:val="22" />
+                        </w:numPr>
+                        <w:spacing w:before="0" w:beforeAutospacing="off" />
+                    </w:pPr>
+                </w:pPrChange>
+            </w:pPr>
+            <w:del w:author="Chris Peyer" w:date="2024-04-18T18:23:22.346Z" w:id="1126729488">
+                <w:r w:rsidDel="6B793512">
+                    <w:delText>Some text that the region will change</w:delText>
+                </w:r>
+            </w:del>
+            <w:ins w:author="Chris Peyer" w:date="2024-04-18T18:23:26.716Z" w:id="2029446484">
+                <w:r w:rsidR="6B793512">
+                    <w:t>Text has been changed</w:t>
+                </w:r>
+            </w:ins>
+        </w:p>
+        <w:p w:rsidR="6B793512" w:rsidP="0FB88248" w:rsidRDefault="6B793512" w14:paraId="302CF8AE" w14:textId="0EB1B507">
+            <w:pPr>
+                <w:pStyle w:val="ListParagraph" />
+                <w:numPr>
+                    <w:ilvl w:val="0" />
+                    <w:numId w:val="22" />
+                </w:numPr>
+                <w:rPr />
+            </w:pPr>
+            <w:r w:rsidR="6B793512">
+                <w:rPr />
+                <w:t>Fourth line</w:t>
+            </w:r>
+        </w:p>
+        <w:p w:rsidR="6B793512" w:rsidP="0FB88248" w:rsidRDefault="6B793512" w14:paraId="0413587F" w14:textId="493BCBFE">
+            <w:pPr>
+                <w:pStyle w:val="ListParagraph" />
+                <w:numPr>
+                    <w:ilvl w:val="0" />
+                    <w:numId w:val="22" />
+                </w:numPr>
+                <w:suppressLineNumbers w:val="0" />
+                <w:bidi w:val="0" />
+                <w:spacing w:before="0" w:beforeAutospacing="off" w:after="0" w:afterAutospacing="off" w:line="259" w:lineRule="auto" />
+                <w:ind w:left="720" w:right="0" w:hanging="360" />
+                <w:jc w:val="left" />
+                <w:rPr>
+                    <w:noProof w:val="0" />
+                    <w:lang w:val="en-US" />
+                </w:rPr>
+                <w:pPrChange w:author="Chris Peyer" w:date="2024-04-18T18:23:32.726Z">
+                    <w:pPr>
+                        <w:pStyle w:val="ListParagraph" />
+                        <w:numPr>
+                            <w:ilvl w:val="0" />
+                            <w:numId w:val="22" />
+                        </w:numPr>
+                        <w:spacing w:before="0" w:beforeAutospacing="off" />
+                    </w:pPr>
+                </w:pPrChange>
+            </w:pPr>
+            <w:del w:author="Chris Peyer" w:date="2024-04-18T18:23:32.707Z" w:id="2020218099">
+                <w:r w:rsidDel="6B793512">
+                    <w:delText>More text the region will change</w:delText>
+                </w:r>
+            </w:del>
+            <w:ins w:author="Chris Peyer" w:date="2024-04-18T18:23:37.957Z" w:id="617799166">
+                <w:r w:rsidR="6B793512">
+                    <w:t>https://adobe.com</w:t>
+                </w:r>
+            </w:ins>
+        </w:p>
+        <w:p w:rsidR="6B793512" w:rsidP="0FB88248" w:rsidRDefault="6B793512" w14:paraId="2D80441D" w14:textId="252298F7">
+            <w:pPr>
+                <w:pStyle w:val="ListParagraph" />
+                <w:numPr>
+                    <w:ilvl w:val="0" />
+                    <w:numId w:val="22" />
+                </w:numPr>
+                <w:rPr>
+                    <w:ins w:author="Chris Peyer" w:date="2024-04-18T18:23:43.698Z" w:id="907018667" />
+                </w:rPr>
+            </w:pPr>
+            <w:r w:rsidR="6B793512">
+                <w:rPr />
+                <w:t>Sixth Line</w:t>
+            </w:r>
+        </w:p>
+        <w:p w:rsidR="6B793512" w:rsidP="0FB88248" w:rsidRDefault="6B793512" w14:paraId="315825BC" w14:textId="4BD7B98B">
+            <w:pPr>
+                <w:pStyle w:val="ListParagraph" />
+                <w:numPr>
+                    <w:ilvl w:val="0" />
+                    <w:numId w:val="22" />
+                </w:numPr>
+                <w:rPr />
+            </w:pPr>
+            <w:ins w:author="Chris Peyer" w:date="2024-04-18T18:23:46.427Z" w:id="1789310475">
+                <w:r w:rsidR="6B793512">
+                    <w:t>One more new line</w:t>
+                </w:r>
+            </w:ins>
+        </w:p>
+        <w:sectPr w:rsidRPr="00F2633C" w:rsidR="00223DFC" w:rsidSect="00946665">
+            <w:pgSz w:w="12240" w:h="15840" w:orient="portrait" />
+            <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
+            <w:cols w:space="720" />
+            <w:docGrid w:linePitch="360" />
+        </w:sectPr>
+    </w:body>
+</w:document>
