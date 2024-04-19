@@ -2,18 +2,25 @@ import fs from 'fs';
 import { fetch } from '@adobe/fetch';
 import { docx2md } from '@adobe/helix-docx2md';
 
+export function comparison(url1, url2) {
+  return (url1.host === url2.host) && (url1.pathname === url2.pathname);
+}
+
 /**
  * Compares two links and checks if they have the same host and pathname.
  *
  * @param {string} link1 - The first link to compare.
  * @param {string} link2 - The second link to compare.
+ * @param {Function} [comparisonFn=comparison] - The function used to compare the links.
  * @returns {boolean} - Returns true if the links have the same host and pathname, otherwise false.
  */
-export function compareLink(link1, link2) {
+export function compareLink(link1, link2, comparisonFn = comparison) {
+  if (!link1 || !link2) return false;
+
   const url1 = new URL(link1.trim(), 'https://business.adobe.com/');
   const url2 = new URL(link2.trim(), 'https://business.adobe.com/');
 
-  return (url1.host === url2.host) && (url1.pathname === url2.pathname);
+  return comparisonFn(url1, url2);
 }
 
 /**
@@ -120,12 +127,12 @@ export async function extractLinks(source, fetchFn = fetch) {
  * @param {Array} links2 - The second array of links.
  * @returns {Promise<object>} - Match status and unique links.
  */
-export async function compareLinks(links1, links2) {
+export async function compareLinks(links1, links2, comparisonFn = comparison) {
   const result = { match: false, unique: [] };
 
   result.links = links1.map((link1, index) => {
     const link2 = links2[index];
-    return { index, link1, link2, match: compareLink(link1, link2) };
+    return { index, link1, link2, match: compareLink(link1, link2, comparisonFn) };
   });
 
   result.unique = result.links.filter((link) => !link.match);
@@ -140,11 +147,12 @@ export async function compareLinks(links1, links2) {
  * @param {string} source1 - The first source URL.
  * @param {string} source2 - The second source URL.
  * @param {Function} [fetchFn=fetch] - The function used to fetch the content from the sources.
+ * @param {Function} [comparisonFn=comparison] - The function used to compare the links.
  * @returns {Promise<object>}
  */
-export async function compare(source1, source2, fetchFn = fetch) {
+export async function compare(source1, source2, fetchFn = fetch, comparisonFn = comparison) {
   const links1 = await extractLinks(source1, fetchFn);
   const links2 = await extractLinks(source2, fetchFn);
 
-  return compareLinks(links1, links2);
+  return compareLinks(links1, links2, comparisonFn);
 }
