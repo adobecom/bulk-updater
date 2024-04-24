@@ -68,8 +68,10 @@ describe('DocumentManager', () => {
   describe('entryToPath', () => {
     const tests = [
       ['/', '/index'],
+      ['test-file', '/test-file'],
       ['/test-file', '/test-file'],
       ['/test-path/', '/test-path/index'],
+      ['test-path/test-file', '/test-path/test-file'],
       ['/test-path/test-file', '/test-path/test-file'],
       ['/test-file.html', '/test-file'],
       ['/test-file.html#anchor', '/test-file'],
@@ -95,7 +97,7 @@ describe('DocumentManager', () => {
         path: '/test-file',
         markdown,
         mdast,
-        markdownFile: `${pathname}mock/test-file.md`,
+        markdownFile: `${pathname}mock/source/test-file.md`,
         url: 'https://main--bacom--adobecom.hlx.test/test-file',
       });
     });
@@ -126,19 +128,26 @@ describe('DocumentManager', () => {
 
   describe('saveDocument', () => {
     it('saves a file', async () => {
+      config.mdDir = `${pathname}mock/`;
       const document = {
         entry: 'test-file',
         mdast,
       };
       await saveDocument(document, config);
       const report = config.reporter.getReport();
-      expect(report.logs.save).to.have.lengthOf(1);
-      expect(report.logs.save[0]).to.deep.equal({
-        status: 'success',
-        message: 'Saved docx',
-        0: { entry: document.entry },
-      });
-
+      expect(report.logs.save).to.have.lengthOf(2);
+      expect(report.logs.save).to.deep.equal([
+        {
+          status: 'md success',
+          message: 'Saved markdown',
+          0: { entry: document.entry },
+        },
+        {
+          status: 'docx success',
+          message: 'Saved docx',
+          0: { entry: document.entry },
+        },
+      ]);
       const filepath = `${config.outputDir}${document.entry}.docx`;
       expect(fs.existsSync(filepath)).to.be.true;
     });

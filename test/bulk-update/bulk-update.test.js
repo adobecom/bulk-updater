@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { stub } from 'sinon';
-import BulkUpdate, { loadListData } from '../../bulk-update/bulk-update.js';
+import BulkUpdate, { loadListData, localizedStageUrl } from '../../bulk-update/bulk-update.js';
 import BaseReporter from '../../bulk-update/reporter/reporter.js';
 
 const { pathname } = new URL('.', import.meta.url);
@@ -117,6 +117,30 @@ describe('BulkUpdater', () => {
       const totals = await BulkUpdate(config, migrate);
       expect(migrate.callCount).to.equal(2);
       expect(totals).to.deep.equal({ load: { success: 2 } });
+    });
+  });
+  describe('localizedStageUrl', () => {
+    it('generates the correct staged URL without locales', () => {
+      const siteUrl = 'https://example.com';
+      const entry = '/test/path';
+      const stagePath = '/stage';
+
+      const expectedUrl = 'https://example.com/stage/test/path';
+      const result = localizedStageUrl(siteUrl, entry, stagePath);
+
+      expect(result).to.equal(expectedUrl);
+    });
+
+    it('generates the correct staged URL', () => {
+      const siteUrl = 'https://example.com';
+      const entry = '/fr/test/path';
+      const stagePath = '/staged-content';
+      const locales = ['fr', 'de'];
+
+      const expectedUrl = 'https://example.com/fr/staged-content/test/path';
+      const result = localizedStageUrl(siteUrl, entry, stagePath, locales);
+
+      expect(result).to.equal(expectedUrl);
     });
   });
 });

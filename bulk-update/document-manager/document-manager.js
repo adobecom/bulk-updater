@@ -1,9 +1,14 @@
 /* eslint-disable max-len */
 import fs from 'fs';
+import path from 'path';
 import { fetch, timeoutSignal, AbortError } from '@adobe/fetch';
 import { mdast2docx } from '@adobe/helix-md2docx';
+import { mdast2md } from '@adobe/helix-docx2md';
 import parseMarkdown from '@adobe/helix-html-pipeline/src/steps/parse-markdown.js';
 import validateMdast from '../validation/mdast.js';
+
+const MD_SOURCE = 'source';
+const MD_UPDATED = 'updated';
 
 const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, milliseconds); });
 const { pathname } = new URL('.', import.meta.url);
@@ -17,9 +22,11 @@ const { pathname } = new URL('.', import.meta.url);
  * @returns {string} - The markdown path
  */
 export function entryToPath(entry) {
-  let path = entry.split(/\?|#/)[0].replace(/\/$/, '/index');
-  path = path.replace(/\.html$/, ''); // Remove .html extension
-  return path;
+  let filepath = entry.split(/\?|#/)[0].replace(/\/$/, '/index');
+  filepath = filepath.replace(/\.html$/, ''); // Remove .html extension
+  if (!filepath.startsWith('/')) filepath = `/${filepath}`;
+
+  return filepath;
 }
 
 /**
@@ -141,9 +148,9 @@ export async function loadDocument(entry, config, fetchFunction = fetch) {
   const document = { entry, path: entryToPath(entry) };
 
   document.url = new URL(document.path, siteUrl).href;
-  document.markdownFile = `${mdDir}${document.path}.md`;
 
   if (mdDir) {
+    document.markdownFile = path.join(mdDir, MD_SOURCE, `${document.path}.md`);
     document.markdown = loadMarkdownFromFile(document.markdownFile, mdCacheMs);
 
     if (document.markdown) {
@@ -170,17 +177,35 @@ export async function loadDocument(entry, config, fetchFunction = fetch) {
 }
 
 /**
- * Save a mdast as a docx file to the file system.
+ * Save a mdast as a md file to the specified file.
  *
  * @param {object} mdast
  * @param {string} outputFile
+ * @returns {Promise<void>}
+ */
+async function saveMd(mdast, output) {
+  const outputFolder = path.dirname(output);
+  fs.mkdirSync(outputFolder, { recursive: true });
+
+  const mdastCopy = JSON.parse(JSON.stringify(mdast));
+  const md = await mdast2md(mdastCopy, { gridtables: true });
+  fs.writeFileSync(output, md, 'utf-8');
+}
+
+/**
+ * Save a mdast as a docx file to the specified file.
+ *
+ * @param {object} mdast
+ * @param {string} outputFile
+ * @returns {Promise<void>}
  */
 async function saveDocx(mdast, output) {
-  const outputFolder = output.split('/').slice(0, -1).join('/');
+  const outputFolder = path.dirname(output);
   fs.mkdirSync(outputFolder, { recursive: true });
 
   const stylesXML = fs.readFileSync(`${pathname}styles.xml`, 'utf8');
-  const buffer = await mdast2docx(mdast, { stylesXML });
+  const mdastCopy = JSON.parse(JSON.stringify(mdast));
+  const buffer = await mdast2docx(mdastCopy, { stylesXML });
   fs.writeFileSync(output, buffer);
 }
 
@@ -197,13 +222,14 @@ async function saveDocx(mdast, output) {
  */
 export async function saveDocument(document, config) {
   const { mdast, entry } = document;
-  const { reporter, outputDir } = config;
+  const { reporter, mdDir, outputDir } = config;
   if (!outputDir) {
     reporter.log('save', 'error', 'No output directory specified. Skipping save.');
     return;
   }
   const documentPath = entryToPath(entry);
-  const output = `${outputDir}${documentPath}.docx`;
+  const outputDocx = path.join(outputDir, `${documentPath}.docx`);
+  const outputMd = path.join(mdDir, MD_UPDATED, `${documentPath}.md`);
   const issues = validateMdast(mdast);
 
   issues.forEach((issue) => {
@@ -211,9 +237,16 @@ export async function saveDocument(document, config) {
   });
 
   try {
-    await saveDocx(mdast, output);
-    reporter.log('save', 'success', 'Saved docx', { entry });
+    await saveMd(mdast, outputMd);
+    reporter.log('save', 'md success', 'Saved markdown', { entry });
   } catch (e) {
-    reporter.log('save', 'error', e.message, { entry });
+    reporter.log('save', 'md error', e.message, { entry });
+  }
+
+  try {
+    await saveDocx(mdast, outputDocx);
+    reporter.log('save', 'docx success', 'Saved docx', { entry });
+  } catch (e) {
+    reporter.log('save', 'docx error', e.message, { entry });
   }
 }

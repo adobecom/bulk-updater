@@ -87,6 +87,22 @@ export async function loadListData(source, fetchFunction = fetch, fetchWaitMs = 
 }
 
 /**
+ * Generates the staged-content URL by localizing the stage path based on the entry path.
+ *
+ * @param {string} siteUrl - The base URL of the site.
+ * @param {string} entry - The entry path.
+ * @param {string} stagePath - The path to the stage.
+ * @param {string[]} locales - An array of supported locales.
+ * @returns {string} The staged URL.
+ */
+export function localizedStageUrl(siteUrl, entry, stagePath, locales = []) {
+  const currentLocale = locales.find((locale) => locale && entry.startsWith(`/${locale}/`));
+  const localizedPath = currentLocale ? entry.replace(`/${currentLocale}/`, `/${currentLocale}${stagePath}/`) : `${stagePath}${entry}`;
+
+  return `${siteUrl}${localizedPath}`;
+}
+
+/**
  * Executes a bulk update operation using the provided migration function
  * Loads data from various sources and executes bulk update operations from the migration function.
  *
@@ -97,7 +113,16 @@ export async function loadListData(source, fetchFunction = fetch, fetchWaitMs = 
  */
 export default async function main(config, migrate, reporter = null) {
   config.reporter = reporter || config.reporter;
-  const { length } = config.list;
+  const { list, outputDir, siteUrl, stagePath, locales } = config;
+  const { length } = list;
+
+  if (outputDir) {
+    fs.mkdirSync(outputDir, { recursive: true });
+    fs.writeFileSync(`${outputDir}/list.json`, JSON.stringify(config.list, null, 2));
+
+    const output = list.map((entry) => [`${siteUrl}${entry}`, localizedStageUrl(siteUrl, entry, stagePath, locales)]);
+    fs.writeFileSync(`${outputDir}/staged.json`, JSON.stringify(output, null, 2));
+  }
 
   try {
     for (const [i, entry] of config.list.entries()) {
