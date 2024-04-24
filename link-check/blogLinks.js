@@ -6,7 +6,7 @@ import { ExcelReporter, loadListData } from '../bulk-update/index.js';
 const { pathname } = new URL('.', import.meta.url);
 const MILO_BLOG = 'https://main--bacom-blog--adobecom.hlx.live';
 const FRANKLIN_BLOG = 'https://main--business-website--adobe.hlx.live';
-const LIST = [
+const QUERY_INDEXES = [
   'https://main--bacom-blog--adobecom.hlx.live/de/blog/query-index.json',
   'https://main--bacom-blog--adobecom.hlx.live/fr/blog/query-index.json',
   'https://main--bacom-blog--adobecom.hlx.live/au/blog/query-index.json',
@@ -21,7 +21,7 @@ const LIST = [
  *
  * @param {URL} url1 - The milo URL.
  * @param {URL} url2 - The franklin URL.
- * @returns boolean
+ * @returns boolean - Returns true if the URLs match, otherwise false.
  */
 function comparison(url1, url2) {
   if (url2.pathname.includes('/banners/')) return true;
@@ -47,21 +47,35 @@ async function stagedContent(list) {
       const miloLinks = result.links.map((link) => link.link1);
       const stagedLinks = result.links.map((link) => link.link2);
       const status = result.match ? 'match' : 'broken';
+      const miloTotal = miloLinks.filter((x) => x).length;
+      const stagedTotal = stagedLinks.filter((x) => x).length;
+      const mismatchPercent = Math.round((result.broken.length / miloTotal) * 100) / 100;
+      const countMatch = miloTotal === stagedTotal;
+      console.log('match:', result.match, 'miloTotal:', miloTotal, 'stagedTotal:', stagedTotal, 'mismatchPercent:', mismatchPercent, 'countMatch:', countMatch);
 
-      report.log('link-check', status, 'Checked Links', { liveURL, stagedURL, broken: !result.match });
+      report.log('link-check', status, 'Checked Links', { liveURL, stagedURL, broken: !result.match, countMatch });
       reportExtra.log('link-check', status, 'Checked Links', {
         entry,
         liveURL,
         stagedURL,
         broken: !result.match,
         match: result.match,
-        miloTotal: miloLinks.filter((x) => x).length,
-        stagedTotal: stagedLinks.filter((x) => x).length,
-        mismatchPercent: Math.round((result.unique.length / miloLinks.filter((x) => x).length) * 100) / 100,
+        uniqueCount: result.unique.length,
+        miloTotal,
+        stagedTotal,
+        countMatch,
+        mismatchPercent,
+        thirtyPercent: mismatchPercent > 0.3,
       });
+      if (result.shuffled.length > 0) {
+        const shuffledLinks = result.shuffled.map((link) => `${link.link1} - ${link.index1}-${link.index2}`);
+        reportExtra.log('shuffled-links', 'info', entry, shuffledLinks);
+      }
       if (!result.match) {
         reportExtra.log('live-links', 'info', liveURL, miloLinks);
         reportExtra.log('staged-links', 'info', stagedURL, stagedLinks);
+      }
+      if (!result.match && countMatch && result.unique.length === 0) {
         reportExtra.log('links', 'milo', liveURL, miloLinks);
         reportExtra.log('links', 'staged', stagedURL, stagedLinks);
       }
@@ -100,21 +114,27 @@ async function miloFranklin(list) {
       const miloLinks = result.links.map((link) => link.link1);
       const franklinLinks = result.links.map((link) => link.link2);
       const status = result.match ? 'match' : 'broken';
+      const miloTotal = miloLinks.filter((x) => x).length;
+      const franklinTotal = franklinLinks.filter((x) => x).length;
+      const mismatchPercent = Math.round((result.broken.length / miloTotal) * 100) / 100;
+      const countMatch = miloTotal === franklinTotal;
+      console.log('match:', result.match, 'miloTotal:', miloTotal, 'franklinTotal:', franklinTotal, 'mismatchPercent:', mismatchPercent, 'countMatch:', countMatch);
 
-      report.log('link-check', status, 'Checked Links', { miloURL, franklinURL, broken: !result.match });
+      report.log('link-check', status, 'Checked Links', { miloURL, franklinURL, broken: !result.match, countMatch });
       reportExtra.log('link-check', status, 'Checked Links', {
         entry,
         miloURL,
         franklinURL,
         broken: !result.match,
         match: result.match,
-        miloTotal: miloLinks.filter((x) => x).length,
-        franklinTotal: franklinLinks.filter((x) => x).length,
-        mismatchPercent: Math.round((result.unique.length / miloLinks.filter((x) => x).length) * 100) / 100,
+        uniqueCount: result.unique.length,
+        miloTotal,
+        franklinTotal,
+        countMatch,
+        mismatchPercent,
+        thirtyPercent: mismatchPercent > 0.3,
       });
-      if (!result.match) {
-        reportExtra.log('milo-links', 'info', miloURL, miloLinks);
-        reportExtra.log('franklin-links', 'info', franklinURL, franklinLinks);
+      if (!result.match && countMatch && result.unique.length === 0) {
         reportExtra.log('links', 'milo', miloURL, miloLinks);
         reportExtra.log('links', 'franklin', franklinURL, franklinLinks);
       }
@@ -138,9 +158,11 @@ async function miloFranklin(list) {
 }
 
 async function init() {
-  const list = await loadListData(LIST);
-  await miloFranklin(list);
-  await stagedContent(list);
+  const list = await loadListData(QUERY_INDEXES);
+  // remove any duplicates from list
+  const uniqueList = [...new Set(list)];
+  await miloFranklin(uniqueList);
+  await stagedContent(uniqueList);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

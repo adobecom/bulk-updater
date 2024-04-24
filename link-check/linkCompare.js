@@ -2,6 +2,8 @@ import fs from 'fs';
 import { fetch } from '@adobe/fetch';
 import { docx2md } from '@adobe/helix-docx2md';
 
+const DEFAULT_HOST = 'business.adobe.com';
+
 export function comparison(url1, url2) {
   return (url1.host === url2.host) && (url1.pathname === url2.pathname);
 }
@@ -9,16 +11,13 @@ export function comparison(url1, url2) {
 /**
  * Compares two links and checks if they have the same host and pathname.
  *
- * @param {string} link1 - The first link to compare.
- * @param {string} link2 - The second link to compare.
+ * @param {URL} url1 - The first link to compare.
+ * @param {URL} url2 - The second link to compare.
  * @param {Function} [comparisonFn=comparison] - The function used to compare the links.
  * @returns {boolean} - Returns true if the links have the same host and pathname, otherwise false.
  */
-export function compareLink(link1, link2, comparisonFn = comparison) {
-  if (!link1 || !link2) return false;
-
-  const url1 = new URL(link1.trim(), 'https://business.adobe.com/');
-  const url2 = new URL(link2.trim(), 'https://business.adobe.com/');
+export function compareLink(url1, url2, comparisonFn = comparison) {
+  if (!url1 || !url2) return false;
 
   return comparisonFn(url1, url2);
 }
@@ -91,29 +90,59 @@ function extractLinksFromHtml(content) {
 }
 
 /**
+ * Make sure the links are formatted correctly.
+ *
+ * @param {string} source - The source URL or file path.
+ * @param {string} link - The link to format.
+ * @returns {URL} - The formatted link.
+ */
+export function formatURL(source, link) {
+  const url = new URL(link.trim(), `https://${DEFAULT_HOST}/`);
+
+  if (link.startsWith('#')) {
+    url.pathname = new URL(source, `https://${DEFAULT_HOST}/`).pathname;
+  }
+
+  if (url.host.includes('.hlx.live')) {
+    url.host = 'business.adobe.com';
+  }
+
+  return url;
+}
+
+export function formatURLs(links, source) {
+  return links.map((link) => formatURL(source, link));
+}
+
+/**
  * Extracts links from a source based on its file type.
  *
  * @param {string} source - The source URL or file path.
  * @param {string} content - The content of the source.
- * @returns {string[]} - An array of links extracted from the source.
+ * @returns {URL[]} - An array of urls extracted from the source.
  * @throws {Error} - Throws an error if the file type is unsupported.
  */
 export async function extractLinks(source, fetchFn = fetch) {
   const fileType = getFileType(source);
+  const links = [];
   try {
     const content = await getContent(source, fetchFn);
     switch (fileType) {
       case 'md':
-        return extractLinksFromMarkdown(content);
+        links.push(...extractLinksFromMarkdown(content));
+        break;
       case 'docx': {
         const md = await docx2md(content, { listener: null });
-        return extractLinksFromMarkdown(md);
+        links.push(...extractLinksFromMarkdown(md));
+        break;
       }
       case 'html':
-        return extractLinksFromHtml(content);
+        links.push(...extractLinksFromHtml(content));
+        break;
       default:
         throw new Error(`Unsupported file type: ${fileType}`);
     }
+    return formatURLs(links, source);
   } catch (e) {
     console.error('Error occurred while extracting links:', e.message);
     throw e;
@@ -121,22 +150,66 @@ export async function extractLinks(source, fetchFn = fetch) {
 }
 
 /**
+ * Finding all the URLs that are in list1 and list2 but in different order
+ *
+ * @param {URL[]} urls1 - The first array of urls.
+ * @param {URL[]} urls2 - The second array of urls.
+ * @returns {object[]} - An array of objects containing the shuffled links.
+ */
+function shuffledLinks(list1, list2) {
+  const shuffled = [];
+  for (let i = 0; i < list1.length; i += 1) {
+    const url1 = list1[i];
+    for (let j = 0; j < list2.length; j += 1) {
+      const url2 = list2[j];
+      if (i !== j && compareLink(url1, url2)) {
+        shuffled.push({ index1: i, index2: j, link1: url1.href, link2: url2.href });
+      }
+    }
+  }
+
+  return shuffled;
+}
+
+/**
  * Compares two arrays of links and returns an object indicating if they match and the unique links.
  *
- * @param {Array} links1 - The first array of links.
- * @param {Array} links2 - The second array of links.
+ * @param {URL[]} urls1 - The first array of urls.
+ * @param {URL[]} urls2 - The second array of urls.
  * @returns {Promise<object>} - Match status and unique links.
  */
-export async function compareLinks(links1, links2, comparisonFn = comparison) {
-  const result = { match: false, unique: [] };
+export async function compareLinks(urls1, urls2, comparisonFn = comparison) {
+  const result = { match: false, broken: [], unique: [], links: [], shuffled: [] };
 
-  result.links = links1.map((link1, index) => {
-    const link2 = links2[index];
-    return { index, link1, link2, match: compareLink(link1, link2, comparisonFn) };
-  });
+  const maxLength = Math.max(urls1.length, urls2.length);
+  for (let i = 0; i < maxLength; i += 1) {
+    const url1 = urls1[i];
+    const url2 = urls2[i];
 
-  result.unique = result.links.filter((link) => !link.match);
-  result.match = result.unique.length === 0;
+    const match = compareLink(url1, url2, comparisonFn);
+
+    result.links.push({
+      index: i,
+      link1: url1?.href,
+      link2: url2?.href,
+      match,
+    });
+
+    if (!match) {
+      result.broken.push(url1?.href || url2?.href);
+    }
+  }
+
+  result.broken = result.links.filter((link) => !link.match);
+  // All of the links that only appear in one list
+  const links1 = result.links.map((link) => link.link1);
+  const links2 = result.links.map((link) => link.link2);
+  result.unique = [...new Set([...links1, ...links2])]
+    .filter((link) => !links1.includes(link) || !links2.includes(link));
+  // List of links that are found but in different order
+  result.shuffled = shuffledLinks(urls1, urls2);
+
+  result.match = result.broken.length === 0;
 
   return result;
 }
