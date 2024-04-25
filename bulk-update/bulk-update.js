@@ -95,7 +95,7 @@ export async function loadListData(source, fetchFunction = fetch, fetchWaitMs = 
  * @param {string[]} locales - An array of supported locales.
  * @returns {string} The staged URL.
  */
-export function localizedStageUrl(siteUrl, entry, stagePath, locales = []) {
+export function localizeStageUrl(siteUrl, entry, stagePath = '', locales = []) {
   const currentLocale = locales.find((locale) => locale && entry.startsWith(`/${locale}/`));
   const localizedPath = currentLocale ? entry.replace(`/${currentLocale}/`, `/${currentLocale}${stagePath}/`) : `${stagePath}${entry}`;
 
@@ -120,8 +120,11 @@ export default async function main(config, migrate, reporter = null) {
     fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(`${outputDir}/list.json`, JSON.stringify(config.list, null, 2));
 
-    const output = list.map((entry) => [`${siteUrl}${entry}`, localizedStageUrl(siteUrl, entry, stagePath, locales)]);
-    fs.writeFileSync(`${outputDir}/staged.json`, JSON.stringify(output, null, 2));
+    if (stagePath) {
+      const stageOutput = list.map((entry) => [`${siteUrl}${entry}`, localizeStageUrl(siteUrl, entry, stagePath, locales)]);
+      fs.writeFileSync(`${outputDir}/staged.json`, JSON.stringify(stageOutput, null, 2));
+      fs.writeFileSync(`${outputDir}/staged.txt`, stageOutput.map((entry) => entry[1]).join('\n'));
+    }
   }
 
   try {

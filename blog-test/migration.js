@@ -48,7 +48,7 @@ export function createBlock(name, fields) {
 }
 
 /**
- * Create or replace the hide block with the entry and date
+ * Create or replace a hidden block, hide-block, with the entry and migration date
  *
  * @param {Object} document - The document to be migrated.
  */
@@ -60,14 +60,14 @@ export async function migrate(document) {
     [u('text', 'Entry'), u('text', entry)],
     [u('text', 'Date'), u('text', new Date().toISOString().split('T')[0])],
   ];
-  const hideBlock = createBlock('Hide Block', fields);
+  const hiddenBlock = createBlock('Hide Block', fields); // This block is display none in Milo projects
   const existingBlock = selectBlock(mdast, 'Hide Block');
 
   if (existingBlock) {
-    existingBlock.children = hideBlock.children;
+    existingBlock.children = hiddenBlock.children;
     config.reporter.log('migration', 'update', 'Updated hide block');
   } else {
-    mdast.children.push(hideBlock);
+    mdast.children.push(hiddenBlock);
     config.reporter.log('migration', 'create', 'Created hide block');
   }
 
