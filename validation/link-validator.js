@@ -14,7 +14,7 @@ export const LENGTHS_DO_NOT_MATCH = 'source and updated list do not have the sam
  * @param {mdast} updatedMd
  * @returns {Object} an object with mdast collections of links from both files
  */
-export async function getLinksLists(sourceMdast, updatedMdast) {
+export function getLinksLists(sourceMdast, updatedMdast) {
   return {
     sourceLinks: selectAll('link', sourceMdast),
     updatedLinks: selectAll('link', updatedMdast),
@@ -91,7 +91,7 @@ export function compareLinkLists(sourceLinks, updatedLinks, path) {
   const linksMatch = !sourceLinks.map((link, i) => {
     const updated = updatedLinks[i];
     return link.url === updated.url
-    && link?.children[0]?.value === updated?.children[0]?.value;
+    && link.children[0]?.value === updated.children[0]?.value;
   }).includes(false);
 
   if (!linksMatch) {

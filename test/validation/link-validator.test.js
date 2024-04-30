@@ -64,11 +64,8 @@ describe('Validator', () => {
 
     await validateMigratedPageLinks(pathToListShort, mdPath, myReporter);
     const report = myReporter.getReport();
-    console.log(report);
     expect(Object.keys(report.logs).length).to.equal(2);
     expect(report.logs['Compare Links'].length).to.equal(3);
     expect(report.logs['Deep Compare Links'].length).to.equal(2);
-    // Uncomment to troubleshoot report
-    // myReporter.saveReport();
   });
 });
