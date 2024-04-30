@@ -30,6 +30,7 @@ export async function getLinksLists(sourceMdast, updatedMdast) {
  * @returns Log messages for the reporter based on findings
  */
 export function deepCompare(sourceLinks, updateLinks, path) {
+  console.log(`Deep comparing links on source and updated files at this path: ${path}`);
   const linkLog = {};
 
   sourceLinks.forEach((link, index) => {
@@ -81,6 +82,7 @@ export function deepCompare(sourceLinks, updateLinks, path) {
  * @returns Returns a message for reporter
  */
 export function compareLinkLists(sourceLinks, updatedLinks, path) {
+  console.log(`Comparing source and update files at this path: ${path}`);
   // If not the same length, something is wrong from the start
   if (sourceLinks.length !== updatedLinks.length) {
     return ['Compare Links', 'list length', LENGTHS_DO_NOT_MATCH];
@@ -119,12 +121,14 @@ export async function validateMigratedPageLinks(list, mdPath, reporter) {
     try {
       sourceMd = fs.readFileSync(pathToSourceMd, 'utf-8');
     } catch (e) {
+      console.log(`File does not exist at provided path: ${pathToSourceMd}`);
       reporter.log('Error', 'File does not exist at provided path:', pathToSourceMd);
       continue;
     }
     try {
       updatedMd = fs.readFileSync(pathToUpdateMd, 'utf-8');
     } catch (e) {
+      console.log(`File does not exist at provided path: ${pathToUpdateMd}`);
       reporter.log('Error', 'File does not exist at provided path', pathToUpdateMd);
       continue;
     }
@@ -158,7 +162,7 @@ export async function init(list, mdPath) {
   await main(list, mdPath);
 }
 
-// test values ./blog-test/output/list.json', 'blog-test/md'
+// test values ./blog-test/output/list.json', './blog-test/md'
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   const [list, mdPath] = args;
