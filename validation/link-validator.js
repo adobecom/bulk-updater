@@ -111,10 +111,12 @@ export function compareLinkLists(sourceLinks, updatedLinks, path) {
  */
 export async function validateMigratedPageLinks(list, mdPath, reporter) {
   const listData = await loadListData(list);
+  const source = '/source';
+  const updated = '/updated';
 
   for (const path of listData) {
-    const pathToSourceMd = path.endsWith('/') ? `${mdPath}/source${path}index.md` : `${mdPath}/source${path}.md`;
-    const pathToUpdateMd = path.endsWith('/') ? `${mdPath}/updated${path}index.md` : `${mdPath}/updated${path}.md`;
+    const pathToSourceMd = path.endsWith('/') ? `${mdPath}${source}${path}index.md` : `${mdPath}${source}${path}.md`;
+    const pathToUpdateMd = path.endsWith('/') ? `${mdPath}${updated}${path}index.md` : `${mdPath}${updated}${path}.md`;
 
     let sourceMd;
     let updatedMd;
@@ -151,7 +153,7 @@ export async function validateMigratedPageLinks(list, mdPath, reporter) {
 export async function main(listPath, mdPath) {
   const { pathname } = new URL('.', import.meta.url);
   const dateString = ExcelReporter.getDateString();
-  const myReporter = new ExcelReporter(`${pathname}validation-${dateString}.xlsx`, false);
+  const myReporter = new ExcelReporter(`${pathname}output/validation-${dateString}.xlsx`, false);
 
   await validateMigratedPageLinks(listPath, mdPath, myReporter);
   myReporter.generateTotals();

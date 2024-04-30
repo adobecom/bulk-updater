@@ -11,11 +11,13 @@ import {
 import { getMdast } from '../../bulk-update/document-manager/document-manager.js';
 import { ExcelReporter } from '../../bulk-update/index.js';
 
+const { pathname } = new URL('.', import.meta.url);
+
 describe('Validator', () => {
-  const sourceMd = fs.readFileSync('test/validation/mocks/adobe-experience-manager-source.md', 'utf-8');
-  const updatedMd = fs.readFileSync('test/validation/mocks/adobe-experience-manager-updated.md', 'utf-8');
-  const mismatchMd = fs.readFileSync('test/validation/mocks/adobe-experience-manager-updated-mismatched.md', 'utf-8');
-  const shuffledMd = fs.readFileSync('test/validation/mocks/adobe-experience-manager-shuffled.md', 'utf-8');
+  const sourceMd = fs.readFileSync(`${pathname}mocks/adobe-experience-manager-source.md`, 'utf-8');
+  const updatedMd = fs.readFileSync(`${pathname}mocks/adobe-experience-manager-updated.md`, 'utf-8');
+  const mismatchMd = fs.readFileSync(`${pathname}mocks/adobe-experience-manager-updated-mismatched.md`, 'utf-8');
+  const shuffledMd = fs.readFileSync(`${pathname}mocks/adobe-experience-manager-shuffled.md`, 'utf-8');
 
   it('Returns "all links match" based on link match', async () => {
     const sourceMdast = await getMdast(sourceMd);
@@ -57,9 +59,8 @@ describe('Validator', () => {
   it('valiates the migration', async () => {
     const pathToListShort = 'test/validation/mocks/list.json';
     const mdPath = 'test/validation/mocks/md';
-    const { pathname } = new URL('.', import.meta.url);
     const dateString = ExcelReporter.getDateString();
-    const myReporter = new ExcelReporter(`${pathname}validation-${dateString}.xlsx`, false);
+    const myReporter = new ExcelReporter(`${pathname}output/validation-${dateString}.xlsx`, false);
 
     await validateMigratedPageLinks(pathToListShort, mdPath, myReporter);
     const report = myReporter.getReport();
