@@ -58,7 +58,7 @@ describe('Validator', () => {
 
   it('valiates the migration', async () => {
     const pathToListShort = `${pathname}/mocks/list.json`;
-    const mdPath = `${pathname}/mocks/md`;
+    const mdPath = `${pathname}/mocks/md-mocks`;
     const dateString = ExcelReporter.getDateString();
     const myReporter = new ExcelReporter(`${pathname}output/validation-${dateString}.xlsx`, false);
 
