@@ -23,7 +23,7 @@ describe('Validator', () => {
     const { sourceLinks, updatedLinks } = await getLinksLists(sourceMdast, updatedMdast);
 
     const message = compareLinkLists(sourceLinks, updatedLinks);
-    expect(message[2]).to.equal(LINKS_MATCH);
+    expect(message[1]).to.equal(LINKS_MATCH);
   });
 
   it('Returns "link mismatch mapping" based on link mismatch', async () => {
@@ -31,18 +31,18 @@ describe('Validator', () => {
     const mismatchedMdast = await getMdast(mismatchMd);
     const { sourceLinks, updatedLinks } = await getLinksLists(sourceMdast, mismatchedMdast);
 
-    const message = compareLinkLists(sourceLinks, updatedLinks);
-    const mismatchHash = message[3].log[5];
-    const mismatchPath = message[3].log[6];
-    const mismatchSearch = message[3].log[7];
-    const mismatchHost = message[3].log[8];
-    const mismatchText = message[3].log[9];
-    expect(message[2]).to.equal(LINKS_DO_NOT_MATCH);
-    expect(mismatchHash.hashMatch).to.be.false;
-    expect(mismatchPath.pathMatch).to.be.false;
-    expect(mismatchSearch.searchMatch).to.be.false;
-    expect(mismatchHost.hostMatch).to.be.false;
-    expect(mismatchText.textMatch).to.be.false;
+    const message = compareLinkLists(sourceLinks, updatedLinks)
+    const mismatchHash = message[3].log['hashMatch-5'];
+    const mismatchPath = message[3].log['pathMatch-6'];
+    const mismatchSearch = message[3].log['searchMatch-7'];
+    const mismatchHost = message[3].log['hostMatch-8'];
+    const mismatchText = message[3].log['textMatch-9'];
+    expect(message[1]).to.equal(LINKS_DO_NOT_MATCH);
+    expect(mismatchHash).to.be.false;
+    expect(mismatchPath).to.be.false;
+    expect(mismatchSearch).to.be.false;
+    expect(mismatchHost).to.be.false;
+    expect(mismatchText).to.be.false;
   });
 
   it('Returns "source and updated list do not have the same length" when the files have different link numbers', async () => {
@@ -55,15 +55,17 @@ describe('Validator', () => {
   });
 
   it('valiates the migration', async () => {
-    const pathToListShort = './blog-test/output/list.json';
+    const pathToListShort = 'test/validation/mocks/list.json';
+    const mdPath = 'test/validation/mocks/md';
     const { pathname } = new URL('.', import.meta.url);
     const dateString = ExcelReporter.getDateString();
     const myReporter = new ExcelReporter(`${pathname}validation-${dateString}.xlsx`, false);
 
-    await validateMigratedPageLinks(pathToListShort, myReporter);
-    console.log(myReporter.getReport());
-    myReporter.log('live', 'laugh', 'love');
-    console.log(myReporter.getReport().logs.live);
-    // myReporter.saveReport();
+    await validateMigratedPageLinks(pathToListShort, mdPath, myReporter);
+    const report = myReporter.getReport();
+    console.log(report);
+    expect(Object.keys(report.logs).length).to.equal(2);
+    expect(report.logs['Compare Links'].length).to.equal(4);
+    expect(report.logs['Deep Compare Links'].length).to.equal(1);
   });
 });

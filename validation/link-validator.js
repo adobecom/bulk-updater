@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { selectAll } from 'unist-util-select';
-import { BulkUpdate, ExcelReporter, loadListData, saveDocument } from '../bulk-update/index.js';
+import { ExcelReporter, loadListData } from '../bulk-update/index.js';
 import { getMdast } from '../bulk-update/document-manager/document-manager.js';
 
 export const LINKS_MATCH = 'all links match';
@@ -14,19 +14,11 @@ export async function getLinksLists(sourceMd, updatedMd) {
   };
 }
 
-export function deepCompare(sourceList, updateList) {
-  const linkLog = [];
+export function deepCompare(sourceLinks, updateLinks, entry) {
+  const linkLog = {};
 
-  sourceList.forEach((link, index) => {
-    const updateLink = updateList[index];
-    const currentCompareLog = {
-      hostMatch: '',
-      hashMatch: '',
-      pathMatch: '',
-      searchMatch: '',
-      textMatch: '',
-      partialUrlMatch: '',
-    };
+  sourceLinks.forEach((link, index) => {
+    const updateLink = updateLinks[index];
 
     let sourceUrl;
     let updateUrl;
@@ -34,92 +26,91 @@ export function deepCompare(sourceList, updateList) {
       sourceUrl = new URL(link.url);
     } catch (e) {
       sourceUrl = false;
-      linkLog.push({ error: 'Invalid URL', index, link: link.url });
+      linkLog[`relative-source-link-${index}`] = link.url;
+      linkLog[`relative-source-text-${index}`] = link?.children[0].value;
     }
     try {
       updateUrl = new URL(updateLink.url);
     } catch (e) {
       updateUrl = false;
-      linkLog.push({ error: 'Invalid URL', index, link: updateLink.url });
+      linkLog[`relative-update-link-${index}`] = link.url;
+      linkLog[`relative-update-text-${index}`] = link?.children[0].value;
     }
 
     // Partial matches are not fully qualified urls
     if (!sourceUrl || !updateUrl) {
-      currentCompareLog.partialUrlMatch = link.url === updateLink.url;
-      currentCompareLog.textMatch = link?.children[0]?.value === updateLink?.children[0]?.value;
-
-      linkLog.push({ links: [link, updateList[index], currentCompareLog] });
+      linkLog[`partialUrlMatch-${index}`] = link.url === updateLink.url;
     }
 
-    currentCompareLog.hashMatch = sourceUrl ? sourceUrl.hash === updateUrl.hash : '';
-    currentCompareLog.hostMatch = sourceUrl ? sourceUrl.host === updateUrl.host : '';
-    currentCompareLog.pathMatch = sourceUrl ? sourceUrl.pathname === updateUrl.pathname : '';
-    currentCompareLog.searchMatch = sourceUrl ? sourceUrl.search === updateUrl.search : '';
-    currentCompareLog.textMatch = link.children[0].value === updateLink?.children[0]?.value;
-    linkLog.push({
-      sourceLink: link.url,
-      sourceText: link.children[0].value,
-      updateLink: updateList[index].url,
-      updateText: updateList[index]?.children[0]?.value,
-      ...currentCompareLog,
-    });
+    linkLog[`sourceLink-${index}`] = link.url;
+    linkLog[`updatedLink-${index}`] = link.children[0].value;
+    linkLog[`sourceText-${index}`] = updateLinks[index].url;
+    linkLog[`updatedText-${index}`] = updateLinks[index]?.children[0]?.value;
+    linkLog[`linksMatch-${index}`] = link.url === updateLink.url;
+    linkLog[`hashMatch-${index}`] = sourceUrl ? sourceUrl.hash === updateUrl.hash : '';
+    linkLog[`hostMatch-${index}`] = sourceUrl ? sourceUrl.host === updateUrl.host : '';
+    linkLog[`pathMatch-${index}`] = sourceUrl ? sourceUrl.pathname === updateUrl.pathname : '';
+    linkLog[`searchMatch-${index}`] = sourceUrl ? sourceUrl.search === updateUrl.search : '';
+    linkLog[`textMatch-${index}`] = link?.children[0]?.value === updateLink?.children[0]?.value;
   });
 
-  return ['Deep Compare Lists', 'log', LINKS_DO_NOT_MATCH, { log: linkLog }];
+  return ['Deep Compare Links', LINKS_DO_NOT_MATCH, entry, { log: linkLog }];
 }
 
-export function compareLinkLists(sourceList, updatedList) {
-  if (sourceList.length !== updatedList.length) {
-    return ['Compare Lists', 'list length', LENGTHS_DO_NOT_MATCH];
+export function compareLinkLists(sourceLinks, updatedLinks, path) {
+  if (sourceLinks.length !== updatedLinks.length) {
+    return ['Compare Links', 'list length', LENGTHS_DO_NOT_MATCH];
   }
 
-  const linksMatch = !sourceList.map((link, i) => {
-    const updated = updatedList[i];
+  const linksMatch = !sourceLinks.map((link, i) => {
+    const updated = updatedLinks[i];
     return link.url === updated.url
     && link?.children[0]?.value === updated?.children[0]?.value;
   }).includes(false);
 
   if (!linksMatch) {
-    return deepCompare(sourceList, updatedList);
+    return deepCompare(sourceLinks, updatedLinks, path);
   }
 
-  return ['Compare Lists', 'links match', LINKS_MATCH];
+  return ['Compare Links', LINKS_MATCH, path];
 }
 
-export async function validateMigratedPageLinks(list, reporter) {
-  console.log('yes');
+export async function validateMigratedPageLinks(list, mdPath, reporter) {
   const listData = await loadListData(list);
 
   for (const path of listData) {
-    const pathToSourceMd = `blog-test/md/source${path}.md`;
-    const pathToUpdateMd = `blog-test/md/updated${path}.md`;
+    const pathToSourceMd = path.endsWith('/') ? `${mdPath}/source${path}index.md` : `${mdPath}/source${path}.md`;
+    const pathToUpdateMd = path.endsWith('/') ? `${mdPath}/updated${path}index.md` : `${mdPath}/updated${path}.md`;
     let sourceMd;
     let updatedMd;
     try {
       sourceMd = fs.readFileSync(pathToSourceMd, 'utf-8');
     } catch (e) {
+      reporter.log('Error', 'File does not exist at provided path:', pathToSourceMd);
       continue;
     }
     try {
       updatedMd = fs.readFileSync(pathToUpdateMd, 'utf-8');
     } catch (e) {
+      reporter.log('Error', 'File does not exist at provided path', pathToUpdateMd);
       continue;
     }
     const sourceMdast = await getMdast(sourceMd);
     const updatedMdast = await getMdast(updatedMd);
     const { sourceLinks, updatedLinks } = await getLinksLists(sourceMdast, updatedMdast);
-    const message = compareLinkLists(sourceLinks, updatedLinks);
-    console.log(message);
-    reporter.log(message[0], message[1], message[2], message[3] || '');
+    const message = compareLinkLists(sourceLinks, updatedLinks, path);
+    reporter.log(message[0], message[1], message[2], message[3]?.log);
   }
 }
 
-const pathToListShort = './blog-test/output/list.json';
-const { pathname } = new URL('.', import.meta.url);
-const dateString = ExcelReporter.getDateString();
-const myReporter = new ExcelReporter(`${pathname}validation-${dateString}.xlsx`, false);
+export async function validateBulkUpdate(listPath, mdPath) {
+  const { pathname } = new URL('.', import.meta.url);
+  const dateString = ExcelReporter.getDateString();
+  const myReporter = new ExcelReporter(`${pathname}validation-${dateString}.xlsx`, false);
 
-(async () => {
-  await validateMigratedPageLinks(pathToListShort, myReporter);
+  await validateMigratedPageLinks(listPath, mdPath, myReporter);
+  myReporter.generateTotals();
   myReporter.saveReport();
-})();
+}
+
+validateBulkUpdate('./blog-test/output/list.json', 'blog-test/md');
