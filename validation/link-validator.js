@@ -1,3 +1,4 @@
+/* eslint-disable no-continue */
 import fs from 'fs';
 import { selectAll } from 'unist-util-select';
 import { ExcelReporter, loadListData } from '../bulk-update/index.js';
@@ -7,14 +8,28 @@ export const LINKS_MATCH = 'all links match';
 export const LINKS_DO_NOT_MATCH = 'links mismatch mapping';
 export const LENGTHS_DO_NOT_MATCH = 'source and updated list do not have the same length';
 
-export async function getLinksLists(sourceMd, updatedMd) {
+/**
+ *
+ * @param {mdast} sourceMd
+ * @param {mdast} updatedMd
+ * @returns {Object} an object with mdast collections of links from both files
+ */
+export async function getLinksLists(sourceMdast, updatedMdast) {
   return {
-    sourceLinks: selectAll('link', sourceMd),
-    updatedLinks: selectAll('link', updatedMd),
+    sourceLinks: selectAll('link', sourceMdast),
+    updatedLinks: selectAll('link', updatedMdast),
   };
 }
 
-export function deepCompare(sourceLinks, updateLinks, entry) {
+/**
+ * Checks the source and update link lists and compares to find the differences
+ *
+ * @param {list of mdast link nodes} sourceLinks
+ * @param {list of mdast link nodes} updateLinks
+ * @param {path to the file} entry
+ * @returns Log messages for the reporter based on findings
+ */
+export function deepCompare(sourceLinks, updateLinks, path) {
   const linkLog = {};
 
   sourceLinks.forEach((link, index) => {
@@ -54,10 +69,19 @@ export function deepCompare(sourceLinks, updateLinks, entry) {
     linkLog[`textMatch-${index}`] = link?.children[0]?.value === updateLink?.children[0]?.value;
   });
 
-  return ['Deep Compare Links', LINKS_DO_NOT_MATCH, entry, { log: linkLog }];
+  return ['Deep Compare Links', LINKS_DO_NOT_MATCH, path, { log: linkLog }];
 }
 
+/**
+ * Does an initial check for link matching, if it finds issue, it runs the deepCompare function
+ *
+ * @param {list of source links} sourceLinks
+ * @param {list of updated links} updatedLinks
+ * @param {path to files} path
+ * @returns Returns a message for reporter
+ */
 export function compareLinkLists(sourceLinks, updatedLinks, path) {
+  // If not the same length, something is wrong from the start
   if (sourceLinks.length !== updatedLinks.length) {
     return ['Compare Links', 'list length', LENGTHS_DO_NOT_MATCH];
   }
@@ -75,12 +99,21 @@ export function compareLinkLists(sourceLinks, updatedLinks, path) {
   return ['Compare Links', LINKS_MATCH, path];
 }
 
+/**
+ * Runs the primary migration and returns a message for reporter.
+ * Additional logic for code failing conditions
+ *
+ * @param {list of paths} list
+ * @param {path to md files} mdPath
+ * @param {ExcelReporter} reporter
+ */
 export async function validateMigratedPageLinks(list, mdPath, reporter) {
   const listData = await loadListData(list);
 
   for (const path of listData) {
     const pathToSourceMd = path.endsWith('/') ? `${mdPath}/source${path}index.md` : `${mdPath}/source${path}.md`;
     const pathToUpdateMd = path.endsWith('/') ? `${mdPath}/updated${path}index.md` : `${mdPath}/updated${path}.md`;
+
     let sourceMd;
     let updatedMd;
     try {
@@ -95,15 +128,23 @@ export async function validateMigratedPageLinks(list, mdPath, reporter) {
       reporter.log('Error', 'File does not exist at provided path', pathToUpdateMd);
       continue;
     }
+
     const sourceMdast = await getMdast(sourceMd);
     const updatedMdast = await getMdast(updatedMd);
     const { sourceLinks, updatedLinks } = await getLinksLists(sourceMdast, updatedMdast);
     const message = compareLinkLists(sourceLinks, updatedLinks, path);
+
     reporter.log(message[0], message[1], message[2], message[3]?.log);
   }
 }
 
-export async function validateBulkUpdate(listPath, mdPath) {
+/**
+ * Set up reporter and save
+ *
+ * @param {list of paths} listPath
+ * @param {path to md files} mdPath
+ */
+export async function main(listPath, mdPath) {
   const { pathname } = new URL('.', import.meta.url);
   const dateString = ExcelReporter.getDateString();
   const myReporter = new ExcelReporter(`${pathname}validation-${dateString}.xlsx`, false);
@@ -113,4 +154,15 @@ export async function validateBulkUpdate(listPath, mdPath) {
   myReporter.saveReport();
 }
 
-validateBulkUpdate('./blog-test/output/list.json', 'blog-test/md');
+export async function init(list, mdPath) {
+  await main(list, mdPath);
+}
+
+// test values ./blog-test/output/list.json', 'blog-test/md'
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const args = process.argv.slice(2);
+  const [list, mdPath] = args;
+
+  await init(list, mdPath);
+  process.exit(0);
+}

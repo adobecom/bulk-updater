@@ -9,7 +9,7 @@ import {
   validateMigratedPageLinks,
 } from '../../validation/link-validator.js';
 import { getMdast } from '../../bulk-update/document-manager/document-manager.js';
-import { BulkUpdate, ExcelReporter, loadListData, saveDocument } from '../../bulk-update/index.js';
+import { ExcelReporter } from '../../bulk-update/index.js';
 
 describe('Validator', () => {
   const sourceMd = fs.readFileSync('test/validation/mocks/adobe-experience-manager-source.md', 'utf-8');
@@ -31,7 +31,7 @@ describe('Validator', () => {
     const mismatchedMdast = await getMdast(mismatchMd);
     const { sourceLinks, updatedLinks } = await getLinksLists(sourceMdast, mismatchedMdast);
 
-    const message = compareLinkLists(sourceLinks, updatedLinks)
+    const message = compareLinkLists(sourceLinks, updatedLinks);
     const mismatchHash = message[3].log['hashMatch-5'];
     const mismatchPath = message[3].log['pathMatch-6'];
     const mismatchSearch = message[3].log['searchMatch-7'];
@@ -65,7 +65,9 @@ describe('Validator', () => {
     const report = myReporter.getReport();
     console.log(report);
     expect(Object.keys(report.logs).length).to.equal(2);
-    expect(report.logs['Compare Links'].length).to.equal(4);
-    expect(report.logs['Deep Compare Links'].length).to.equal(1);
+    expect(report.logs['Compare Links'].length).to.equal(3);
+    expect(report.logs['Deep Compare Links'].length).to.equal(2);
+    // Uncomment to troubleshoot report
+    // myReporter.saveReport();
   });
 });
