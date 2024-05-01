@@ -78,10 +78,10 @@ async function stagedContent(list) {
     }
   }
 
-  report.generateTotals();
-  report.saveReport();
-  reportExtra.generateTotals();
-  reportExtra.saveReport();
+  await report.generateTotals();
+  await report.saveReport();
+  await reportExtra.generateTotals();
+  await reportExtra.saveReport();
 }
 
 async function miloFranklin(list) {
@@ -131,10 +131,10 @@ async function miloFranklin(list) {
     }
   }
 
-  report.generateTotals();
-  report.saveReport();
-  reportExtra.generateTotals();
-  reportExtra.saveReport();
+  await report.generateTotals();
+  await report.saveReport();
+  await reportExtra.generateTotals();
+  await reportExtra.saveReport();
 }
 
 async function init() {

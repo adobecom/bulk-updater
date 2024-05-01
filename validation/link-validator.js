@@ -151,13 +151,14 @@ export async function validateMigratedPageLinks(list, mdPath, reporter) {
  * @param {path to md files} mdPath
  */
 export async function main(listPath, mdPath) {
+  await validateMigratedPageLinks(listPath, mdPath);
   const { pathname } = new URL('.', import.meta.url);
   const dateString = ExcelReporter.getDateString();
   const myReporter = new ExcelReporter(`${pathname}output/validation-${dateString}.xlsx`, false);
 
   await validateMigratedPageLinks(listPath, mdPath, myReporter);
-  myReporter.generateTotals();
-  myReporter.saveReport();
+  await myReporter.generateTotals();
+  await myReporter.saveReport();
 }
 
 export async function init(list, mdPath) {

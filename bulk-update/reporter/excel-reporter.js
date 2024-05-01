@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import path from 'path';
-import xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 import BaseReporter from './reporter.js';
 
 /**
@@ -20,9 +20,9 @@ class ExcelReporter extends BaseReporter {
     super();
     this.filepath = filepath;
     this.autoSave = autoSave;
-    this.workbook = xlsx.utils.book_new();
-    const totalsSheet = xlsx.utils.aoa_to_sheet([['Topic', 'Status', 'Count']]);
-    xlsx.utils.book_append_sheet(this.workbook, totalsSheet, 'Totals');
+    this.workbook = new ExcelJS.Workbook();
+    const totalsSheet = this.workbook.addWorksheet('Totals');
+    totalsSheet.addRow(['Topic', 'Status', 'Count']);
   }
 
   /**
@@ -50,8 +50,9 @@ class ExcelReporter extends BaseReporter {
      * @param {string} status - The status of the log message.
      * @param {string} message - The log message.
      * @param {...any} args - Additional arguments to be included in the log.
+     * @returns {Promise<void>} - A promise that resolves when the log is complete.
      */
-  log(topic, status, message, ...args) {
+  async log(topic, status, message, ...args) {
     const header = ['Status', 'Message'];
     const log = [status, message];
     args.forEach((arg) => {
@@ -69,39 +70,49 @@ class ExcelReporter extends BaseReporter {
     super.log(topic, status, message, ...args);
 
     const sheetName = topic || 'Uncategorized';
-    let sheet = this.workbook.Sheets[sheetName];
+    let sheet = this.workbook.getWorksheet(sheetName);
+
     if (!sheet) {
-      sheet = xlsx.utils.aoa_to_sheet([header]);
-      xlsx.utils.book_append_sheet(this.workbook, sheet, sheetName);
+      sheet = this.workbook.addWorksheet(sheetName);
+      sheet.addRow(header);
     }
 
-    const range = xlsx.utils.decode_range(sheet['!ref']);
-    const newRow = range.e.r + 1;
+    if (sheet.getRow(1).values.length - 1 < header.length) {
+      header.forEach((item, index) => {
+        if (!sheet.getRow(1).getCell(index + 1).value) {
+          sheet.getRow(1).getCell(index + 1).value = item;
+        }
+      });
+    }
+
+    const newRow = sheet.rowCount + 1;
 
     log.forEach((item, index) => {
-      const newCell = xlsx.utils.encode_cell({ r: newRow, c: index });
-      sheet[newCell] = { v: item };
+      sheet.getRow(newRow).getCell(index + 1).value = item;
     });
 
-    sheet['!ref'] = xlsx.utils.encode_range({ s: range.s, e: { r: newRow, c: log.length - 1 } });
-
-    if (this.autoSave) this.saveReport();
+    if (this.autoSave) {
+      await this.saveReport();
+    }
   }
 
   /**
      * Updates the totals sheet for each topic and status.
      * @returns {Object} - The totals object.
      */
-  generateTotals() {
+  async generateTotals() {
     const totals = super.generateTotals();
-    const totalsSheet = this.workbook.Sheets.Totals;
+    const totalsSheet = this.workbook.getWorksheet('Totals');
     const data = Object.entries(totals)
       .flatMap(([topic, statusCount]) => Object.entries(statusCount)
         .map(([status, count]) => [topic, status, count]));
-    xlsx.utils.sheet_add_aoa(totalsSheet, data, { origin: 'A2' });
-    if (!this.filepath) return totals;
+
+    data.forEach((row) => {
+      totalsSheet.addRow(row);
+    });
+
     try {
-      this.saveReport();
+      await this.saveReport();
       console.log(`Report saved to ${this.filepath}`);
     } catch (e) {
       console.error(`Error saving report to ${this.filepath}: ${e.message}`);
@@ -113,12 +124,11 @@ class ExcelReporter extends BaseReporter {
   /**
    * Saves the generated report to the specified filepath.
    */
-  saveReport() {
+  async saveReport() {
     if (!this.filepath) return;
     const directoryPath = path.dirname(this.filepath);
     fs.mkdirSync(directoryPath, { recursive: true });
-    xlsx.set_fs(fs);
-    xlsx.writeFile(this.workbook, this.filepath);
+    await this.workbook.xlsx.writeFile(this.filepath);
   }
 }
 

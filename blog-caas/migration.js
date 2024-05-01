@@ -263,6 +263,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     config.reporter.log('Missing Tags', 'Missing tag', tag);
   });
 
-  config.reporter.saveReport();
+  await config.reporter.saveReport();
   process.exit(0);
 }
