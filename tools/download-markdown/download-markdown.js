@@ -1,10 +1,12 @@
 import path from 'path';
 import fs from 'fs';
 import { fetch, timeoutSignal, AbortError } from '@adobe/fetch';
-import { saveToFile } from '../../bulk-update/document-manager/document-manager.js';
+import { saveToFile, entryToPath } from '../../bulk-update/document-manager/document-manager.js';
 import { localizeStageUrl } from '../../bulk-update/bulk-update.js';
 
 const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, milliseconds); });
+
+const SKIP = true;
 
 async function fetchMarkdown(url, fetchWaitMs = 500, fetchFunction = fetch) {
   try {
@@ -33,12 +35,18 @@ async function fetchMarkdown(url, fetchWaitMs = 500, fetchFunction = fetch) {
 }
 
 async function downloadMD(documentUrl, folderPath, entry) {
+  if (SKIP && fs.existsSync(path.join(folderPath, `${entry}.md`))) {
+    console.log(`Skipping ${entry}.md`);
+    return;
+  }
+
   const waitMs = documentUrl.includes('hlx.live') ? 0 : 500;
   const markdown = await fetchMarkdown(`${documentUrl}.md`, waitMs);
   const markdownFile = path.join(folderPath, `${entry}.md`);
 
   if (!markdown) {
     console.warn(`No markdown found for ${entry}`);
+    fs.appendFileSync('failed-entries.txt', `${entry}\n`);
     return;
   }
 
@@ -49,38 +57,67 @@ async function downloadMD(documentUrl, folderPath, entry) {
 async function downloadMDs(stagedUrls, folderPath) {
   for (const [entry, stageUrl] of stagedUrls) {
     await downloadMD(stageUrl, folderPath, entry);
-    // process.exit(0);
   }
 }
 
 /**
- * Takes a list of URLs and downloads the markdown files to the specified folder.
+ * Downloads markdown files from a list of URLs and saves them to a specified folder.
  *
- * @param {string} listJson - The file path of the JSON file containing the list of URLs.
- * @param {string} folder - The folder where the markdown files will be downloaded.
+ * @param {string} folder - The folder path where the markdown files will be saved.
+ * @param {Array} list - The list of URLs of the markdown files to be downloaded.
+ * @param {Array} locales - The locales to be used for localizing the staged URLs.
+ * @param {string} siteURL - The base URL of the website.
+ * @param {string} stagePath - The path to the staging environment.
  */
-function init(folder, listJson, localesJson, siteURL, stagePath) {
-  const entryList = JSON.parse(fs.readFileSync(listJson, 'utf8'));
-  const locales = JSON.parse(fs.readFileSync(localesJson, 'utf8'));
-
+function downloadMarkdown(folder, list, locales, siteURL, stagePath) {
   // eslint-disable-next-line arrow-body-style
-  const stagedUrls = entryList.map((entry) => {
-    return [entry, localizeStageUrl(siteURL, entry, stagePath, locales)];
+  const stagedUrls = list.map((entry) => {
+    const entryPath = entryToPath(entry);
+    return [entryPath, localizeStageUrl(siteURL, entryPath, stagePath, locales)];
   });
 
   fs.mkdirSync(folder, { recursive: true });
-  downloadMDs(stagedUrls, folder);
+  return downloadMDs(stagedUrls, folder);
 }
 
-// example usage: node tools/download-markdown/download-markdown.js 'blog-test/md/uploaded' 'blog-test/output/list.json' 'blog-test/locales.json' 'https://main--bacom-blog--adobecom.hlx.live' '/drafts/staged-content'
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const args = process.argv.slice(2);
-  const [folder, listJson, localesJson, siteURL, stagePath] = args;
+function readJsonFile(file, directory) {
+  const filePath = path.join(directory, file);
+  if (!fs.existsSync(filePath)) {
+    console.error(`File not found: ${filePath}`);
+    return {};
+  }
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
 
-  if (!folder || !listJson || !localesJson || !siteURL || !stagePath) {
-    console.error('Usage: node download-markdown.js <folder> <listJson> <localesJson> <siteURL> <stagePath>');
+/**
+ * Initializes the download process for markdown files.
+ *
+ * @param {string} migrationDir - The directory path for the migration.
+ * @param {string} [outputDir='output'] - The directory path for the output files.
+ * @returns {Promise<void>} A promise that resolves when the download process is complete.
+ */
+async function init(migrationDir, outputDir = 'output', siteUrl = 'https://main--bacom-blog--adobecom.hlx.page', stagePath = '/drafts/staged-content') {
+  // const config = readJsonFile('config.json', migrationDir);
+  const list = readJsonFile('output/list.json', migrationDir);
+  const locales = readJsonFile('locales.json', migrationDir);
+
+  // const { siteUrl, stagePath } = config;
+
+  if (!siteUrl || !stagePath) {
+    console.error('Missing siteUrl or stagePath in config');
     process.exit(1);
   }
 
-  init(folder, listJson, localesJson, siteURL, stagePath);
+  const mdDir = path.join(migrationDir, 'md', outputDir);
+  await downloadMarkdown(mdDir, list, locales, siteUrl, stagePath);
+}
+
+// example usage: node tools/download-markdown/download-markdown.js 'blog-test' 'uploaded'
+if (import.meta.url === `file://${process.argv[1]}`) {
+  // const args = process.argv.slice(2);
+  // const [folder, outputDir] = args;
+  const [folder, outputDir] = ['blog-test', 'uploaded'];
+
+  await init(folder, outputDir);
+  process.exit(0);
 }
