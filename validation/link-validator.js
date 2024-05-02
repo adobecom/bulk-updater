@@ -1,6 +1,6 @@
 /* eslint-disable no-continue */
 import fs from 'fs';
-import { selectAll } from 'unist-util-select';
+import { select, selectAll } from 'unist-util-select';
 import { ExcelReporter, loadListData } from '../bulk-update/index.js';
 import { getMdast } from '../bulk-update/document-manager/document-manager.js';
 
@@ -35,6 +35,8 @@ export function deepCompare(sourceLinks, updateLinks, path) {
 
   sourceLinks.forEach((link, index) => {
     const updateLink = updateLinks[index];
+    const sourceText = select('text', link)?.value;
+    const updateText = select('text', updateLink)?.value;
 
     let sourceUrl;
     let updateUrl;
@@ -43,14 +45,14 @@ export function deepCompare(sourceLinks, updateLinks, path) {
     } catch (e) {
       sourceUrl = false;
       linkLog[`relative-source-link-${index}`] = link.url;
-      linkLog[`relative-source-text-${index}`] = link?.children[0].value;
+      linkLog[`relative-source-text-${index}`] = sourceText;
     }
     try {
       updateUrl = new URL(updateLink.url);
     } catch (e) {
       updateUrl = false;
       linkLog[`relative-update-link-${index}`] = link.url;
-      linkLog[`relative-update-text-${index}`] = link?.children[0].value;
+      linkLog[`relative-update-text-${index}`] = sourceText;
     }
 
     // Partial matches are not fully qualified urls
@@ -59,15 +61,15 @@ export function deepCompare(sourceLinks, updateLinks, path) {
     }
 
     linkLog[`sourceLink-${index}`] = link.url;
-    linkLog[`updatedLink-${index}`] = link.children[0].value;
-    linkLog[`sourceText-${index}`] = updateLinks[index].url;
-    linkLog[`updatedText-${index}`] = updateLinks[index]?.children[0]?.value;
+    linkLog[`sourceText-${index}`] = sourceText;
+    linkLog[`updatedLink-${index}`] = updateLinks[index].url;
+    linkLog[`updatedText-${index}`] = updateText;
     linkLog[`linksMatch-${index}`] = link.url === updateLink.url;
     linkLog[`hashMatch-${index}`] = sourceUrl ? sourceUrl.hash === updateUrl.hash : '';
     linkLog[`hostMatch-${index}`] = sourceUrl ? sourceUrl.host === updateUrl.host : '';
     linkLog[`pathMatch-${index}`] = sourceUrl ? sourceUrl.pathname === updateUrl.pathname : '';
     linkLog[`searchMatch-${index}`] = sourceUrl ? sourceUrl.search === updateUrl.search : '';
-    linkLog[`textMatch-${index}`] = link?.children[0]?.value === updateLink?.children[0]?.value;
+    linkLog[`textMatch-${index}`] = sourceText === updateText;
   });
 
   return ['Deep Compare Links', LINKS_DO_NOT_MATCH, path, { log: linkLog }];
@@ -85,13 +87,12 @@ export function compareLinkLists(sourceLinks, updatedLinks, path) {
   console.log(`Comparing source and update files at this path: ${path}`);
   // If not the same length, something is wrong from the start
   if (sourceLinks.length !== updatedLinks.length) {
-    return ['Compare Links', 'list length', LENGTHS_DO_NOT_MATCH];
+    return ['Compare Links', 'list length', path];
   }
 
   const linksMatch = !sourceLinks.map((link, i) => {
     const updated = updatedLinks[i];
-    return link.url === updated.url
-    && link.children[0]?.value === updated.children[0]?.value;
+    return link.url === updated.url && select('text', link)?.value === select('text', updated)?.value;
   }).includes(false);
 
   if (!linksMatch) {
@@ -111,8 +112,8 @@ export function compareLinkLists(sourceLinks, updatedLinks, path) {
  */
 export async function validateMigratedPageLinks(list, mdPath, reporter) {
   const listData = await loadListData(list);
-  const source = '/source';
-  const updated = '/updated';
+  const source = '/uploaded';
+  const updated = '/edited';
 
   for (const path of listData) {
     const pathToSourceMd = path.endsWith('/') ? `${mdPath}${source}${path}index.md` : `${mdPath}${source}${path}.md`;

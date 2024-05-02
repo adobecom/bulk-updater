@@ -7,8 +7,10 @@ import { localizeStageUrl } from '../../bulk-update/bulk-update.js';
 const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, milliseconds); });
 
 const SKIP = true;
+const PAGE_DELAY = 500;
+const LIVE_DELAY = 0;
 
-async function fetchMarkdown(url, fetchWaitMs = 500, fetchFunction = fetch) {
+async function fetchMarkdown(url, fetchWaitMs, fetchFunction = fetch) {
   try {
     console.log(`Fetching markdown ${url}, delay ${fetchWaitMs}ms, timeout 5s`);
     await delay(fetchWaitMs); // Wait 500ms to avoid rate limiting, not needed for live.
@@ -40,7 +42,7 @@ async function downloadMD(documentUrl, folderPath, entry) {
     return;
   }
 
-  const waitMs = documentUrl.includes('hlx.live') ? 0 : 500;
+  const waitMs = documentUrl.includes('hlx.page') ? PAGE_DELAY : LIVE_DELAY;
   const markdown = await fetchMarkdown(`${documentUrl}.md`, waitMs);
   const markdownFile = path.join(folderPath, `${entry}.md`);
 
@@ -80,11 +82,17 @@ function downloadMarkdown(folder, list, locales, siteURL, stagePath) {
   return downloadMDs(stagedUrls, folder);
 }
 
+/**
+ * Reads a JSON file from the specified directory.
+ * @param {string} file - The name of the JSON file.
+ * @param {string} directory - The directory where the file is located.
+ * @returns {object} - The parsed JSON object.
+ */
 function readJsonFile(file, directory) {
   const filePath = path.join(directory, file);
   if (!fs.existsSync(filePath)) {
     console.error(`File not found: ${filePath}`);
-    return {};
+    return null;
   }
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
@@ -93,31 +101,34 @@ function readJsonFile(file, directory) {
  * Initializes the download process for markdown files.
  *
  * @param {string} migrationDir - The directory path for the migration.
- * @param {string} [outputDir='output'] - The directory path for the output files.
+ * @param {string} outputDir - The directory path for the output markdown files.
+ * @param {string} siteUrl - The base URL of the website.
+ * @param {string} stagePath - The path to the staging environment.
  * @returns {Promise<void>} A promise that resolves when the download process is complete.
  */
-async function init(migrationDir, outputDir = 'output', siteUrl = 'https://main--bacom-blog--adobecom.hlx.page', stagePath = '/drafts/staged-content') {
-  // const config = readJsonFile('config.json', migrationDir);
+async function init(migrationDir, outputDir, siteUrl, stagePath) {
   const list = readJsonFile('output/list.json', migrationDir);
   const locales = readJsonFile('locales.json', migrationDir);
 
-  // const { siteUrl, stagePath } = config;
-
-  if (!siteUrl || !stagePath) {
-    console.error('Missing siteUrl or stagePath in config');
+  if (!list || !locales) {
+    console.error('Missing list or locales');
     process.exit(1);
   }
 
-  const mdDir = path.join(migrationDir, 'md', outputDir);
-  await downloadMarkdown(mdDir, list, locales, siteUrl, stagePath);
+  if (!siteUrl || !stagePath) {
+    console.error('Missing siteUrl or stagePath');
+    process.exit(1);
+  }
+
+  const markdownFolder = path.join(migrationDir, 'md', outputDir);
+  await downloadMarkdown(markdownFolder, list, locales, siteUrl, stagePath);
 }
 
-// example usage: node tools/download-markdown/download-markdown.js 'blog-test' 'uploaded'
+// example usage: node tools/download-markdown/download-markdown.js 'blog-test' 'uploaded' 'https://main--bacom-blog--adobecom.hlx.page' '/drafts/staged-content'
 if (import.meta.url === `file://${process.argv[1]}`) {
-  // const args = process.argv.slice(2);
-  // const [folder, outputDir] = args;
-  const [folder, outputDir] = ['blog-test', 'uploaded'];
+  const args = process.argv.slice(2);
+  const [folder, outputDir, siteUrl, stagePath] = args;
 
-  await init(folder, outputDir);
+  await init(folder, outputDir, siteUrl, stagePath);
   process.exit(0);
 }
