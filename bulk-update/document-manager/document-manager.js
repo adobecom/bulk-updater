@@ -111,15 +111,14 @@ function loadMarkdownFromFile(markdownFile, mdCacheMs) {
 }
 
 /**
- * Saves the provided markdown content to a file.
+ * Saves the provided content to a file.
  *
- * @param {string} markdownFile - The path of the markdown file to save.
- * @param {string} markdown - The markdown content to be saved.
+ * @param {string} file - The path of the file to save.
+ * @param {string} content - The content to be saved.
  */
-function saveMarkdownToFile(markdownFile, markdown) {
-  const folder = markdownFile.split('/').slice(0, -1).join('/');
-  fs.mkdirSync(folder, { recursive: true });
-  fs.writeFileSync(markdownFile, markdown);
+export function saveToFile(file, content) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, content);
 }
 
 /**
@@ -164,7 +163,7 @@ export async function loadDocument(entry, config, fetchFunction = fetch) {
   document.markdown = await fetchMarkdown(`${document.url}.md`, reporter, fetchWaitMs, fetchFunction);
 
   if (document.markdown) {
-    if (mdDir) saveMarkdownToFile(document.markdownFile, document.markdown);
+    if (mdDir) saveToFile(document.markdownFile, document.markdown);
     document.mdast = getMdast(document.markdown, reporter);
     reporter.log('load', 'success', 'Fetched entry', { entry });
 
