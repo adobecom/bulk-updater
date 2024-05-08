@@ -87,6 +87,20 @@ export async function loadListData(source, fetchFunction = fetch, fetchWaitMs = 
 }
 
 /**
+ * Generates the staged-content path by localizing the stage path based on the entry path.
+ *
+ * @param {string} entry - The entry path.
+ * @param {string} stagePath - The path to the stage.
+ * @param {string[]} locales - An array of supported locales.
+ * @returns {string} The staged URL.
+ */
+export function localizeStagePath(entry, stagePath = '', locales = []) {
+  const currentLocale = locales.find((locale) => locale && entry.startsWith(`/${locale}/`));
+  const localizedPath = currentLocale ? entry.replace(`/${currentLocale}/`, `/${currentLocale}${stagePath}/`) : `${stagePath}${entry}`;
+  return localizedPath.replace(/\/+/g, '/');
+}
+
+/**
  * Generates the staged-content URL by localizing the stage path based on the entry path.
  *
  * @param {string} siteUrl - The base URL of the site.
@@ -96,10 +110,7 @@ export async function loadListData(source, fetchFunction = fetch, fetchWaitMs = 
  * @returns {string} The staged URL.
  */
 export function localizeStageUrl(siteUrl, entry, stagePath = '', locales = []) {
-  const currentLocale = locales.find((locale) => locale && entry.startsWith(`/${locale}/`));
-  const localizedPath = currentLocale ? entry.replace(`/${currentLocale}/`, `/${currentLocale}${stagePath}/`) : `${stagePath}${entry}`;
-
-  return `${siteUrl}${localizedPath}`;
+  return siteUrl + localizeStagePath(entry, stagePath, locales);
 }
 
 /**
