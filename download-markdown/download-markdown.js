@@ -9,6 +9,7 @@ const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, m
 const ALLOW_SKIP = true; // Allow skipping files that already exist
 const PAGE_DELAY = 500; // 500ms delay for fetching from hlx.page
 const LIVE_DELAY = 0; // 0ms delay for fetching from live site
+const TIMEOUT = 5000; // 5s timeout for fetching markdown
 
 /**
  * Reads a JSON file from the specified directory.
@@ -35,9 +36,9 @@ function readJsonFile(file, directory) {
  */
 export async function fetchMarkdown(url, fetchWaitMs, fetchFn = fetch) {
   try {
-    console.log(`Fetching markdown ${url}, delay ${fetchWaitMs}ms, timeout 5s`);
+    console.log(`Fetching markdown ${url}, delay ${fetchWaitMs}ms, timeout ${TIMEOUT}ms`);
     await delay(fetchWaitMs); // Wait 500ms to avoid rate limiting, not needed for live.
-    const signal = timeoutSignal(5000); // 5s timeout
+    const signal = timeoutSignal(TIMEOUT); // 5s timeout
     const response = await fetchFn(url, { signal });
 
     if (!response.ok) {
@@ -50,7 +51,7 @@ export async function fetchMarkdown(url, fetchWaitMs, fetchFn = fetch) {
     return text;
   } catch (e) {
     if (e instanceof AbortError) {
-      console.warn('Fetch timed out after 1s');
+      console.warn(`Fetch timed out after ${TIMEOUT}ms`);
     } else {
       console.warn('Markdown not found at url', e.message);
     }
@@ -120,7 +121,6 @@ export async function downloadMDs(stagedUrls, folderPath, fetchFn = fetch) {
  * @returns {Promise<void>} A promise that resolves when the download process is complete.
  */
 export function downloadMarkdown(folder, list, locales, siteURL, stagePath, fetchFn = fetch) {
-  // eslint-disable-next-line arrow-body-style
   const stagedUrls = list.map((entry) => {
     const entryPath = entryToPath(entry);
     return [entryPath, localizeStageUrl(siteURL, entryPath, stagePath, locales)];
