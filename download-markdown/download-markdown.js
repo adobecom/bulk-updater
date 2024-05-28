@@ -139,7 +139,7 @@ export function downloadMarkdown(folder, list, locales, siteURL, stagePath, fetc
  * @param {string} stagePath - The path to the staging environment.
  * @returns {Promise<void>} A promise that resolves when the download process is complete.
  */
-async function init(migrationDir, outputDir, siteUrl, stagePath) {
+async function init(migrationDir, outputDir, siteUrl, stagePath = '') {
   const list = readJsonFile('output/list.json', migrationDir);
   const locales = readJsonFile('locales.json', migrationDir);
 
@@ -148,8 +148,8 @@ async function init(migrationDir, outputDir, siteUrl, stagePath) {
     process.exit(1);
   }
 
-  if (!siteUrl || !stagePath) {
-    console.error('Missing siteUrl or stagePath');
+  if (!siteUrl) {
+    console.error('Missing siteUrl');
     process.exit(1);
   }
 
