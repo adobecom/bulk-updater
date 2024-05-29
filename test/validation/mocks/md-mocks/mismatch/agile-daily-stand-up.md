@@ -121,7 +121,7 @@ Start by explaining the concept to your team — including how it will work and 
 
 You may find that the software your team is using is holding back your agile project management style. [Adobe Workfront](https://www.workfront.com/products?ef_id=CjwKCAjwt7SWBhAnEiwAx8ZLanwVpwWWfg3sBPmqeKQ_ckwge7on8BLjXECwyLQOnLNhRnuSKZoJ0RoCeSwQAvD_BwE:G:s\&s_kwcid=AL!3085!3!517409436165!e!!g!!what%20is%20adobe%20workfront!10503449184!106943433994\&o=7010z000000ymxNAAQ\&utm_source=google\&utm_medium=cpc\&keyword=what%20is%20adobe%20workfront\&ad=517409436165\&matchtype=e\&device=c\&utm_campaign=us_brand_wf\&s_kwcid=AL!6440!3!517409436165!e!!g!!what%20is%20adobe%20workfront\&strala_id=ga-1-517409436165-106943433994\&strala_kw=what%20is%20adobe%20workfront\&strala_mt=e\&strala_dv=c\&strala_pl=\&strala_nw=g\&strala_ap=\&gclid=CjwKCAjwt7SWBhAnEiwAx8ZLanwVpwWWfg3sBPmqeKQ_ckwge7on8BLjXECwyLQOnLNhRnuSKZoJ0RoCeSwQAvD_BwE) is designed to help teams stay agile with features that streamline workflow and enhance the way you get things done.
 
-_**Take a free [product tour](https://www.workfront.com/tours/workfront) to see how Workfront can optimize your process.**_
+**_Take a free [product tour](https://www.workfront.com/tours/workfront) to see how Workfront can optimize your process._**
 
 +----------------------------------------------------------------------------------+
 | Metadata                                                                         |

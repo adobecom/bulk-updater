@@ -266,6 +266,6 @@ export function init(csvFile) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const csvFile = process.argv[2];
   await BulkUpdate(init(csvFile), migrate);
-  config.reporter.saveReport();
+  await config.reporter.saveReport();
   process.exit();
 }
