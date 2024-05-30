@@ -50,10 +50,21 @@ const subtypeMapping = {
   2848: 'trial_download',
   2847: 'whitepaper_form',
 };
+const subtypeDefaults = {
+  full: 'request_for_information',
+  expanded: 'strategy_webinar',
+  essential: 'whitepaper_form',
+};
 const templateMapping = {
   full: 'flex_contact',
   expanded: 'flex_event',
   essential: 'flex_content',
+};
+const byPageOptions = {
+  entry: '',
+  faasUrl: '',
+  marketoUrl: '',
+  fragment: '',
 };
 
 function csvToArray(file) {
@@ -93,7 +104,7 @@ export function getMarketoData(entry, faasUrl, pathMapping) {
   const faasData = parseEncodedConfig(encodedConfig);
 
   if (!faasData) {
-    config.reporter.log('url-mapping-by-page', 'error', 'Error parsing faas url', { entry, faasUrl, marketoUrl: '', fragment: '' });
+    config.reporter.log('url-mapping-by-page', 'error', 'Error parsing faas url', { ...byPageOptions, entry, faasUrl });
     return undefined;
   }
 
@@ -102,7 +113,7 @@ export function getMarketoData(entry, faasUrl, pathMapping) {
   const template = Object.keys(templateMapping).find((key) => templateLabel.includes(key));
 
   if (!template) {
-    config.reporter.log('url-mapping-by-page', 'error', `No match for template: ${templateLabel}`, { entry, faasUrl, marketoUrl: '', fragment: '' });
+    config.reporter.log('url-mapping-by-page', 'error', `No match for template: ${templateLabel}`, { ...byPageOptions, entry, faasUrl });
     return undefined;
   }
 
@@ -110,35 +121,40 @@ export function getMarketoData(entry, faasUrl, pathMapping) {
   const subtype = subtypeMapping[faasSubtype];
 
   if (!subtype) {
-    config.reporter.log('url-mapping-by-page', 'error', `No match for subtype: ${faasSubtype}`, { entry, faasUrl, marketoUrl: '', fragment: '' });
+    config.reporter.log('url-mapping-by-page', 'error', `No match for subtype: ${faasSubtype}`, { ...byPageOptions, entry, faasUrl });
     return undefined;
   }
 
   const campaignID = faasData.pjs36 || faasData.p?.js?.[36];
 
   if (!campaignID) {
-    config.reporter.log('url-mapping-by-page', 'error', `No campaign id: ${campaignID}`, { entry, faasUrl, marketoUrl: '', fragment: '' });
+    config.reporter.log('url-mapping-by-page', 'error', `No campaign id: ${campaignID}`, { ...byPageOptions, entry, faasUrl });
     return undefined;
   }
 
   const destinationUrl = faasData.d;
 
   if (!destinationUrl) {
-    config.reporter.log('url-mapping-by-page', 'warn', 'No destination url', { entry, faasUrl, marketoUrl: '', fragment: '' });
+    config.reporter.log('url-mapping-by-page', 'warn', 'No destination url', { ...byPageOptions, entry, faasUrl });
   }
 
   const onsiteID = faasData.pjs39 || faasData.p?.js?.[39];
 
   if (!onsiteID) {
-    config.reporter.log('url-mapping-by-page', 'warn', 'No onsite id', { entry, faasUrl, marketoUrl: '', fragment: '' });
+    config.reporter.log('url-mapping-by-page', 'warn', 'No onsite id', { ...byPageOptions, entry, faasUrl });
   }
 
   const faasPoi = faasData.pjs94 || faasData.p?.js?.[94];
   const poi = poiMapping[faasPoi];
 
   if (!poi) {
-    config.reporter.log('url-mapping-by-page', 'warn', `No match for POI: ${faasPoi}`, { entry, faasUrl, marketoUrl: '', fragment: '' });
+    config.reporter.log('url-mapping-by-page', 'warn', `No match for POI: ${faasPoi}`, { ...byPageOptions, entry, faasUrl });
   }
+
+  const hasDefaultSubtype = subtypeDefaults[template] === subtype;
+  config.reporter.log('fields', 'info', 'Field info', {
+    entry, template, subtype, hasDefaultSubtype, campaignID, destinationUrl, onsiteID, poi,
+  });
 
   return {
     template,
@@ -206,15 +222,15 @@ export function generateMarketoUrl({
  */
 export async function migrate(document) {
   const { mdast, entry } = document;
-  const faasLinks = selectAll('link', mdast).filter((node) => node.url.startsWith('https://milo.adobe.com/tools/faas#'));
+  const faasLinks = selectAll('link', mdast).filter((node) => node.url.includes('/tools/faas'));
 
   if (!faasLinks.length) {
     const fragmentLink = selectAll('link', mdast).find((node) => node.url.includes('/fragments/') && node.url.includes('/forms/'))?.url;
 
     if (fragmentLink) {
-      config.reporter.log('url-mapping-by-page', 'skip', 'See fragment', { entry, faasUrl: '', marketoUrl: '', fragment: fragmentLink });
+      config.reporter.log('url-mapping-by-page', 'skip', 'See fragment', { ...byPageOptions, entry, fragment: fragmentLink });
     } else {
-      config.reporter.log('url-mapping-by-page', 'skip', 'No faas block', { entry, faasUrl: '', marketoUrl: '', fragment: '' });
+      config.reporter.log('url-mapping-by-page', 'skip', 'No faas block', { ...byPageOptions, entry });
     }
     return;
   }
@@ -227,7 +243,7 @@ export async function migrate(document) {
 
     const marketoUrl = generateMarketoUrl(marketoData);
 
-    config.reporter.log('url-mapping-by-page', 'success', 'Generated Marketo URL', { entry, faasUrl, marketoUrl, fragment: '' });
+    config.reporter.log('url-mapping-by-page', 'success', 'Generated Marketo URL', { ...byPageOptions, entry, faasUrl, marketoUrl });
 
     if (!uniqueFaasUrls.includes(faasUrl)) {
       uniqueFaasUrls.push(faasUrl);
