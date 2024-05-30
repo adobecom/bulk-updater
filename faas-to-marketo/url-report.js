@@ -50,11 +50,6 @@ const subtypeMapping = {
   2848: 'trial_download',
   2847: 'whitepaper_form',
 };
-const subtypeDefaults = {
-  full: 'request_for_information',
-  expanded: 'strategy_webinar',
-  essential: 'whitepaper_form',
-};
 const templateMapping = {
   full: 'flex_contact',
   expanded: 'flex_event',
@@ -151,9 +146,8 @@ export function getMarketoData(entry, faasUrl, pathMapping) {
     config.reporter.log('url-mapping-by-page', 'warn', `No match for POI: ${faasPoi}`, { ...byPageOptions, entry, faasUrl });
   }
 
-  const hasDefaultSubtype = subtypeDefaults[template] === subtype;
   config.reporter.log('fields', 'info', 'Field info', {
-    entry, template, subtype, hasDefaultSubtype, campaignID, destinationUrl, onsiteID, poi,
+    entry, template, subtype, campaignID, destinationUrl, onsiteID, poi,
   });
 
   return {
