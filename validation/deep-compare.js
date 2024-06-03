@@ -93,7 +93,7 @@ export function similarityCategory(similarity) {
  * @param {string} stringTwo - The second string to compare.
  * @returns {Object} - An object containing observations about the similarity of the two strings.
  */
-export function observe(stringOne = '', stringTwo = '') {
+export function observeText(stringOne = '', stringTwo = '') {
   const observations = {};
 
   observations[MATCH] = stringOne === stringTwo;
@@ -112,17 +112,6 @@ export function observe(stringOne = '', stringTwo = '') {
 }
 
 /**
- * Observes the changes between two text values.
- *
- * @param {string} oldText - The old text value.
- * @param {string} newText - The new text value.
- * @returns {Object} - The observed changes between the old and new text values.
- */
-export function observeText(oldText = '', newText = '') {
-  return observe(oldText, newText);
-}
-
-/**
  * Observes and compares two URLs.
  *
  * @param {string} [oldUrl=''] - The old URL to observe.
@@ -130,16 +119,25 @@ export function observeText(oldText = '', newText = '') {
  * @returns {Object} - An object containing observations about the URL comparison.
  */
 export function observeUrl(oldUrl = '', newUrl = '') {
-  const observations = observe(oldUrl, newUrl);
+  const observations = observeText(oldUrl, newUrl);
   const oldUrlObj = oldUrl ? new URL(oldUrl, DOMAIN) : null;
   const newUrlObj = newUrl ? new URL(newUrl, DOMAIN) : null;
+  const validUrl = !!(oldUrlObj?.href && newUrlObj?.href);
 
   observations[DOUBLE_HASH] = oldUrl?.match(/#/g)?.length > 1 || newUrl?.match(/#/g)?.length > 1;
-  observations[VALID_URL] = !!(oldUrlObj?.href && newUrlObj?.href);
-  observations[HASH_MATCH] = oldUrl?.hash === newUrl?.hash;
-  observations[HOST_MATCH] = oldUrl?.host === newUrl?.host;
-  observations[PATHNAME_MATCH] = oldUrl?.pathname === newUrl?.pathname;
-  observations[SEARCH_MATCH] = oldUrl?.search === newUrl?.search;
+  observations[VALID_URL] = validUrl;
+
+  if (validUrl) {
+    observations[HASH_MATCH] = oldUrlObj?.hash === newUrlObj?.hash;
+    observations[HOST_MATCH] = oldUrlObj?.host === newUrlObj?.host;
+    observations[PATHNAME_MATCH] = oldUrlObj?.pathname === newUrlObj?.pathname;
+    observations[SEARCH_MATCH] = oldUrlObj?.search === newUrlObj?.search;
+  } else {
+    observations[HASH_MATCH] = false;
+    observations[HOST_MATCH] = false;
+    observations[PATHNAME_MATCH] = false;
+    observations[SEARCH_MATCH] = false;
+  }
 
   return observations;
 }

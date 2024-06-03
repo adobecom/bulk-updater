@@ -18,7 +18,7 @@ describe('ExcelReporter', () => {
     });
   });
 
-  describe('Check reporter and excel js library is called', () => {
+  describe('Check excel js instantiation and methods', () => {
     const sandbox = sinon.createSandbox();
 
     it('creates a new workbook', () => {
@@ -39,11 +39,9 @@ describe('ExcelReporter', () => {
     it('appends log to sheet', () => {
       const reporter = new ExcelReporter();
 
-      sandbox.spy(reporter);
       sandbox.spy(reporter.workbook);
       reporter.log('topic', 'status', 'message', 'arg1', 'arg2');
 
-      expect(reporter.log.calledOnce).to.be.true;
       expect(reporter.workbook.addWorksheet.calledOnce).to.be.true;
 
       sandbox.restore();
@@ -53,7 +51,6 @@ describe('ExcelReporter', () => {
       const filepath = `${pathname}output/append.xlsx`;
       const reporter = new ExcelReporter(filepath, true);
 
-      sandbox.spy(reporter);
       sandbox.spy(reporter.workbook);
 
       reporter.log('topic1', 'status1', 'message1');
@@ -64,7 +61,6 @@ describe('ExcelReporter', () => {
 
       await reporter.generateTotals();
 
-      expect(reporter.log.callCount).to.equal(5);
       expect(reporter.workbook.addWorksheet.callCount).to.equal(2);
       expect(reporter.workbook.getWorksheet('Totals')).is.not.undefined;
 

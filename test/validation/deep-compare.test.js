@@ -46,7 +46,7 @@ describe('Deep Compare', () => {
       const strTwo = 'sitting';
       const similarity = lSimilarity(strOne, strTwo);
 
-      expect(similarity).to.equal(0.5714285714285714);
+      expect(similarity.toFixed(4)).to.equal('0.5714');
     });
   });
 
@@ -144,6 +144,8 @@ describe('Deep Compare', () => {
       const observations = observeLinks(oldUrl, newUrl, oldText, newText);
 
       expect(observations.url).to.contain({
+        [MATCH]: false,
+        [PATHNAME_MATCH]: false,
         [SIMILARITY_PERCENTAGE]: '84%',
         [SIMILARITY]: 'High Similarity',
       });

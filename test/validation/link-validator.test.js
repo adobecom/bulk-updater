@@ -37,6 +37,9 @@ import {
 const { pathname } = new URL('.', import.meta.url);
 
 describe('Link Validator', () => {
+  const comparison = ['source', 'updated'];
+  const entry = '/entry';
+
   describe('getMarkdownLinks', () => {
     it('should return an object with sourceLinks and updatedLinks', async () => {
       const sourceMdast = {};
@@ -139,8 +142,6 @@ describe('Link Validator', () => {
           newText: 'Link 2',
         },
       ];
-      const comparison = ['source', 'updated'];
-      const entry = '/entry';
       const expected = [
         {
           newText: 'Link 2',
@@ -163,8 +164,8 @@ describe('Link Validator', () => {
             [BOTH_EMPTY]: false,
             [ASCII]: false,
             [DOUBLE_HASH]: false,
+            [HOST_MATCH]: false,
             [HASH_MATCH]: true,
-            [HOST_MATCH]: true,
             [LENGTHS_MATCH]: true,
             [PATHNAME_MATCH]: true,
             [SEARCH_MATCH]: true,
@@ -192,8 +193,6 @@ describe('Link Validator', () => {
         { url: 'https://example.com', children: [{ type: 'text', value: 'Link 1' }] },
         { url: 'https://example.com/entry', children: [{ type: 'text', value: 'Link 2' }] },
       ];
-      const comparison = ['source', 'updated'];
-      const entry = '/entry';
       const expected = {
         comparisons: 1,
         anomalies: 0,
@@ -213,8 +212,6 @@ describe('Link Validator', () => {
         { url: 'https://example.com', children: [{ type: 'text', value: 'Link 1' }] },
         { url: 'https://example.com', children: [{ type: 'text', value: 'Link 2' }] },
       ];
-      const comparison = ['source', 'updated'];
-      const entry = '/entry';
       const expected = {
         comparisons: 0,
         anomalies: 0,
@@ -246,19 +243,29 @@ describe('Link Validator', () => {
   });
 });
 
-describe('Validate Markdown', () => {
+describe('Validate Markdown MDAST', () => {
+  const comparison = ['source', 'updated'];
+  const entry = '/entry';
+
   const sourceMd = fs.readFileSync(`${pathname}mocks/adobe-experience-manager-source.md`, 'utf-8');
   const updatedMd = fs.readFileSync(`${pathname}mocks/adobe-experience-manager-updated.md`, 'utf-8');
   const mismatchMd = fs.readFileSync(`${pathname}mocks/adobe-experience-manager-updated-mismatched.md`, 'utf-8');
   const shuffledMd = fs.readFileSync(`${pathname}mocks/adobe-experience-manager-shuffled.md`, 'utf-8');
 
-  const comparison = ['source', 'updated'];
-  const entry = '/entry';
+  let sourceMdast;
+  let updatedMdast;
+  let mismatchedMdast;
+  let shuffledMdast;
+
+  beforeEach(() => {
+    sourceMdast = getMdast(sourceMd);
+    updatedMdast = getMdast(updatedMd);
+    mismatchedMdast = getMdast(mismatchMd);
+    shuffledMdast = getMdast(shuffledMd);
+  });
 
   describe('getMarkdownLinks', () => {
     it('Gets markdown links', async () => {
-      const sourceMdast = await getMdast(sourceMd);
-      const updatedMdast = await getMdast(updatedMd);
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, updatedMdast);
 
       expect(sourceLinks).to.be.an('array');
@@ -271,8 +278,6 @@ describe('Validate Markdown', () => {
 
   describe('getLinkLists', () => {
     it('Gets link lists', async () => {
-      const sourceMdast = await getMdast(sourceMd);
-      const updatedMdast = await getMdast(updatedMd);
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, updatedMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
 
@@ -289,8 +294,6 @@ describe('Validate Markdown', () => {
 
   describe('exactMatch', () => {
     it('All links match when updated correctly', async () => {
-      const sourceMdast = await getMdast(sourceMd);
-      const updatedMdast = await getMdast(updatedMd);
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, updatedMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
 
@@ -299,8 +302,6 @@ describe('Validate Markdown', () => {
     });
 
     it('All links do not match when links are mismatched', async () => {
-      const sourceMdast = await getMdast(sourceMd);
-      const mismatchedMdast = await getMdast(mismatchMd);
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, mismatchedMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
 
@@ -311,8 +312,6 @@ describe('Validate Markdown', () => {
 
   describe('deepCompare', () => {
     it('Returns an empty array when there are no differences in links', async () => {
-      const sourceMdast = await getMdast(sourceMd);
-      const updatedMdast = await getMdast(updatedMd);
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, updatedMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
 
@@ -322,8 +321,6 @@ describe('Validate Markdown', () => {
     });
 
     it('Returns an array of observations when there are differences in links', async () => {
-      const sourceMdast = await getMdast(sourceMd);
-      const mismatchedMdast = await getMdast(mismatchMd);
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, mismatchedMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
       const observations = deepCompare(linkLists, comparison, entry);
@@ -343,8 +340,6 @@ describe('Validate Markdown', () => {
 
   describe('reportAnomalies', () => {
     it('Returns an array of anomalies', async () => {
-      const sourceMdast = await getMdast(sourceMd);
-      const shuffledMdast = await getMdast(shuffledMd);
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, shuffledMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
       const observations = deepCompare(linkLists, comparison, entry);
@@ -358,8 +353,6 @@ describe('Validate Markdown', () => {
 
   describe('comparePageLinks', () => {
     it('should return comparisons and anomalies when links do not match', async () => {
-      const sourceMdast = await getMdast(sourceMd);
-      const shuffledMdast = await getMdast(shuffledMd);
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, shuffledMdast);
       const result = comparePageLinks(sourceLinks, updatedLinks, comparison, entry);
 
@@ -368,7 +361,7 @@ describe('Validate Markdown', () => {
   });
 });
 
-describe('Validate Mock Data', () => {
+describe('Validate Mock Folders', () => {
   const listPath = `${pathname}/mocks/list.json`;
   const mdPath = `${pathname}/mocks/md-mocks`;
 
