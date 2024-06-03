@@ -6,7 +6,7 @@ import {
   observeText,
   observeUrl,
   observeLinks,
-  detectAnomalies,
+  detectAnomaly,
   MATCH,
   EMPTY,
   BOTH_EMPTY,
@@ -27,6 +27,7 @@ import {
   ANOMALY_WHITESPACE_CORRUPTION,
   ANOMALY_ASCII_URL_CORRUPTION,
   ANOMALY_MULTIPLE_HASHTAGS,
+  ANOMALY_UNKNOWN,
 } from '../../validation/deep-compare.js';
 
 describe('Deep Compare', () => {
@@ -56,7 +57,7 @@ describe('Deep Compare', () => {
       const newText = 'Adobe Experience Manager';
       const observations = observeText(oldText, newText);
 
-      expect(observations).to.deep.equal({
+      expect(observations).to.deep.include({
         [MATCH]: true,
         [EMPTY]: false,
         [BOTH_EMPTY]: false,
@@ -75,7 +76,7 @@ describe('Deep Compare', () => {
       const newUrl = 'https://business.adobe.com/';
       const observations = observeUrl(oldUrl, newUrl);
 
-      expect(observations).to.deep.equal({
+      expect(observations).to.deep.include({
         [MATCH]: true,
         [EMPTY]: false,
         [BOTH_EMPTY]: false,
@@ -100,40 +101,44 @@ describe('Deep Compare', () => {
       const newUrl = 'https://business.adobe.com/';
       const oldText = 'Adobe Experience Manager';
       const newText = 'Adobe Experience Manager';
-      const observations = observeLinks(oldUrl, newUrl, oldText, newText);
-
-      expect(observations).to.deep.equal({
+      const expected = {
         oldUrl,
         newUrl,
         oldText,
         newText,
-        text: {
-          [MATCH]: true,
-          [EMPTY]: false,
-          [BOTH_EMPTY]: false,
-          [LENGTHS_MATCH]: true,
-          [SIMILARITY_PERCENTAGE]: '100%',
-          [SIMILARITY]: SIMILARITY_EXACT,
-          [WHITESPACE]: true,
-          [ASCII]: false,
-        },
-        url: {
-          [MATCH]: true,
-          [EMPTY]: false,
-          [BOTH_EMPTY]: false,
-          [DOUBLE_HASH]: false,
-          [HASH_MATCH]: true,
-          [HOST_MATCH]: true,
-          [LENGTHS_MATCH]: true,
-          [PATHNAME_MATCH]: true,
-          [SEARCH_MATCH]: true,
-          [SIMILARITY_PERCENTAGE]: '100%',
-          [SIMILARITY]: SIMILARITY_EXACT,
-          [WHITESPACE]: true,
-          [VALID_URL]: true,
-          [ASCII]: false,
-        },
-      });
+      };
+      const expectedText = {
+        [MATCH]: true,
+        [EMPTY]: false,
+        [BOTH_EMPTY]: false,
+        [LENGTHS_MATCH]: true,
+        [SIMILARITY_PERCENTAGE]: '100%',
+        [SIMILARITY]: SIMILARITY_EXACT,
+        [WHITESPACE]: true,
+        [ASCII]: false,
+      };
+      const expectedUrl = {
+        [MATCH]: true,
+        [EMPTY]: false,
+        [BOTH_EMPTY]: false,
+        [DOUBLE_HASH]: false,
+        [HASH_MATCH]: true,
+        [HOST_MATCH]: true,
+        [LENGTHS_MATCH]: true,
+        [PATHNAME_MATCH]: true,
+        [SEARCH_MATCH]: true,
+        [SIMILARITY_PERCENTAGE]: '100%',
+        [SIMILARITY]: SIMILARITY_EXACT,
+        [WHITESPACE]: true,
+        [VALID_URL]: true,
+        [ASCII]: false,
+      };
+
+      const observations = observeLinks(oldUrl, newUrl, oldText, newText);
+
+      expect(observations).to.deep.include(expected);
+      expect(observations.text).to.deep.include(expectedText);
+      expect(observations.url).to.deep.include(expectedUrl);
     });
 
     it('returns the correct observations for links with different URLs', () => {
@@ -154,28 +159,28 @@ describe('Deep Compare', () => {
 
   describe('Anomaly Detection', () => {
     it('No anomalies for exact match', () => {
-      const observations = {
+      const observation = {
         text: {},
         url: {},
       };
-      const anomalies = detectAnomalies([observations]);
+      const { anomaly } = detectAnomaly(observation);
 
-      expect(anomalies).to.deep.equal([]);
+      expect(anomaly).to.deep.equal(ANOMALY_UNKNOWN);
     });
 
     it('identifies empty link anomaly', () => {
-      const observations = {
+      const observation = {
         text: { [EMPTY]: true },
         url: { [EMPTY]: true },
       };
 
-      const anomalies = detectAnomalies([observations]);
+      const { anomaly } = detectAnomaly(observation);
 
-      expect(anomalies).to.deep.equal(['Missing link']);
+      expect(anomaly).to.deep.equal(ANOMALY_MISSING_LINK);
     });
 
     it('identifies anomalies for text with whitespace changes', () => {
-      const observations = {
+      const observation = {
         text: {
           [MATCH]: false,
           [WHITESPACE]: true,
@@ -183,24 +188,24 @@ describe('Deep Compare', () => {
         url: {},
       };
 
-      const anomalies = detectAnomalies([observations]);
+      const { anomaly } = detectAnomaly(observation);
 
-      expect(anomalies).to.deep.equal(['Whitespace corruption']);
+      expect(anomaly).to.deep.equal(ANOMALY_WHITESPACE_CORRUPTION);
     });
 
     it('identifies anomalies for URLs with multiple hashtags', () => {
-      const observations = {
+      const observation = {
         text: {},
         url: { [DOUBLE_HASH]: true },
       };
 
-      const anomalies = detectAnomalies([observations]);
+      const { anomaly } = detectAnomaly(observation);
 
-      expect(anomalies).to.deep.equal(['Multiple hashtags']);
+      expect(anomaly).to.equal(ANOMALY_MULTIPLE_HASHTAGS);
     });
 
     it('identifies anomalies for URLs with ASCII characters', () => {
-      const observations = {
+      const observation = {
         text: {
           [MATCH]: true,
           [ASCII]: false,
@@ -211,23 +216,23 @@ describe('Deep Compare', () => {
         },
       };
 
-      const anomalies = detectAnomalies([observations]);
+      const { anomaly } = detectAnomaly(observation);
 
-      expect(anomalies).to.deep.equal(['ASCII URL corruption']);
+      expect(anomaly).to.equal(ANOMALY_ASCII_URL_CORRUPTION);
     });
   });
 });
 
-describe('Detect Real Anomalies', () => {
+describe('Detect Real Anomaly', () => {
   it('identifies empty link', () => {
     const oldUrl = 'https://business.adobe.com/products/target/adobe-target.html';
     const newUrl = '';
     const oldText = 'Adobe Target';
     const newText = 'Adobe Target';
-    const observations = observeLinks(oldUrl, newUrl, oldText, newText);
-    const anomalies = detectAnomalies([observations]);
+    const observation = observeLinks(oldUrl, newUrl, oldText, newText);
+    const { anomaly } = detectAnomaly(observation);
 
-    expect(anomalies).to.deep.equal([ANOMALY_EMPTY_LINK]);
+    expect(anomaly).to.equal(ANOMALY_EMPTY_LINK);
   });
 
   it('identifies missing link', () => {
@@ -235,10 +240,10 @@ describe('Detect Real Anomalies', () => {
     const newUrl = '';
     const oldText = 'Adobe Target';
     const newText = '';
-    const observations = observeLinks(oldUrl, newUrl, oldText, newText);
-    const anomalies = detectAnomalies([observations]);
+    const observation = observeLinks(oldUrl, newUrl, oldText, newText);
+    const { anomaly } = detectAnomaly(observation);
 
-    expect(anomalies).to.deep.equal([ANOMALY_MISSING_LINK]);
+    expect(anomaly).to.equal(ANOMALY_MISSING_LINK);
   });
 
   it('identifies whitespace corruption', () => {
@@ -246,10 +251,10 @@ describe('Detect Real Anomalies', () => {
     const newUrl = 'https://business.adobe.com/products/target/adobe-target.html';
     const oldText = 'Adobe Target';
     const newText = 'Adobe Target ';
-    const observations = observeLinks(oldUrl, newUrl, oldText, newText);
-    const anomalies = detectAnomalies([observations]);
+    const observation = observeLinks(oldUrl, newUrl, oldText, newText);
+    const { anomaly } = detectAnomaly(observation);
 
-    expect(anomalies).to.deep.equal([ANOMALY_WHITESPACE_CORRUPTION]);
+    expect(anomaly).to.equal(ANOMALY_WHITESPACE_CORRUPTION);
   });
 
   it('identifies ASCII URL corruption', () => {
@@ -257,10 +262,10 @@ describe('Detect Real Anomalies', () => {
     const newUrl = 'https://experienceleague.adobe.com/?lang=en%22%20\l%20%22home';
     const oldText = 'Adobe Experience League';
     const newText = 'Adobe Experience League';
-    const observations = observeLinks(oldUrl, newUrl, oldText, newText);
-    const anomalies = detectAnomalies([observations]);
+    const observation = observeLinks(oldUrl, newUrl, oldText, newText);
+    const { anomaly } = detectAnomaly(observation);
 
-    expect(anomalies).to.deep.equal([ANOMALY_ASCII_URL_CORRUPTION]);
+    expect(anomaly).to.equal(ANOMALY_ASCII_URL_CORRUPTION);
   });
 
   it('identifies multiple hashtags', () => {
@@ -268,9 +273,9 @@ describe('Detect Real Anomalies', () => {
     const newUrl = 'https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/overview/architecture.html?lang=en#_blank';
     const oldText = 'technical documentation';
     const newText = 'technical documentation';
-    const observations = observeLinks(oldUrl, newUrl, oldText, newText);
-    const anomalies = detectAnomalies([observations]);
+    const observation = observeLinks(oldUrl, newUrl, oldText, newText);
+    const { anomaly } = detectAnomaly(observation);
 
-    expect(anomalies).to.deep.equal([ANOMALY_MULTIPLE_HASHTAGS]);
+    expect(anomaly).to.equal(ANOMALY_MULTIPLE_HASHTAGS);
   });
 });

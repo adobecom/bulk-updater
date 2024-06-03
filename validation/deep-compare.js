@@ -27,6 +27,7 @@ export const ANOMALY_MISSING_LINK = 'Missing link';
 export const ANOMALY_WHITESPACE_CORRUPTION = 'Whitespace corruption';
 export const ANOMALY_ASCII_URL_CORRUPTION = 'ASCII URL corruption';
 export const ANOMALY_MULTIPLE_HASHTAGS = 'Multiple hashtags';
+export const ANOMALY_UNKNOWN = 'Unknown anomaly';
 
 /**
  * Calculates the Levenshtein distance between two strings.
@@ -161,32 +162,49 @@ export function observeLinks(oldUrl, newUrl, oldText, newText) {
 }
 
 /**
- * Detects anomalies using a list of observations.
- * Account for authoring irregularities including double hashs (#one#two),
- * ASCII character transformations, link shuffling, and empty links.
+ * Detects anomalies in an observation object.
+ * Account for known anomalies, including authoring irregularities, double hashes (#one#two),
+ * ASCII character transformations, link shuffling, and missing / empty links.
  *
- * @param {Array} observations - The list of observations to analyze.
- * @returns {Array} - An array of anomalies detected using the observations.
+ * @param {Object} observation - The observation object containing `text` and `url` properties.
+ * @returns {Object} - An object containing the detected `anomaly` and the original `observation`.
  */
-export function detectAnomalies(observations) {
-  const anomalies = [];
-  for (const observation of observations) {
-    const { text, url } = observation;
-    if (text[EMPTY] && url[EMPTY]) {
-      anomalies.push(ANOMALY_MISSING_LINK);
-    } else if (text[EMPTY] || url[EMPTY]) {
-      anomalies.push(ANOMALY_EMPTY_LINK);
-    }
-    if (text[WHITESPACE] && !text[MATCH]) {
-      anomalies.push(ANOMALY_WHITESPACE_CORRUPTION);
-    }
-    if (url[ASCII] && !url[MATCH] && !url[DOUBLE_HASH]) {
-      anomalies.push(ANOMALY_ASCII_URL_CORRUPTION);
-    }
-    if (url[DOUBLE_HASH]) {
-      anomalies.push(ANOMALY_MULTIPLE_HASHTAGS);
-    }
+export function detectAnomaly(observation) {
+  const { text, url } = observation;
+  let anomaly = '';
+
+  if (text[EMPTY] && url[EMPTY]) {
+    anomaly = ANOMALY_MISSING_LINK;
+  } else if (text[EMPTY] || url[EMPTY]) {
+    anomaly = ANOMALY_EMPTY_LINK;
+  } else if (text[WHITESPACE] && !text[MATCH]) {
+    anomaly = ANOMALY_WHITESPACE_CORRUPTION;
+  } else if (url[ASCII] && !url[MATCH] && !url[DOUBLE_HASH]) {
+    anomaly = ANOMALY_ASCII_URL_CORRUPTION;
+  } else if (url[DOUBLE_HASH]) {
+    anomaly = ANOMALY_MULTIPLE_HASHTAGS;
+  } else {
+    anomaly = ANOMALY_UNKNOWN;
   }
 
-  return anomalies;
+  return { anomaly, ...observation };
+}
+
+/**
+ * Detects anomalies in the given observations and returns a summary of the detected anomalies.
+ *
+ * @param {Array} observations - The array of observations to analyze.
+ * @returns {Object} - An object containing the detected anomalies, summary, and unknown anomalies.
+ */
+export function detectAnomalies(observations) {
+  const anomalies = observations.map(detectAnomaly);
+  const unknown = anomalies.filter((a) => a.anomaly === ANOMALY_UNKNOWN);
+  const known = anomalies.filter((a) => a.anomaly !== ANOMALY_UNKNOWN);
+
+  const summary = [...new Set(known.map((a) => a.anomaly))].map((value) => {
+    const count = anomalies.filter((a) => a.anomaly === value).length;
+    return `${value} (${count})`;
+  });
+
+  return { known, unknown, summary };
 }

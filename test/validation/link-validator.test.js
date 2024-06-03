@@ -40,23 +40,8 @@ describe('Link Validator', () => {
   const comparison = ['source', 'updated'];
   const entry = '/entry';
 
-  describe('getMarkdownLinks', () => {
-    it('should return an object with sourceLinks and updatedLinks', async () => {
-      const sourceMdast = {};
-      const updatedMdast = {};
-      const expected = {
-        sourceLinks: [],
-        updatedLinks: [],
-      };
-
-      const result = await getMarkdownLinks(sourceMdast, updatedMdast);
-
-      expect(result).to.deep.equal(expected);
-    });
-  });
-
   describe('getLinkLists', () => {
-    it('should return an array of link objects', () => {
+    it('array of link objects', () => {
       const sourceLinks = [
         { url: 'https://example.com', children: [{ type: 'text', value: 'Link 1' }] },
         { url: 'https://example.com', children: [{ type: 'text', value: 'Link 2' }] },
@@ -67,18 +52,14 @@ describe('Link Validator', () => {
       ];
       const expected = [
         {
-          oldLink: { url: 'https://example.com', children: [{ type: 'text', value: 'Link 1' }] },
           oldText: 'Link 1',
           oldUrl: 'https://example.com',
-          newLink: { url: 'https://example.com', children: [{ type: 'text', value: 'Link 1' }] },
           newText: 'Link 1',
           newUrl: 'https://example.com',
         },
         {
-          oldLink: { url: 'https://example.com', children: [{ type: 'text', value: 'Link 2' }] },
           oldText: 'Link 2',
           oldUrl: 'https://example.com',
-          newLink: { url: 'https://example.com', children: [{ type: 'text', value: 'Link 2' }] },
           newText: 'Link 2',
           newUrl: 'https://example.com',
         },
@@ -91,7 +72,7 @@ describe('Link Validator', () => {
   });
 
   describe('exactMatch', () => {
-    it('should return true when all links match', () => {
+    it('true when all links match', () => {
       const linkLists = [
         {
           oldUrl: 'https://example.com',
@@ -108,7 +89,7 @@ describe('Link Validator', () => {
       expect(result).to.be.true;
     });
 
-    it('should return false when at least one link does not match', () => {
+    it('false when at least one link does not match', () => {
       const linkLists = [
         {
           oldUrl: 'https://example.com',
@@ -127,7 +108,7 @@ describe('Link Validator', () => {
   });
 
   describe('deepCompare', () => {
-    it('should return an array of observations', () => {
+    it('array of observations', () => {
       const linkLists = [
         {
           oldUrl: 'https://example.com',
@@ -142,49 +123,49 @@ describe('Link Validator', () => {
           newText: 'Link 2',
         },
       ];
-      const expected = [
-        {
-          newText: 'Link 2',
-          newUrl: 'https://example.org',
-          oldText: 'Link 2',
-          oldUrl: 'https://example.com',
-          text: {
-            [MATCH]: true,
-            [EMPTY]: false,
-            [BOTH_EMPTY]: false,
-            [LENGTHS_MATCH]: true,
-            [SIMILARITY_PERCENTAGE]: '100%',
-            [SIMILARITY]: SIMILARITY_EXACT,
-            [WHITESPACE]: true,
-            [ASCII]: false,
-          },
-          url: {
-            [MATCH]: false,
-            [EMPTY]: false,
-            [BOTH_EMPTY]: false,
-            [ASCII]: false,
-            [DOUBLE_HASH]: false,
-            [HOST_MATCH]: false,
-            [HASH_MATCH]: true,
-            [LENGTHS_MATCH]: true,
-            [PATHNAME_MATCH]: true,
-            [SEARCH_MATCH]: true,
-            [SIMILARITY_PERCENTAGE]: '84%',
-            [SIMILARITY]: SIMILARITY_HIGH,
-            [WHITESPACE]: false,
-            [VALID_URL]: true,
-          },
-        },
-      ];
+      const expected = {
+        newText: 'Link 2',
+        newUrl: 'https://example.org',
+        oldText: 'Link 2',
+        oldUrl: 'https://example.com',
+      };
+      const expectedText = {
+        [MATCH]: true,
+        [EMPTY]: false,
+        [BOTH_EMPTY]: false,
+        [LENGTHS_MATCH]: true,
+        [SIMILARITY_PERCENTAGE]: '100%',
+        [SIMILARITY]: SIMILARITY_EXACT,
+        [WHITESPACE]: true,
+        [ASCII]: false,
+      };
+      const expectedUrl = {
+        [MATCH]: false,
+        [EMPTY]: false,
+        [BOTH_EMPTY]: false,
+        [ASCII]: false,
+        [DOUBLE_HASH]: false,
+        [HOST_MATCH]: false,
+        [HASH_MATCH]: true,
+        [LENGTHS_MATCH]: true,
+        [PATHNAME_MATCH]: true,
+        [SEARCH_MATCH]: true,
+        [SIMILARITY_PERCENTAGE]: '84%',
+        [SIMILARITY]: SIMILARITY_HIGH,
+        [WHITESPACE]: false,
+        [VALID_URL]: true,
+      };
 
       const result = deepCompare(linkLists, comparison, entry);
 
-      expect(result).to.deep.equal(expected);
+      expect(result[0]).to.deep.include(expected);
+      expect(result[0].text).to.deep.include(expectedText);
+      expect(result[0].url).to.deep.include(expectedUrl);
     });
   });
 
   describe('comparePageLinks', () => {
-    it('should return comparisons and anomalies when links do not match', () => {
+    it('comparisons and anomalies when links do not match', () => {
       const sourceLinks = [
         { url: 'https://example.com', children: [{ type: 'text', value: 'Link 1' }] },
         { url: 'https://example.com', children: [{ type: 'text', value: 'Link 2' }] },
@@ -196,6 +177,7 @@ describe('Link Validator', () => {
       const expected = {
         comparisons: 1,
         anomalies: 0,
+        unknown: 1,
       };
 
       const result = comparePageLinks(sourceLinks, updatedLinks, comparison, entry);
@@ -203,7 +185,7 @@ describe('Link Validator', () => {
       expect(result).to.deep.equal(expected);
     });
 
-    it('should return zero comparisons and anomalies when links match', () => {
+    it('zero comparisons and anomalies when links match', () => {
       const sourceLinks = [
         { url: 'https://example.com', children: [{ type: 'text', value: 'Link 1' }] },
         { url: 'https://example.com', children: [{ type: 'text', value: 'Link 2' }] },
@@ -215,6 +197,7 @@ describe('Link Validator', () => {
       const expected = {
         comparisons: 0,
         anomalies: 0,
+        unknown: 0,
       };
 
       const result = comparePageLinks(sourceLinks, updatedLinks, comparison, entry);
@@ -224,7 +207,7 @@ describe('Link Validator', () => {
   });
 
   describe('reportAnomalies', () => {
-    it('should return an array of anomalies', () => {
+    it('count of anomalies', () => {
       const observations = [{
         text: {
           [MATCH]: true,
@@ -238,7 +221,11 @@ describe('Link Validator', () => {
 
       const anomalies = reportAnomalies(observations, ['source', 'updated'], '/entry');
 
-      expect(anomalies).to.deep.equal(['ASCII URL corruption']);
+      expect(anomalies).to.deep.equal({
+        observations: 1,
+        anomalies: 1,
+        unknownAnomalies: 0,
+      });
     });
   });
 });
@@ -265,7 +252,7 @@ describe('Validate Markdown MDAST', () => {
   });
 
   describe('getMarkdownLinks', () => {
-    it('Gets markdown links', async () => {
+    it('extracts links from markdown', async () => {
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, updatedMdast);
 
       expect(sourceLinks).to.be.an('array');
@@ -273,11 +260,20 @@ describe('Validate Markdown MDAST', () => {
 
       expect(sourceLinks.length).to.equal(31);
       expect(updatedLinks.length).to.equal(31);
+      expect(sourceLinks[0]).to.deep.include({
+        children: [
+          {
+            type: 'text',
+            value: 'What Adobe Experience Manager is',
+          },
+        ],
+        url: 'https://main--business-website--adobe.hlx.page/blog/basics/adobe-experience-manager#what-is-adobe-experience-manager',
+      });
     });
   });
 
   describe('getLinkLists', () => {
-    it('Gets link lists', async () => {
+    it('extracts link lists from markdown', async () => {
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, updatedMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
 
@@ -293,7 +289,7 @@ describe('Validate Markdown MDAST', () => {
   });
 
   describe('exactMatch', () => {
-    it('All links match when updated correctly', async () => {
+    it('all links match when updated correctly', async () => {
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, updatedMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
 
@@ -301,7 +297,7 @@ describe('Validate Markdown MDAST', () => {
       expect(match).to.equal(true);
     });
 
-    it('All links do not match when links are mismatched', async () => {
+    it('all links do not match when links are mismatched', async () => {
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, mismatchedMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
 
@@ -311,7 +307,7 @@ describe('Validate Markdown MDAST', () => {
   });
 
   describe('deepCompare', () => {
-    it('Returns an empty array when there are no differences in links', async () => {
+    it('no observations when links match', async () => {
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, updatedMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
 
@@ -320,7 +316,7 @@ describe('Validate Markdown MDAST', () => {
       expect(observations.length).to.equal(0);
     });
 
-    it('Returns an array of observations when there are differences in links', async () => {
+    it('array of observations when links do not match', async () => {
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, mismatchedMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
       const observations = deepCompare(linkLists, comparison, entry);
@@ -339,24 +335,33 @@ describe('Validate Markdown MDAST', () => {
   });
 
   describe('reportAnomalies', () => {
-    it('Returns an array of anomalies', async () => {
+    it('multiple anomalies when links do not match', async () => {
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, shuffledMdast);
       const linkLists = getLinkLists(sourceLinks, updatedLinks);
       const observations = deepCompare(linkLists, comparison, entry);
       const anomalies = reportAnomalies(observations, comparison, entry);
 
-      expect(anomalies).to.be.an('array');
-      expect(anomalies.length).to.equal(4);
-      expect(anomalies).to.deep.equal(['ASCII URL corruption', 'ASCII URL corruption', 'ASCII URL corruption', 'Missing link']);
+      expect(anomalies).to.deep.equal({
+        observations: 30,
+        anomalies: 4,
+        unknownAnomalies: 26,
+      });
     });
   });
 
   describe('comparePageLinks', () => {
-    it('should return comparisons and anomalies when links do not match', async () => {
+    it('no comparisons and anomalies when links match', async () => {
+      const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, updatedMdast);
+      const result = comparePageLinks(sourceLinks, updatedLinks, comparison, entry);
+
+      expect(result).to.deep.equal({ comparisons: 0, anomalies: 0, unknown: 0 });
+    });
+
+    it('multiple comparisons and anomalies when links do not match', async () => {
       const { sourceLinks, updatedLinks } = await getMarkdownLinks(sourceMdast, shuffledMdast);
       const result = comparePageLinks(sourceLinks, updatedLinks, comparison, entry);
 
-      expect(result).to.deep.equal({ comparisons: 30, anomalies: 4 });
+      expect(result).to.deep.equal({ comparisons: 30, anomalies: 4, unknown: 26 });
     });
   });
 });
@@ -366,23 +371,23 @@ describe('Validate Mock Folders', () => {
   const mdPath = `${pathname}/mocks/md-mocks`;
 
   describe('comparePage', () => {
-    it('should return comparisons and anomalies when links match', async () => {
+    it('no comparisons and anomalies when links match', async () => {
       const entry = '/affinity-diagram-guide';
       const comparison = ['source', 'updated'];
       const result = await comparePage(mdPath, comparison, entry);
-      expect(result).to.deep.equal({ comparisons: 0, anomalies: 0 });
+      expect(result).to.deep.equal({ comparisons: 0, anomalies: 0, unknown: 0 });
     });
 
-    it('should return comparisons and anomalies when links do not match', async () => {
+    it('multiple comparisons and anomalies when links do not match', async () => {
       const entry = '/affinity-diagram-guide';
       const comparison = ['source', 'mismatch'];
       const result = await comparePage(mdPath, comparison, entry);
-      expect(result).to.deep.equal({ comparisons: 3, anomalies: 0 });
+      expect(result).to.deep.equal({ comparisons: 3, anomalies: 0, unknown: 3 });
     });
   });
 
   describe('comparePages', async () => {
-    it('should return comparisons and anomalies when links match', async () => {
+    it('no comparisons and anomalies when links match', async () => {
       const comparison = ['source', 'updated'];
       const listData = await loadListData(listPath);
 
@@ -392,10 +397,11 @@ describe('Validate Mock Folders', () => {
         pageAnomalies: 0,
         comparisons: 0,
         anomalies: 0,
+        unknown: 0,
       });
     });
 
-    it('should return comparisons and anomalies when links do not match', async () => {
+    it('multiple comparisons and anomalies when links do not match', async () => {
       const comparison = ['source', 'mismatch'];
       const listData = await loadListData(listPath);
 
@@ -405,6 +411,7 @@ describe('Validate Mock Folders', () => {
         pageAnomalies: 0,
         comparisons: 3,
         anomalies: 0,
+        unknown: 3,
       });
     });
   });
