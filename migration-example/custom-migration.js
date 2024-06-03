@@ -39,7 +39,7 @@ async function main() {
   }
 
   config.reporter.log('migration', 'info', 'Finished migration');
-  config.reporter.generateTotals();
+  await config.reporter.generateTotals();
 }
 
 await main();

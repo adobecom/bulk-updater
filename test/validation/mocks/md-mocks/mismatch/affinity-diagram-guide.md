@@ -6,13 +6,13 @@ As a team leader, you’re tasked with helping your staff members reach their ma
 
 On top of that, you have to organize, manage, and process huge amounts of information. From data collected via surveys to the latest concepts developed during brainstorming sessions, it can be all too easy to get lost in the seemingly endless sea of information.
 
-Fortunately, there are a number of excellent [project management techniques and tools](https://business.adobe.com/blog/basics/quality-management) you can use to bring structure to your processes and put your organization’s data to work. One of the most popular methods is the practice of affinity diagramming, a simple yet effective tool that might just be exactly what you have been looking for to sort through all your information and keep your team on track.
+Fortunately, there are a number of excellent [project management techniques and tools](https://mismatch.adobe.com/blog/basics/quality-management) you can use to bring structure to your processes and put your organization’s data to work. One of the most popular methods is the practice of affinity diagramming, a simple yet effective tool that might just be exactly what you have been looking for to sort through all your information and keep your team on track.
 
 You might have heard of affinity diagrams, but you may also be looking for more information on how to use them to better organize your ideas and plan your work. In this article, you’ll learn what an affinity diagram is, how it can be used to organize data, and, most importantly, how you can incorporate it into your planning processes.
 
 Specifically, this post will cover:
 
-- [What affinity diagrams are](https://business.adobe.com/blog/basics/affinity-diagram-guide#what-are-affinity-diagrams)
+- [What affinity diagrams are](https://business.adobe.com/blog/basics/affinity-diagram-guide#mismatch)
 - [The affinity diagramming process](https://business.adobe.com/blog/basics/affinity-diagram-guide#the-affinity-diagramming-process)
 - [When and how to use affinity diagrams](https://business.adobe.com/blog/basics/affinity-diagram-guide#when-and-how-to-use-affinity-diagrams)
 - [How to get started with affinity mapping](https://business.adobe.com/blog/basics/affinity-diagram-guide#start-organizing-your-ideas-with-affinity-mapping)
@@ -88,7 +88,7 @@ For example, take the question, “How can we improve our product?” This quest
 
 How you use the information gathered from the affinity mapping process will largely depend on your organization and the type of work you’re trying to accomplish. Generally, you and your team should come away from your affinity diagramming session with a better understanding of which projects or ideas are most important. You can use that information going forward to address the highest priority projects first and keep your staff focused on the most value-driven objectives.
 
-If your team is facing a more specific, narrow-focused problem, affinity mapping may not be the most sensible tool available to you. In such situations, other project management methodologies like [kanban](https://business.adobe.com/blog/basics/what-is-kanban) may be the better fit. For instance, if you already know that site navigation is impeding the user experience, develop ideas for remedying this issue and create a detailed to-do list with your [kanban board](https://business.adobe.com/blog/basics/kanban-board).
+If your team is facing a more specific, narrow-focused problem, affinity mapping may not be the most sensible tool available to you. In such situations, other project management methodologies like [mismatch](https://business.adobe.com/blog/basics/what-is-kanban) may be the better fit. For instance, if you already know that site navigation is impeding the user experience, develop ideas for remedying this issue and create a detailed to-do list with your [kanban board](https://business.adobe.com/blog/basics/kanban-board).
 
 ## Start organizing your ideas with affinity mapping
 

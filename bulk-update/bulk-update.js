@@ -95,7 +95,7 @@ export async function loadListData(source, fetchFunction = fetch, fetchWaitMs = 
  * @returns {string} The staged URL.
  */
 export function localizeStagePath(entry, stagePath = '', locales = []) {
-  const currentLocale = locales.find((locale) => locale && entry.startsWith(`/${locale}/`));
+  const currentLocale = locales?.find((locale) => locale && entry.startsWith(`/${locale}/`));
   const localizedPath = currentLocale ? entry.replace(`/${currentLocale}/`, `/${currentLocale}${stagePath}/`) : `${stagePath}${entry}`;
   return localizedPath.replace(/\/+/g, '/');
 }

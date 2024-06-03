@@ -1,14 +1,10 @@
 import { expect } from '@esm-bundle/chai';
 import fs from 'fs';
-import xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 import sinon from 'sinon';
 import ExcelReporter from '../../../bulk-update/reporter/excel-reporter.js';
 
 const { pathname } = new URL('.', import.meta.url);
-
-const deleteObjectProperty = (obj, prop) => Object.keys(obj).forEach((key) => {
-  delete obj[key][prop];
-});
 
 describe('ExcelReporter', () => {
   describe('getDateString', () => {
@@ -22,113 +18,40 @@ describe('ExcelReporter', () => {
     });
   });
 
-  describe('Check sheets js library is called', () => {
+  describe('Check excel js instantiation and methods', () => {
     const sandbox = sinon.createSandbox();
-
-    beforeEach(() => {
-      sandbox.spy(xlsx.utils);
-    });
-
-    afterEach(() => {
-      sandbox.restore();
-    });
 
     it('creates a new workbook', () => {
       const reporter = new ExcelReporter();
 
       expect(reporter).is.not.undefined;
-      expect(xlsx.utils.book_new.calledOnce).to.be.true;
+      expect(reporter.workbook).to.be.instanceOf(ExcelJS.Workbook);
     });
-
-    it('appends log to sheet', () => {
-      const reporter = new ExcelReporter();
-
-      reporter.log('topic', 'status', 'message', 'arg1', 'arg2');
-
-      expect(xlsx.utils.book_append_sheet.calledTwice).to.be.true;
-    });
-
-    it('appends totals to sheet', () => {
-      const reporter = new ExcelReporter();
-
-      reporter.log('topic1', 'status1', 'message1');
-      reporter.log('topic1', 'status2', 'message2');
-      reporter.log('topic2', 'status1', 'message3');
-      reporter.log('topic2', 'status2', 'message4');
-      reporter.log('topic2', 'status2', 'message5');
-
-      reporter.generateTotals();
-
-      expect(xlsx.utils.book_append_sheet.callCount).to.equal(3);
-      expect(xlsx.utils.aoa_to_sheet.callCount).to.equal(3);
-      expect(xlsx.utils.sheet_add_aoa.calledOnce).to.be.true;
-    });
-  });
-
-  describe('Check XLSX file and format', () => {
-    const filepath = `${pathname}output/test.xlsx`;
 
     it('initializes with the correct properties', () => {
+      const filepath = `${pathname}output/test.xlsx`;
       const reporter = new ExcelReporter(filepath);
 
       expect(reporter.filepath).to.equal(filepath);
       expect(reporter.workbook).is.not.undefined;
     });
 
-    it('saves the report to the specified filepath', () => {
-      const reporter = new ExcelReporter(filepath);
-      const saveReportSpy = sinon.spy(reporter, 'saveReport');
+    it('appends log to sheet', () => {
+      const reporter = new ExcelReporter();
+
+      sandbox.spy(reporter.workbook);
       reporter.log('topic', 'status', 'message', 'arg1', 'arg2');
-      reporter.generateTotals();
 
-      expect(saveReportSpy.calledTwice).to.be.true;
-      expect(fs.existsSync(filepath)).to.be.true;
+      expect(reporter.workbook.addWorksheet.calledOnce).to.be.true;
 
-      saveReportSpy.restore();
+      sandbox.restore();
     });
 
-    it('logs a message to xlsx', () => {
-      const reporter = new ExcelReporter();
+    it('appends totals to sheet', async () => {
+      const filepath = `${pathname}output/append.xlsx`;
+      const reporter = new ExcelReporter(filepath, true);
 
-      reporter.log('topic', 'status', 'message', 'arg1', 'arg2');
-      expect(reporter.workbook.SheetNames).to.deep.equal(['Totals', 'topic']);
-
-      const topicSheet = reporter.workbook.Sheets.topic;
-
-      // Remove the type property from each cell
-      deleteObjectProperty(topicSheet, 't');
-      expect(topicSheet).to.deep.equal({
-        '!ref': 'A1:D2',
-        A1: { v: 'Status' },
-        B1: { v: 'Message' },
-        A2: { v: 'status' },
-        B2: { v: 'message' },
-        C2: { v: 'arg1' },
-        D2: { v: 'arg2' },
-      });
-    });
-
-    it('appends object to sheet', () => {
-      const reporter = new ExcelReporter();
-
-      reporter.log('topic', 'status', 'message', { key: 'value' });
-      expect(reporter.workbook.SheetNames).to.deep.equal(['Totals', 'topic']);
-
-      const topicSheet = reporter.workbook.Sheets.topic;
-      deleteObjectProperty(topicSheet, 't');
-      expect(topicSheet).to.deep.equal({
-        '!ref': 'A1:C2',
-        A1: { v: 'Status' },
-        B1: { v: 'Message' },
-        A2: { v: 'status' },
-        B2: { v: 'message' },
-        C1: { v: 'key' },
-        C2: { v: 'value' },
-      });
-    });
-
-    it('produces totals sheet when calculating totals', () => {
-      const reporter = new ExcelReporter();
+      sandbox.spy(reporter.workbook);
 
       reporter.log('topic1', 'status1', 'message1');
       reporter.log('topic1', 'status2', 'message2');
@@ -136,28 +59,115 @@ describe('ExcelReporter', () => {
       reporter.log('topic2', 'status2', 'message4');
       reporter.log('topic2', 'status2', 'message5');
 
-      reporter.generateTotals();
-      const totalsSheet = reporter.workbook.Sheets.Totals;
+      await reporter.generateTotals();
 
-      // Remove the type property from each cell
-      deleteObjectProperty(totalsSheet, 't');
-      expect(totalsSheet).to.deep.equal({
-        '!ref': 'A1:C5',
-        A1: { v: 'Topic' },
-        B1: { v: 'Status' },
-        C1: { v: 'Count' },
-        A2: { v: 'topic1' },
-        B2: { v: 'status1' },
-        C2: { v: 1 },
-        A3: { v: 'topic1' },
-        B3: { v: 'status2' },
-        C3: { v: 1 },
-        A4: { v: 'topic2' },
-        B4: { v: 'status1' },
-        C4: { v: 1 },
-        A5: { v: 'topic2' },
-        B5: { v: 'status2' },
-        C5: { v: 2 },
+      expect(reporter.workbook.addWorksheet.callCount).to.equal(2);
+      expect(reporter.workbook.getWorksheet('Totals')).is.not.undefined;
+
+      sandbox.restore();
+    });
+
+    it('saves the report to the specified filepath', async () => {
+      const filepath = `${pathname}output/file.xlsx`;
+      const reporter = new ExcelReporter(filepath, false);
+      const saveReportSpy = sinon.spy(reporter, 'saveReport');
+      await reporter.generateTotals();
+
+      expect(saveReportSpy.calledOnce).to.be.true;
+
+      saveReportSpy.restore();
+    });
+  });
+
+  describe('Check XLSX file', () => {
+    const filepath = `${pathname}output/test.xlsx`;
+
+    before(async () => {
+      fs.rmSync(filepath, { force: true });
+      const reporter = new ExcelReporter(filepath, false);
+
+      reporter.log('messages', 'status1', 'message1');
+      reporter.log('messages', 'status2', 'message2');
+      reporter.log('messages', 'status1', 'message3');
+      reporter.log('topic', 'count2', 'message');
+      reporter.log('topic', 'count2', 'message');
+      reporter.log('migration', 'success', 'test', { entry: '/' });
+      reporter.log('migration', 'failed', 'test', { entry: '/404' });
+      reporter.log('headers', 'one header', 'test', { header: 'test' });
+      reporter.log('headers', 'two headers', 'test', { header1: 'test1', header2: 'test2' });
+
+      await reporter.generateTotals();
+    });
+
+    it('saves the report to the specified filepath', () => {
+      expect(fs.existsSync(filepath)).to.be.true;
+    });
+
+    it('all sheet are saved to xlsx', async () => {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filepath);
+
+      const messageSheet = workbook.getWorksheet('messages');
+      const totalsSheet = workbook.getWorksheet('Totals');
+      const topicSheet = workbook.getWorksheet('topic');
+      const migrationSheet = workbook.getWorksheet('migration');
+      const headersSheet = workbook.getWorksheet('headers');
+
+      expect(messageSheet).is.not.undefined;
+      expect(totalsSheet).is.not.undefined;
+      expect(topicSheet).is.not.undefined;
+      expect(migrationSheet).is.not.undefined;
+      expect(headersSheet).is.not.undefined;
+    });
+
+    it('each message is saved to xlsx', async () => {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filepath);
+
+      const topicSheet = workbook.getWorksheet('messages');
+      expect(topicSheet.getCell('A1').value).to.equal('Status');
+      expect(topicSheet.getCell('B1').value).to.equal('Message');
+      expect(topicSheet.getCell('A2').value).to.equal('status1');
+      expect(topicSheet.getCell('B2').value).to.equal('message1');
+      expect(topicSheet.getCell('A3').value).to.equal('status2');
+      expect(topicSheet.getCell('B3').value).to.equal('message2');
+      expect(topicSheet.getCell('A4').value).to.equal('status1');
+      expect(topicSheet.getCell('B4').value).to.equal('message3');
+    });
+
+    it('new headers are added, but not replaced', async () => {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filepath);
+
+      const headersheet = workbook.getWorksheet('headers');
+
+      expect(headersheet.getCell('A1').value).to.equal('Status');
+      expect(headersheet.getCell('B1').value).to.equal('Message');
+      expect(headersheet.getCell('C1').value).to.equal('header');
+      expect(headersheet.getCell('D1').value).to.equal('header2');
+    });
+
+    it('totals are saved to xlsx', async () => {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filepath);
+
+      const totalsSheet = workbook.getWorksheet('Totals');
+      const expectedValues = [
+        ['Topic', 'Status', 'Count'],
+        ['messages', 'status1', 2],
+        ['messages', 'status2', 1],
+        ['topic', 'count2', 2],
+        ['migration', 'success', 1],
+        ['migration', 'failed', 1],
+        ['headers', 'one header', 1],
+        ['headers', 'two headers', 1],
+      ];
+
+      expectedValues.forEach((expectedRow, rowIndex) => {
+        expectedRow.forEach((expectedValue, columnIndex) => {
+          const cell = totalsSheet.getCell(rowIndex + 1, columnIndex + 1);
+          expect(cell.value).to.equal(expectedValue);
+        });
       });
     });
   });
