@@ -24,13 +24,15 @@ Run the script with the following command:
 
 ```bash
 node download-markdown/download-markdown.js <migration-dir> <output-dir> <domain> <stage-path>
+# example:
+node download-markdown/download-markdown.js 'blog-test' 'uploaded' 'https://main--bacom-blog--adobecom.hlx.page' '/drafts/staged-content'
 ```
 
 Where:
-* `<migration-dir>` is the directory containing the output/list.json and locales.json files.
-* `<output-dir>` is the md directory where the markdown files will be saved.
-* `<domain>` is the domain from which the markdown files will be fetched.
-* `<stage-path>` is the path used to construct the full URLs for downloading the markdown files.
+- `<migration-dir>` is the directory containing the output/list.json and locales.json files.
+- `<output-dir>` is the md directory where the markdown files will be saved.
+- `<domain>` is the domain from which the markdown files will be fetched.
+- `<stage-path>` is the path used to construct the full URLs for downloading the markdown files.
 
 ## Localization Support
 
@@ -39,6 +41,12 @@ Ensure the locales.json file contains the necessary locales, such as `['', 'de',
 The locale will be placed between the domain and stage path in the URL.
 
 For example, if the stage path is '/drafts/staged-content', and the entry is 'de/entry' the URL is 'https://main--bacom-blog--adobecom.hlx.page/de/drafts/staged-content/entry.md'.
+
+## Authentication Support
+
+The dotenv library is used to load environment variables from a .env file.
+Copy the .env.example file to .env and set the `AUTHORIZATION_TOKEN` variable in the .env file.
+The authorization token will be used in the header of the markdown fetch request.
 
 ## Download Process
 

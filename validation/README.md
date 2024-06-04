@@ -8,28 +8,6 @@ The validator differs from the link validation done during bulk updating by chec
 
 This tool is made to be used in conjunction with the `download-markdown` tool but can be used independently with any markdown.
 
-## Usage
-
-Run the migration script directly, ensuring to set the path:
-
-```bash
-node validation/link-validator.js {path to list.json} {path to md directory} {source} {updated}
-
-example: node validation/link-validator.js './blog-test/output/list.json' './blog-test/md' 'source' 'updated'
-```
-
-Where:
-- `{path to list.json}` is the path to the list.json file containing the list of paths to validate.
-- `{path to md directory}` is the path to the directory containing the source and updated markdown files.
-- `{source}` is the folder containing the source markdown files.
-- `{updated}` is the folder containing the updated markdown files.
-
-## How it works
-
-The script reads markdown files from the provided paths and extracts all the links from each file. It then compares the links from the source and updated files. If the links match exactly, it logs that they match. If they don't, it performs a deep comparison, logging the differences and any anomalies it detects.
-
-The script generates two reports: a standard report and a deep comparison report. The standard report logs the overall results of the comparison, while the deep comparison report logs detailed information about each link and any anomalies detected.
-
 ## Prerequisites
 
 Before running the script, ensure the following structure is set up in your migration directory:
@@ -37,6 +15,28 @@ Before running the script, ensure the following structure is set up in your migr
 1. A new or existing migration directory, e.g. `blog-test`.
 2. An `output` folder containing a `list.json` file with an array of entries.
 3. A `md` folder containing the source and updated markdown files.
+
+## Usage
+
+Run the migration script directly, ensuring to set the path:
+
+```bash
+node validation/link-validator.js <migration-dir> <source> <updated>
+# example:
+node validation/link-validator.js 'blog-test' 'source' 'updated'
+```
+
+Where:
+- `<migration-dir>` is the directory containing the output/list.json and locales.json files.
+- `<source>` is the folder containing the source markdown files.
+- `<updated>` is the folder containing the updated markdown files.
+
+## How it works
+
+The script reads markdown files from the provided paths and extracts all the links from each file. It then compares the links from the source and updated files. If the links match exactly, it logs that they match. If they don't, it performs a deep comparison, logging the differences and any anomalies it detects.
+
+The script generates two reports: a standard report and a deep comparison report. The standard report logs the overall results of the comparison, while the deep comparison report logs detailed information about each link and any anomalies detected.
+
 
 ## Reviewing the Reports
 
