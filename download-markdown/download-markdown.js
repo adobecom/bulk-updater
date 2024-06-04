@@ -1,8 +1,11 @@
 import path from 'path';
 import fs from 'fs';
+import dotenv from 'dotenv';
 import { fetch, timeoutSignal, AbortError } from '@adobe/fetch';
 import { saveToFile, entryToPath } from '../bulk-update/document-manager/document-manager.js';
 import { localizeStageUrl } from '../bulk-update/bulk-update.js';
+
+dotenv.config({ path: 'download-markdown/.env' });
 
 const delay = (milliseconds) => new Promise((resolve) => { setTimeout(resolve, milliseconds); });
 
@@ -10,6 +13,7 @@ const ALLOW_SKIP = true; // Allow skipping files that already exist
 const PAGE_DELAY = 500; // 500ms delay for fetching from hlx.page
 const LIVE_DELAY = 0; // 0ms delay for fetching from live site
 const TIMEOUT = 5000; // 5s timeout for fetching markdown
+const { AUTHORIZATION_TOKEN } = process.env;
 
 /**
  * Reads a JSON file from the specified directory.
@@ -39,7 +43,12 @@ export async function fetchMarkdown(url, fetchWaitMs, fetchFn = fetch) {
     console.log(`Fetching markdown ${url}, delay ${fetchWaitMs}ms, timeout ${TIMEOUT}ms`);
     await delay(fetchWaitMs); // Wait 500ms to avoid rate limiting, not needed for live.
     const signal = timeoutSignal(TIMEOUT); // 5s timeout
-    const response = await fetchFn(url, { signal });
+    const headers = {};
+    if (AUTHORIZATION_TOKEN) {
+      headers.Authorization = AUTHORIZATION_TOKEN;
+    }
+
+    const response = await fetchFn(url, { signal, headers });
 
     if (!response.ok) {
       console.warn('Failed to fetch markdown.', response.status, response.statusText);
@@ -127,6 +136,10 @@ export function downloadMarkdown(folder, list, locales, siteURL, stagePath, fetc
   });
 
   fs.mkdirSync(folder, { recursive: true });
+  // save the list of entries to a file
+  saveToFile(path.join(folder, 'download-list.json'), JSON.stringify(stagedUrls.map(([, stageUrl]) => stageUrl), null, 2));
+  saveToFile(path.join(folder, 'preview.txt'), stagedUrls.map(([, stageUrl]) => stageUrl).join('\n'));
+
   return downloadMDs(stagedUrls, folder, fetchFn);
 }
 
@@ -139,18 +152,28 @@ export function downloadMarkdown(folder, list, locales, siteURL, stagePath, fetc
  * @param {string} stagePath - The path to the staging environment.
  * @returns {Promise<void>} A promise that resolves when the download process is complete.
  */
-async function init(migrationDir, outputDir, siteUrl, stagePath = '') {
+async function main(migrationDir, outputDir, siteUrl, stagePath = '') {
   const list = readJsonFile('output/list.json', migrationDir);
   const locales = readJsonFile('locales.json', migrationDir);
 
-  if (!list || !locales) {
-    console.error('Missing list or locales');
+  if (!list) {
+    console.error('Missing list');
     process.exit(1);
+  }
+
+  if (!locales) {
+    console.error('Missing locales.json, continuing without localization');
   }
 
   if (!siteUrl) {
     console.error('Missing siteUrl');
     process.exit(1);
+  }
+
+  if (AUTHORIZATION_TOKEN) {
+    console.log('Using authorization token for fetching markdown');
+  } else {
+    console.log('No authorization token found, fetching markdown without token');
   }
 
   const markdownFolder = path.join(migrationDir, 'md', outputDir);
@@ -162,11 +185,16 @@ async function init(migrationDir, outputDir, siteUrl, stagePath = '') {
   }
 }
 
-// example usage: node tools/download-markdown/download-markdown.js 'blog-test' 'uploaded' 'https://main--bacom-blog--adobecom.hlx.page' '/drafts/staged-content'
+/**
+ * Run the markdown downloader
+ * Example usage: node download-markdown/download-markdown.js 'blog-test' 'uploaded' 'https://main--bacom-blog--adobecom.hlx.page' '/drafts/staged-content'
+ */
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
-  const [folder, outputDir, siteUrl, stagePath] = args;
+  // defaults for debugging
+  const DEFAULTS = ['blog-test', 'uploaded', 'https://main--bacom-blog--adobecom.hlx.page', '/drafts/staged-content'];
+  const [folder, outputDir, siteUrl, stagePath] = args.length ? args : DEFAULTS;
 
-  await init(folder, outputDir, siteUrl, stagePath);
+  await main(folder, outputDir, siteUrl, stagePath);
   process.exit(0);
 }

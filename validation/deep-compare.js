@@ -21,6 +21,7 @@ export const DOUBLE_HASH = 'Double Hash';
 export const HOST_MATCH = 'Host Match';
 export const PATHNAME_MATCH = 'Pathname Match';
 export const SEARCH_MATCH = 'Search Match';
+export const MILO_TOOL = 'Milo Tool';
 
 export const ANOMALY_EMPTY_LINK = 'Empty link';
 export const ANOMALY_MISSING_LINK = 'Missing link';
@@ -28,6 +29,7 @@ export const ANOMALY_WHITESPACE_CORRUPTION = 'Whitespace corruption';
 export const ANOMALY_ASCII_URL_CORRUPTION = 'ASCII URL corruption';
 export const ANOMALY_MULTIPLE_HASHTAGS = 'Multiple hashtags';
 export const ANOMALY_UNKNOWN = 'Unknown anomaly';
+export const ANOMALY_MILO_TOOL = 'Milo tool update';
 
 /**
  * Calculates the Levenshtein distance between two strings.
@@ -126,6 +128,7 @@ export function observeUrl(oldUrl = '', newUrl = '') {
   const validUrl = !!(oldUrlObj?.href && newUrlObj?.href);
 
   observations[DOUBLE_HASH] = oldUrl?.match(/#/g)?.length > 1 || newUrl?.match(/#/g)?.length > 1;
+  observations[MILO_TOOL] = oldUrl?.match(/milo\.adobe\.com\/tools/g) || newUrl?.match(/milo\.adobe\.com\/tools/g);
   observations[VALID_URL] = validUrl;
 
   if (validUrl) {
@@ -183,6 +186,8 @@ export function detectAnomaly(observation) {
     anomaly = ANOMALY_ASCII_URL_CORRUPTION;
   } else if (url[DOUBLE_HASH]) {
     anomaly = ANOMALY_MULTIPLE_HASHTAGS;
+  } else if (url[MILO_TOOL] && !url[MATCH]) {
+    anomaly = ANOMALY_MILO_TOOL;
   } else {
     anomaly = ANOMALY_UNKNOWN;
   }

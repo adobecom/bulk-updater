@@ -281,8 +281,20 @@ export async function comparePages(pageList, mdPath, comparison) {
  * @param {comparison} compare1 - source
  * @param {comparison} compare2 - updated
  */
-export async function main(listPath, mdPath, compare1, compare2) {
+export async function main(migrationDir, compare1, compare2) {
+  if (!migrationDir) {
+    console.error('Missing migration directory');
+    process.exit(1);
+  }
+
+  if (!compare1 || !compare2) {
+    console.error('Missing comparison parameters');
+    process.exit(1);
+  }
+
   const comparison = [compare1, compare2];
+  const listPath = path.join(migrationDir, 'output', 'list.json');
+  const mdPath = path.join(migrationDir, 'md');
 
   const listData = await loadListData(listPath);
   console.log(`Comparing ${listData.length} pages`);
@@ -306,15 +318,14 @@ export async function main(listPath, mdPath, compare1, compare2) {
 
 /**
  * Run the link comparison
- * node validation/link-validator.js './blog-test/output/list.json' \
- *   './blog-test/md' 'source' 'uploaded'
+ * Example usage: node validation/link-validator.js 'blog-test' 'source' 'uploaded'
  */
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   // defaults for debugging
-  const DEFAULTS = ['blog-test/output/list.json', 'blog-test/md', 'source', 'uploaded'];
-  const [list, mdPath, compare1, compare2] = args.length ? args : DEFAULTS;
+  const DEFAULTS = ['blog-test', 'source', 'uploaded'];
+  const [folder, compare1, compare2] = args.length ? args : DEFAULTS;
 
-  await main(list, mdPath, compare1, compare2);
+  await main(folder, compare1, compare2);
   process.exit(0);
 }
