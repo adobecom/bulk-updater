@@ -13,7 +13,9 @@ import { entryToPath } from '../bulk-update/document-manager/document-manager.js
 dotenv.config({ path: 'bacom-upload/.env' });
 
 const { SITE_ID, DRIVE_ID, BEARER_TOKEN } = process.env;
+const LOCAL_SAVE = false;
 const GRAPH_UPLOAD = true;
+const PROMPT_CONTINUE = true;
 const { pathname } = new URL('.', import.meta.url);
 const dateString = ExcelReporter.getDateString();
 const rl = readline.createInterface({
@@ -25,16 +27,19 @@ const config = {
   list: [
     'https://main--bacom--adobecom.hlx.live/query-index.json',
   ],
+  sharepointFolder: 'bacom', // The root folder in SharePoint to upload the documents to
   siteUrl: 'https://main--bacom--adobecom.hlx.live',
   stagePath: '/drafts/staged-content',
   locales: JSON.parse(fs.readFileSync(`${pathname}locales.json`, 'utf8')),
   prodSiteUrl: 'https://business.adobe.com',
-  reporter: new ExcelReporter(`${pathname}reports/${dateString}.xlsx`, false),
+  reporter: new ExcelReporter(`${pathname}reports/${dateString}.xlsx`, true),
   outputDir: `${pathname}output`,
   mdDir: `${pathname}md`,
   mdCacheMs: 1 * 24 * 60 * 60 * 1000, // 1 day(s)
   fetchWaitMs: 20,
 };
+
+let inputBearerToken = '';
 
 /**
  * Creates a block with the given name and fields.
@@ -71,16 +76,20 @@ async function uploadChunk(uploadUrl, buffer, chunkStart, chunkEnd) {
 
   try {
     const res = await fetch(uploadUrl, { method: 'PUT', body, headers });
-    console.log(res);
     const uploadData = await res.json();
-    console.log(uploadData);
     return uploadData;
   } catch (e) {
-    console.error(e.message);
+    console.error(`Error uploading chunk: ${e.message}`);
     return false;
   }
 }
 
+/**
+ * Verifies the validity of a bearer token by making a request to the Microsoft Graph API.
+ *
+ * @param {string} bearerToken - The bearer token to be verified.
+ * @returns {Promise<{ success: boolean, message: string }>} - A promise that resolves to an object containing the success status and a message.
+ */
 async function verifyBearerToken(bearerToken) {
   try {
     const res = await fetch('https://graph.microsoft.com/v1.0/me', { headers: { Authorization: `Bearer ${bearerToken}` } });
@@ -122,6 +131,7 @@ async function getBearerToken(token = '') {
       bearerToken = await new Promise((resolve) => {
         rl.question('Bearer token: ', resolve);
       });
+      inputBearerToken = bearerToken;
     }
 
     const verification = await verifyBearerToken(bearerToken);
@@ -144,7 +154,6 @@ async function getBearerToken(token = '') {
  * @returns {Promise<boolean>} - A promise that resolves to true if the document is uploaded successfully, false otherwise.
  */
 async function uploadDocument(sessionUrl, buffer, bearerToken) {
-  console.error('NOT IMPLEMENTED!'); process.exit(0);
   const chunkSize = 1024 * 10240; // 10 MB
 
   const headers = {
@@ -163,6 +172,11 @@ async function uploadDocument(sessionUrl, buffer, bearerToken) {
     if (!uploadData) {
       return false;
     }
+    console.log(`Uploaded chunk ${i / chunkSize + 1}/${Math.ceil(buffer.length / chunkSize)}`);
+    if (uploadData?.webUrl) {
+      console.log(`Document URL: ${uploadData?.webUrl}`);
+      config.reporter.log('upload', 'document', 'Document chunk uploaded successfully', { webUrl: uploadData.webUrl });
+    }
   }
 
   return true;
@@ -176,29 +190,33 @@ async function uploadDocument(sessionUrl, buffer, bearerToken) {
  * @returns {Promise<boolean>} - Returns true if the document upload is successful, otherwise false.
  */
 async function upload(entry, mdast) {
-  const bearerToken = await getBearerToken(BEARER_TOKEN);
   const documentPath = entryToPath(entry);
   const stagedEntry = localizeStagePath(documentPath, config.stagePath, config.locales);
-  const SPFileName = `website${stagedEntry}`;
+  const SPFileName = `${config.sharepointFolder}${stagedEntry}`;
   const createSessionUrl = `https://graph.microsoft.com/v1.0/sites/${SITE_ID}/drives/${DRIVE_ID}/root:/${SPFileName}.docx:/createUploadSession`;
 
-  console.log(`Uploading ${entry} to ${stagedEntry} in SharePoint...`);
-  console.log(`URL: ${createSessionUrl}`);
+  console.log(`Uploading ${entry} to ${stagedEntry}.docx in SharePoint...`);
+  console.log(`Upload URL: ${createSessionUrl}`);
 
-  const shouldContinue = await new Promise((resolve) => {
-    rl.question('Type \'y\' to continue with upload (ctrl-c to quit): ', resolve);
-  });
+  if (PROMPT_CONTINUE) {
+    const shouldContinue = await new Promise((resolve) => {
+      rl.question('Type \'y\' to continue with upload (ctrl-c to quit): ', resolve);
+    });
 
-  if (shouldContinue.toLowerCase() !== 'y') return false;
+    if (shouldContinue.toLowerCase() !== 'y') return false;
+  }
 
   console.log('Uploading document...');
 
   const buffer = await mdast2docx(mdast);
+  const bearerToken = await getBearerToken(inputBearerToken ?? BEARER_TOKEN);
   const success = await uploadDocument(createSessionUrl, buffer, bearerToken);
 
   if (success) {
+    config.reporter.log('sharepoint', 'upload', 'Document uploaded successfully');
     console.log('Document uploaded successfully');
   } else {
+    config.reporter.log('sharepoint', 'failed', 'Document upload failed');
     console.error('Document upload failed');
   }
 
@@ -229,7 +247,9 @@ export async function migrate(document) {
     config.reporter.log('migration', 'create', 'Created hide block');
   }
 
-  await saveDocument(document, config);
+  if (LOCAL_SAVE) {
+    await saveDocument(document, config);
+  }
   if (GRAPH_UPLOAD) {
     await upload(entry, mdast);
   }
@@ -257,7 +277,7 @@ export async function init(list) {
   }
 
   if (BEARER_TOKEN) {
-    console.log('Bearer Token set');
+    console.log('Bearer Token set from environment variable');
   }
 
   await BulkUpdate(config, migrate);
@@ -269,8 +289,7 @@ export async function init(list) {
  */
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
-  const DEFAULTS = ['bacom-upload/list.json'];
-  const [list] = args.length ? args : DEFAULTS;
+  const [list] = args;
 
   await init(list);
   process.exit(0);
