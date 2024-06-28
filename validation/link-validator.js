@@ -13,8 +13,8 @@ const VERBOSE = false;
 
 const { pathname } = new URL('.', import.meta.url);
 const dateString = ExcelReporter.getDateString();
-const standardReport = new ExcelReporter(`${pathname}output/validation-${dateString}.xlsx`, false);
-const deepReport = new ExcelReporter(`${pathname}output/deep-compare-${dateString}.xlsx`, false);
+let standardReport = new ExcelReporter(`${pathname}output/validation-${dateString}.xlsx`, false);
+let deepReport = new ExcelReporter(`${pathname}output/deep-compare-${dateString}.xlsx`, false);
 
 /**
  *
@@ -291,6 +291,9 @@ export async function main(migrationDir, compare1, compare2) {
     console.error('Missing comparison parameters');
     process.exit(1);
   }
+
+  standardReport = new ExcelReporter(`${migrationDir}/output/validation-${dateString}.xlsx`, false);
+  deepReport = new ExcelReporter(`${migrationDir}/output/deep-compare-${dateString}.xlsx`, false);
 
   const comparison = [compare1, compare2];
   const listPath = path.join(migrationDir, 'output', 'list.json');
