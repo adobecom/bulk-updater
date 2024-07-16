@@ -16,7 +16,7 @@ class ExcelReporter extends BaseReporter {
    * @param {boolean} [autoSave=true] - Excel file should be automatically saved when logging.
    * Disable to improve performance. Don't forget to call `saveReport` when done.
    */
-  constructor(filepath, autoSave = true) {
+  constructor(filepath, autoSave = false) {
     super();
     this.filepath = filepath;
     this.autoSave = autoSave;

@@ -10,7 +10,7 @@ const dateString = ExcelReporter.getDateString();
 const config = {
   list: [],
   siteUrl: 'https://main--bacom--adobecom.hlx.live',
-  reporter: new ExcelReporter(`${pathname}reports/url-report-${dateString}.xlsx`, true),
+  reporter: new ExcelReporter(`${pathname}reports/url-report-${dateString}.xlsx`, false),
   outputDir: `${pathname}output`,
   mdDir: `${pathname}md`,
   mdCacheMs: 30 * 24 * 60 * 60 * 1000, // 30 days
