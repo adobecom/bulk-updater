@@ -152,8 +152,9 @@ export default async function main(config, migrate, reporter = null) {
     console.error('Bulk Update Error:', e);
     config.reporter.log('Bulk Update Error', 'error', e.message, e.stack);
   }
+  const totals = await config.reporter.generateTotals();
 
-  return config.reporter.generateTotals();
+  return totals;
 }
 
 /**
