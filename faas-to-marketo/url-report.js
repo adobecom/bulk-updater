@@ -4,6 +4,7 @@ import { BulkUpdate, ExcelReporter } from '../bulk-update/index.js';
 
 const PATH = 'path';
 const TEMPLATE = 'template';
+const CAMPAIGN_ID = 'campaign_id';
 
 const { pathname } = new URL('.', import.meta.url);
 const dateString = ExcelReporter.getDateString();
@@ -120,7 +121,7 @@ export function getMarketoData(entry, faasUrl, pathMapping) {
     return undefined;
   }
 
-  const campaignID = faasData.pjs36 || faasData.p?.js?.[36];
+  const campaignID = entryMap[CAMPAIGN_ID] || faasData.pjs36 || faasData.p?.js?.[36];
 
   if (!campaignID) {
     config.reporter.log('url-mapping-by-page', 'error', `No campaign id: ${campaignID}`, { ...byPageOptions, entry, faasUrl });
