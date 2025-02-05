@@ -14,7 +14,7 @@ notifications:
       project: MWPW # Project queue in which the security ticket will be created. Can be any valid JIRA project.
       filters:
         include:
-          risk_rating: R3 R3 # Please do not change this unless instructed to do so.
+          risk_rating: R3 # Please do not change this unless instructed to do so.
       fields:
         assignee:
           name: slavin
