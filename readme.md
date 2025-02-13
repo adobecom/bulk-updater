@@ -1,5 +1,6 @@
 # Bulk updater script
 > A script for pulling in multiple .md files, making modifications and re-exporting as .docx
+> This repo has been archived as it is no longer used. 
 
 ## Install: 
 ```
